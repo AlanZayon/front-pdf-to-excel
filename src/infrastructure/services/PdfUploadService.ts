@@ -11,7 +11,7 @@ export class PdfUploadService {
     try {
       const response = await http.post('/api/upload', formData)
       logger.info('PDF enviado com sucesso', response.data)
-      return { message: response.data.message }
+      return { message: 'PDF enviado com sucesso' }
     } catch (error) {
       logger.error('Erro no upload', error)
       return { message: 'Erro ao enviar o PDF' }
