@@ -1,9 +1,9 @@
 <template>
   <div class="upload-container">
     <h2 class="title">Upload de PDF</h2>
-    <p class="subtitle">Envie seu arquivo para processamento</p>
+    <p class="subtitle">Selecione seu arquivo para processamento</p>
 
-    <form @submit.prevent="handleUpload" class="upload-form">
+    <form class="upload-form">
       <div
         class="drop-zone"
         @dragover.prevent="isDragging = true"
@@ -40,37 +40,36 @@
         </button>
       </div>
 
-      <button :disabled="!file || isLoading" type="submit" class="upload-button">
-        <span v-if="isLoading" class="button-loading">
+      <div v-if="isLoading" class="upload-button">
+        <span class="button-loading">
           <svg class="spinner" viewBox="0 0 50 50">
             <circle class="path" cx="25" cy="25" r="20" fill="none" stroke-width="5"></circle>
           </svg>
-          Enviando...
+          Processando...
         </span>
-        <span v-else>Enviar PDF</span>
+      </div>
+
+      <div v-if="uploadResult" class="result-message" :class="{ 'error': uploadResult.message === 'Erro ao enviar o PDF' }">
+        <svg v-if="uploadResult.message !== 'Erro ao enviar o PDF'" class="result-icon" viewBox="0 0 24 24">
+          <path d="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z" />
+        </svg>
+        <svg v-else class="result-icon" viewBox="0 0 24 24">
+          <path d="M13,13H11V7H13M13,17H11V15H13M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z" />
+        </svg>
+        <p>{{ uploadResult.message }}</p>
+      </div>
+
+      <button
+        v-if="uploadResult && uploadResult.message !== 'Erro ao enviar o PDF'"
+        @click="handleDownload"
+        class="download-button"
+      >
+        <svg class="download-icon" viewBox="0 0 24 24">
+          <path d="M5,20H19V18H5M19,9H15V3H9V9H5L12,16L19,9Z" />
+        </svg>
+        Baixar Arquivo Processado
       </button>
     </form>
-
-    <div v-if="uploadResult" class="result-message" :class="{ 'error': uploadResult.message === 'Erro ao enviar o PDF' }">
-      <svg v-if="uploadResult.message !== 'Erro ao enviar o PDF'" class="result-icon" viewBox="0 0 24 24">
-        <path d="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z" />
-      </svg>
-      <svg v-else class="result-icon" viewBox="0 0 24 24">
-        <path d="M13,13H11V7H13M13,17H11V15H13M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z" />
-      </svg>
-      <p>{{ uploadResult.message }}</p>
-    </div>
-
-    <button
-      v-if="uploadResult && uploadResult.message !== 'Erro ao enviar o PDF'"
-      @click="handleDownload"
-      class="download-button"
-    >
-      <svg class="download-icon" viewBox="0 0 24 24">
-        <path d="M5,20H19V18H5M19,9H15V3H9V9H5L12,16L19,9Z" />
-      </svg>
-      Baixar Arquivo Processado
-    </button>
   </div>
 </template>
 
@@ -87,21 +86,23 @@ const isLoading = ref(false)
 const fileInput = ref<HTMLInputElement | null>(null)
 const isDragging = ref(false)
 
-const onFileChange = (event: Event) => {
+const onFileChange = async (event: Event) => {
   const target = event.target as HTMLInputElement
   if (target.files && target.files[0]) {
     file.value = target.files[0]
     fileName.value = target.files[0].name
+    await handleUpload() // Chama o upload automaticamente
   }
 }
 
-const onDrop = (event: DragEvent) => {
+const onDrop = async (event: DragEvent) => {
   isDragging.value = false
   if (event.dataTransfer?.files && event.dataTransfer.files.length > 0) {
     const droppedFile = event.dataTransfer.files[0]
     if (droppedFile.type === "application/pdf") {
       file.value = droppedFile
       fileName.value = droppedFile.name
+      await handleUpload() // Chama o upload automaticamente
     } else {
       uploadResult.value = { message: 'Por favor, selecione um arquivo PDF válido.' }
     }
