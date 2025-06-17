@@ -1,7 +1,7 @@
 <template>
   <div class="upload-container">
-    <h2 class="title">Upload de PDF</h2>
-    <p class="subtitle">Selecione seu arquivo para processamento</p>
+    <h1 class="title">UPLOAD DE PDF</h1>
+    <p class="subtitle">UPLOAD PDF</p>
 
     <form class="upload-form">
       <div
@@ -16,7 +16,7 @@
           <svg class="upload-icon" viewBox="0 0 24 24">
             <path d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z" />
           </svg>
-          <p class="drop-text">Arraste e solte seu PDF aqui</p>
+          <p class="drop-text">ARRASTE E SOLTE SEU PDF AQUI</p>
           <p class="drop-subtext">ou clique para selecionar</p>
         </div>
         <input
@@ -45,7 +45,7 @@
           <svg class="spinner" viewBox="0 0 50 50">
             <circle class="path" cx="25" cy="25" r="20" fill="none" stroke-width="5"></circle>
           </svg>
-          Processando...
+          PROCESSANDO...
         </span>
       </div>
 
@@ -56,7 +56,7 @@
         <svg v-else class="result-icon" viewBox="0 0 24 24">
           <path d="M13,13H11V7H13M13,17H11V15H13M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z" />
         </svg>
-        <p>{{ uploadResult.message }}</p>
+        <p>{{ uploadResult.message.toUpperCase() }}</p>
       </div>
 
       <button
@@ -67,7 +67,7 @@
         <svg class="download-icon" viewBox="0 0 24 24">
           <path d="M5,20H19V18H5M19,9H15V3H9V9H5L12,16L19,9Z" />
         </svg>
-        Baixar Arquivo Processado
+        BAIXAR ARQUIVO PDF
       </button>
     </form>
   </div>
@@ -91,7 +91,7 @@ const onFileChange = async (event: Event) => {
   if (target.files && target.files[0]) {
     file.value = target.files[0]
     fileName.value = target.files[0].name
-    await handleUpload() // Chama o upload automaticamente
+    await handleUpload()
   }
 }
 
@@ -102,9 +102,9 @@ const onDrop = async (event: DragEvent) => {
     if (droppedFile.type === "application/pdf") {
       file.value = droppedFile
       fileName.value = droppedFile.name
-      await handleUpload() // Chama o upload automaticamente
+      await handleUpload()
     } else {
-      uploadResult.value = { message: 'Por favor, selecione um arquivo PDF válido.' }
+      uploadResult.value = { message: 'INVALID PDF - TRY AGAIN ROCKSTAR' }
     }
   }
 }
@@ -133,7 +133,7 @@ const handleUpload = async () => {
     const result = await PdfUploadService.execute(command)
     uploadResult.value = result
   } catch (error) {
-    uploadResult.value = { message: 'Erro ao enviar o PDF' }
+    uploadResult.value = { message: 'UPLOAD FAILED - ROCK N ROLL AIN\'T NOISE POLLUTION' }
   } finally {
     isLoading.value = false
   }
@@ -145,35 +145,65 @@ const handleDownload = async (event: Event) => {
   try {
     await FileDownloadService.execute()
   } catch (error) {
-    uploadResult.value = { message: 'Erro ao baixar o arquivo' }
+    uploadResult.value = { message: 'DOWNLOAD FAILED - TRY AGAIN' }
   }
 }
 </script>
 
 <style scoped>
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Montserrat:wght@400;600;700&display=swap');
+
 .upload-container {
-  max-width: 500px;
+  max-width: 600px;
   margin: 2rem auto;
-  padding: 2.5rem;
-  border-radius: 16px;
-  background: white;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
-  font-family: 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  padding: 3rem;
+  border-radius: 4px;
+  background: #111;
+  background: linear-gradient(135deg, #1a1a1a 0%, #000 100%);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  font-family: 'Montserrat', sans-serif;
+  border: 1px solid #333;
+  position: relative;
+  overflow: hidden;
+}
+
+.upload-container::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #ff4d4d, #f9cb28, #ff4d4d);
+  background-size: 200% 200%;
+  animation: gradient 3s ease infinite;
+}
+
+@keyframes gradient {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
 }
 
 .title {
-  color: #2c3e50;
+  color: #fff;
   text-align: center;
-  font-size: 1.8rem;
+  font-size: 3rem;
   margin-bottom: 0.5rem;
-  font-weight: 600;
+  font-weight: 700;
+  font-family: 'Bebas Neue', sans-serif;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  text-shadow: 0 0 10px rgba(249, 203, 40, 0.5);
 }
 
 .subtitle {
-  color: #7f8c8d;
+  color: #aaa;
   text-align: center;
   font-size: 1rem;
   margin-bottom: 2rem;
+  font-weight: 400;
+  letter-spacing: 1px;
 }
 
 .upload-form {
@@ -182,24 +212,24 @@ const handleDownload = async (event: Event) => {
 }
 
 .drop-zone {
-  border: 2px dashed #bdc3c7;
-  padding: 2.5rem 1rem;
-  border-radius: 12px;
+  border: 3px dashed #444;
+  padding: 3rem 1rem;
+  border-radius: 4px;
   cursor: pointer;
-  background-color: #f8f9fa;
+  background-color: rgba(30, 30, 30, 0.5);
   transition: all 0.3s ease;
   position: relative;
   overflow: hidden;
 }
 
 .drop-zone.dragging {
-  background-color: #e8f4f8;
-  border-color: #3498db;
+  background-color: rgba(50, 50, 50, 0.7);
+  border-color: #f9cb28;
 }
 
 .drop-zone.has-file {
-  border-color: #2ecc71;
-  background-color: #e8f8f0;
+  border-color: #4CAF50;
+  background-color: rgba(40, 50, 40, 0.7);
 }
 
 .drop-zone-content {
@@ -213,31 +243,35 @@ const handleDownload = async (event: Event) => {
 .upload-icon {
   width: 48px;
   height: 48px;
-  fill: #7f8c8d;
-  margin-bottom: 0.5rem;
+  fill: #f9cb28;
+  margin-bottom: 1rem;
   transition: all 0.3s ease;
+  filter: drop-shadow(0 0 5px rgba(249, 203, 40, 0.5));
 }
 
 .drop-zone:hover .upload-icon,
 .drop-zone.dragging .upload-icon {
-  fill: #3498db;
+  fill: #ff4d4d;
+  transform: scale(1.1);
 }
 
 .drop-zone.has-file .upload-icon {
-  fill: #2ecc71;
+  fill: #4CAF50;
 }
 
 .drop-text {
-  font-size: 1.1rem;
-  color: #2c3e50;
-  font-weight: 500;
+  font-size: 1.2rem;
+  color: #fff;
+  font-weight: 600;
   margin: 0;
+  letter-spacing: 1px;
 }
 
 .drop-subtext {
   font-size: 0.9rem;
-  color: #7f8c8d;
+  color: #aaa;
   margin: 0;
+  font-weight: 400;
 }
 
 .hidden-input {
@@ -248,22 +282,23 @@ const handleDownload = async (event: Event) => {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  padding: 0.75rem 1rem;
-  background-color: #f1f3f4;
-  border-radius: 8px;
-  margin-top: 0.5rem;
+  padding: 1rem;
+  background-color: rgba(40, 40, 40, 0.8);
+  border-radius: 4px;
+  margin-top: 1rem;
+  border-left: 3px solid #f9cb28;
 }
 
 .file-icon {
   width: 20px;
   height: 20px;
-  fill: #3498db;
+  fill: #f9cb28;
 }
 
 .file-name {
   flex: 1;
   font-size: 0.95rem;
-  color: #2c3e50;
+  color: #ddd;
   margin: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -271,49 +306,53 @@ const handleDownload = async (event: Event) => {
 }
 
 .clear-button {
-  background: none;
+  background: rgba(255, 255, 255, 0.1);
   border: none;
   cursor: pointer;
-  padding: 0.25rem;
+  padding: 0.5rem;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background-color 0.2s ease;
+  transition: all 0.2s ease;
 }
 
 .clear-button:hover {
-  background-color: #e0e0e0;
+  background-color: rgba(255, 77, 77, 0.3);
+  transform: rotate(90deg);
 }
 
 .clear-button svg {
-  fill: #7f8c8d;
+  fill: #aaa;
 }
 
 .upload-button {
-  padding: 0.75rem 1.5rem;
-  background-color: #3498db;
-  color: white;
+  padding: 1rem 1.5rem;
+  background: linear-gradient(to right, #ff4d4d, #f9cb28);
+  color: #000;
   border: none;
-  border-radius: 8px;
+  border-radius: 4px;
   cursor: pointer;
   font-size: 1rem;
-  font-weight: 500;
+  font-weight: 700;
   transition: all 0.3s ease;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  height: 48px;
+  height: 50px;
+  margin-top: 1rem;
+  letter-spacing: 1px;
+  text-transform: uppercase;
 }
 
 .upload-button:hover {
-  background-color: #2980b9;
-  transform: translateY(-1px);
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(249, 203, 40, 0.4);
 }
 
 .upload-button:disabled {
-  background-color: #bdc3c7;
+  background: #444;
   cursor: not-allowed;
   transform: none;
 }
@@ -331,7 +370,7 @@ const handleDownload = async (event: Event) => {
 }
 
 .spinner .path {
-  stroke: white;
+  stroke: #000;
   stroke-linecap: round;
   animation: dash 1.5s ease-in-out infinite;
 }
@@ -361,16 +400,18 @@ const handleDownload = async (event: Event) => {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  padding: 0.75rem 1rem;
-  border-radius: 8px;
-  margin-top: 0.5rem;
-  background-color: #e8f8f0;
-  color: #27ae60;
+  padding: 1rem;
+  border-radius: 4px;
+  margin-top: 1rem;
+  background-color: rgba(40, 60, 40, 0.7);
+  color: #4CAF50;
+  border-left: 3px solid #4CAF50;
 }
 
 .result-message.error {
-  background-color: #fdecea;
-  color: #e74c3c;
+  background-color: rgba(60, 40, 40, 0.7);
+  color: #ff4d4d;
+  border-left: 3px solid #ff4d4d;
 }
 
 .result-icon {
@@ -382,29 +423,32 @@ const handleDownload = async (event: Event) => {
 .result-message p {
   margin: 0;
   font-size: 0.95rem;
+  font-weight: 600;
 }
 
 .download-button {
   width: 100%;
-  padding: 0.75rem 1.5rem;
-  background-color: #2ecc71;
+  padding: 1rem 1.5rem;
+  background: linear-gradient(to right, #4CAF50, #2E7D32);
   color: white;
   border: none;
-  border-radius: 8px;
+  border-radius: 4px;
   cursor: pointer;
   font-size: 1rem;
-  font-weight: 500;
+  font-weight: 700;
   transition: all 0.3s ease;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  margin-top: 0.5rem;
+  margin-top: 1rem;
+  letter-spacing: 1px;
+  text-transform: uppercase;
 }
 
 .download-button:hover {
-  background-color: #27ae60;
-  transform: translateY(-1px);
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(76, 175, 80, 0.4);
 }
 
 .download-icon {
@@ -413,14 +457,14 @@ const handleDownload = async (event: Event) => {
   fill: white;
 }
 
-@media (max-width: 600px) {
+@media (max-width: 768px) {
   .upload-container {
-    padding: 1.5rem;
+    padding: 2rem 1.5rem;
     margin: 1rem;
   }
   
   .title {
-    font-size: 1.5rem;
+    font-size: 2.5rem;
   }
 }
 </style>
