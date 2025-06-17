@@ -179,7 +179,6 @@ const handleDownload = async (event: Event) => {
 .upload-form {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
 }
 
 .drop-zone {
@@ -252,7 +251,7 @@ const handleDownload = async (event: Event) => {
   padding: 0.75rem 1rem;
   background-color: #f1f3f4;
   border-radius: 8px;
-  margin-top: -0.5rem;
+  margin-top: 0.5rem;
 }
 
 .file-icon {
@@ -364,7 +363,7 @@ const handleDownload = async (event: Event) => {
   gap: 0.75rem;
   padding: 0.75rem 1rem;
   border-radius: 8px;
-  margin-top: 1rem;
+  margin-top: 0.5rem;
   background-color: #e8f8f0;
   color: #27ae60;
 }
@@ -400,7 +399,7 @@ const handleDownload = async (event: Event) => {
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  margin-top: 1.5rem;
+  margin-top: 0.5rem;
 }
 
 .download-button:hover {
