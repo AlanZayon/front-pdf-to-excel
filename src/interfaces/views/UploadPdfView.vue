@@ -139,7 +139,9 @@ const handleUpload = async () => {
   }
 }
 
-const handleDownload = async () => {
+const handleDownload = async (event: Event) => {
+    event.preventDefault() // Adicione esta linha
+
   try {
     await FileDownloadService.execute()
   } catch (error) {
