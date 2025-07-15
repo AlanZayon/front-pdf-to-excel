@@ -4,7 +4,7 @@ import { logger } from '../../shared/logging/logger'
 export class FileDownloadService {
   static async execute(): Promise<void> {
     try {
-      const response = await http.get('/api/download', {
+      const response = await http.get('/api/download/download', {
         responseType: 'blob',
       })
       console.log(response.data)
