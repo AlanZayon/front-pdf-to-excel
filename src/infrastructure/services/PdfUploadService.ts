@@ -9,7 +9,12 @@ export class PdfUploadService {
     formData.append('pdfFile', command.file)
 
     try {
-      const response = await http.post('/api/upload/upload', formData)
+      const response = await http.post('/api/upload/upload', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        },
+        withCredentials: true
+      })
       logger.info('PDF enviado com sucesso', response.data)
       return { message: 'PDF enviado com sucesso' }
     } catch (error) {

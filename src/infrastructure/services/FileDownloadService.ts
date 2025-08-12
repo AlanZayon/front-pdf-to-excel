@@ -6,6 +6,7 @@ export class FileDownloadService {
     try {
       const response = await http.get('/api/download/download', {
         responseType: 'blob',
+        withCredentials: true
       })
       console.log(response.data)
 

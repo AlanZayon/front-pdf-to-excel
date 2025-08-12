@@ -1,76 +1,98 @@
 <template>
-  <div class="upload-container">
-    <h1 class="title">UPLOAD DE PDF</h1>
-    <p class="subtitle">UPLOAD PDF</p>
+  <div class="app-container">
 
-    <form class="upload-form">
-      <div
-        class="drop-zone"
-        @dragover.prevent="isDragging = true"
-        @dragleave.prevent="isDragging = false"
-        @drop.prevent="onDrop"
-        :class="{ 'dragging': isDragging, 'has-file': file }"
-        @click="triggerFileInput"
-      >
-        <div class="drop-zone-content">
-          <svg class="upload-icon" viewBox="0 0 24 24">
-            <path d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z" />
-          </svg>
-          <p class="drop-text">ARRASTE E SOLTE SEU PDF AQUI</p>
-          <p class="drop-subtext">ou clique para selecionar</p>
-        </div>
-        <input
-          ref="fileInput"
-          type="file"
-          accept=".pdf"
-          @change="onFileChange"
-          class="hidden-input"
-        />
+    <!-- Área do Usuário -->
+    <div class="user-area">
+      <div class="user-info" @click="toggleUserMenu">
+        <img :src="defaultAvatar" class="user-avatar" alt="User Avatar">
+        <span class="user-name">{{ user?.fullName || 'Rockstar User' }}</span>
+        <svg class="user-dropdown-icon" viewBox="0 0 24 24" :class="{ 'rotated': showUserMenu }">
+          <path d="M7,10L12,15L17,10H7Z" />
+        </svg>
       </div>
 
-      <div v-if="fileName" class="file-info">
-        <svg class="file-icon" viewBox="0 0 24 24">
-          <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z" />
-        </svg>
-        <span class="file-name">{{ fileName }}</span>
-        <button @click="clearFile" class="clear-button" type="button">
-          <svg viewBox="0 0 24 24" width="18" height="18">
-            <path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z" />
+      <div v-if="showUserMenu" class="user-menu">
+        <button class="user-menu-item" @click="openEditModal">
+          <svg class="user-menu-icon" viewBox="0 0 24 24">
+            <path
+              d="M20.71,7.04C21.1,6.65 21.1,6 20.71,5.63L18.37,3.29C18,2.9 17.35,2.9 16.96,3.29L15.12,5.12L18.87,8.87M3,17.25V21H6.75L17.81,9.93L14.06,6.18L3,17.25Z" />
           </svg>
+          EDITAR PERFIL
+        </button>
+        <EditEmployeeModal :isOpen="showEditModal" @close="closeEditModal" :userData="user ?? undefined" />
+        <button class="user-menu-item" @click="handleLogout">
+          <svg class="user-menu-icon" viewBox="0 0 24 24">
+            <path
+              d="M16,17V14H9V10H16V7L21,12L16,17M14,2A2,2 0 0,1 16,4V6H14V4H5V20H14V18H16V20A2,2 0 0,1 14,22H5A2,2 0 0,1 3,20V4A2,2 0 0,1 5,2H14Z" />
+          </svg>
+          SAIR
         </button>
       </div>
+    </div>
+    <div class="upload-container">
 
-      <div v-if="isLoading" class="upload-button">
-        <span class="button-loading">
-          <svg class="spinner" viewBox="0 0 50 50">
-            <circle class="path" cx="25" cy="25" r="20" fill="none" stroke-width="5"></circle>
+
+      <h1 class="title">UPLOAD DE PDF</h1>
+      <p class="subtitle">UPLOAD PDF</p>
+
+      <form class="upload-form">
+        <div class="drop-zone" @dragover.prevent="isDragging = true" @dragleave.prevent="isDragging = false"
+          @drop.prevent="onDrop" :class="{ 'dragging': isDragging, 'has-file': file }" @click="triggerFileInput">
+          <div class="drop-zone-content">
+            <svg class="upload-icon" viewBox="0 0 24 24">
+              <path d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z" />
+            </svg>
+            <p class="drop-text">ARRASTE E SOLTE SEU PDF AQUI</p>
+            <p class="drop-subtext">ou clique para selecionar</p>
+          </div>
+          <input ref="fileInput" type="file" accept=".pdf" @change="onFileChange" class="hidden-input" />
+        </div>
+
+        <div v-if="fileName" class="file-info">
+          <svg class="file-icon" viewBox="0 0 24 24">
+            <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z" />
           </svg>
-          PROCESSANDO...
-        </span>
-      </div>
+          <span class="file-name">{{ fileName }}</span>
+          <button @click="clearFile" class="clear-button" type="button">
+            <svg viewBox="0 0 24 24" width="18" height="18">
+              <path
+                d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z" />
+            </svg>
+          </button>
+        </div>
 
-      <div v-if="uploadResult" class="result-message" :class="{ 'error': uploadResult.message === 'Erro ao enviar o PDF' }">
-        <svg v-if="uploadResult.message !== 'Erro ao enviar o PDF'" class="result-icon" viewBox="0 0 24 24">
-          <path d="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z" />
-        </svg>
-        <svg v-else class="result-icon" viewBox="0 0 24 24">
-          <path d="M13,13H11V7H13M13,17H11V15H13M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z" />
-        </svg>
-        <p>{{ uploadResult.message.toUpperCase() }}</p>
-      </div>
+        <div v-if="isLoading" class="upload-button">
+          <span class="button-loading">
+            <svg class="spinner" viewBox="0 0 50 50">
+              <circle class="path" cx="25" cy="25" r="20" fill="none" stroke-width="5"></circle>
+            </svg>
+            PROCESSANDO...
+          </span>
+        </div>
 
-      <button
-        v-if="uploadResult && uploadResult.message !== 'Erro ao enviar o PDF'"
-        @click="handleDownload"
-        class="download-button"
-      >
-        <svg class="download-icon" viewBox="0 0 24 24">
-          <path d="M5,20H19V18H5M19,9H15V3H9V9H5L12,16L19,9Z" />
-        </svg>
-        BAIXAR ARQUIVO PDF
-      </button>
-    </form>
+        <div v-if="uploadResult" class="result-message"
+          :class="{ 'error': uploadResult.message === 'Erro ao enviar o PDF' }">
+          <svg v-if="uploadResult.message !== 'Erro ao enviar o PDF'" class="result-icon" viewBox="0 0 24 24">
+            <path d="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z" />
+          </svg>
+          <svg v-else class="result-icon" viewBox="0 0 24 24">
+            <path
+              d="M13,13H11V7H13M13,17H11V15H13M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z" />
+          </svg>
+          <p>{{ uploadResult.message.toUpperCase() }}</p>
+        </div>
+
+        <button v-if="uploadResult && uploadResult.message !== 'Erro ao enviar o PDF'" @click="handleDownload"
+          class="download-button">
+          <svg class="download-icon" viewBox="0 0 24 24">
+            <path d="M5,20H19V18H5M19,9H15V3H9V9H5L12,16L19,9Z" />
+          </svg>
+          BAIXAR ARQUIVO PDF
+        </button>
+      </form>
+    </div>
   </div>
+
 </template>
 
 <script lang="ts" setup>
@@ -78,7 +100,44 @@ import { ref } from 'vue'
 import { UploadPdfCommand } from '../../application/commands/UploadPdfCommand'
 import { PdfUploadService } from '../../infrastructure/services/PdfUploadService'
 import { FileDownloadService } from '../../infrastructure/services/FileDownloadService'
+import defaultAvatar from '../../images/avatar-sistema-pdf.png'
+import EditEmployeeModal from '../modal/EditEmployeeModal.vue'
+import { useAuthStore } from '../../stores/authStore'
+import { computed, onMounted } from 'vue'
 
+const authStore = useAuthStore()
+onMounted(() => {
+  authStore.markPageReady()
+})
+
+// Dados do usuário
+const user = computed(() => authStore.user)
+
+const showUserMenu = ref(false)
+const showEditModal = ref(false)
+// const selectedEmployee = ref(null)
+
+// Abre o modal
+const openEditModal = () => {
+  showEditModal.value = true
+}
+
+// Fecha o modal
+const closeEditModal = () => {
+  showEditModal.value = false
+}
+
+const toggleUserMenu = () => {
+  showUserMenu.value = !showUserMenu.value
+}
+
+
+
+const handleLogout = async () => {
+  await authStore.logout()
+}
+
+// Código existente
 const file = ref<File | null>(null)
 const fileName = ref<string | null>(null)
 const uploadResult = ref<{ message: string } | null>(null)
@@ -140,7 +199,7 @@ const handleUpload = async () => {
 }
 
 const handleDownload = async (event: Event) => {
-    event.preventDefault()
+  event.preventDefault()
 
   try {
     await FileDownloadService.execute()
@@ -153,12 +212,22 @@ const handleDownload = async (event: Event) => {
 <style scoped>
 @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Montserrat:wght@400;600;700&display=swap');
 
+.app-container{
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background: #000;
+  padding: 20px;
+  box-sizing: border-box;
+} 
+
 .upload-container {
   max-width: 600px;
   margin: 2rem auto;
   padding: 3rem;
   border-radius: 4px;
-  background: #111;
+  background: #000;
   background: linear-gradient(135deg, #1a1a1a 0%, #000 100%);
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
   font-family: 'Montserrat', sans-serif;
@@ -180,9 +249,17 @@ const handleDownload = async (event: Event) => {
 }
 
 @keyframes gradient {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
+  0% {
+    background-position: 0% 50%;
+  }
+
+  50% {
+    background-position: 100% 50%;
+  }
+
+  100% {
+    background-position: 0% 50%;
+  }
 }
 
 .title {
@@ -386,10 +463,12 @@ const handleDownload = async (event: Event) => {
     stroke-dasharray: 1, 150;
     stroke-dashoffset: 0;
   }
+
   50% {
     stroke-dasharray: 90, 150;
     stroke-dashoffset: -35;
   }
+
   100% {
     stroke-dasharray: 90, 150;
     stroke-dashoffset: -124;
@@ -457,14 +536,122 @@ const handleDownload = async (event: Event) => {
   fill: white;
 }
 
+/* Estilos para a área do usuário */
+.user-area {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  z-index: 100;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  padding: 8px 12px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.1);
+  transition: all 0.3s ease;
+  border: 1px solid #333;
+}
+
+.user-info:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: scale(1.05);
+}
+
+.user-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #f9cb28;
+}
+
+.user-name {
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.user-dropdown-icon {
+  width: 16px;
+  height: 16px;
+  fill: #f9cb28;
+  transition: transform 0.3s ease;
+}
+
+.user-dropdown-icon.rotated {
+  transform: rotate(180deg);
+}
+
+.user-menu {
+  position: absolute;
+  right: 0;
+  top: 100%;
+  margin-top: 5px;
+  background: #1a1a1a;
+  border-radius: 4px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+  border: 1px solid #333;
+  overflow: hidden;
+  min-width: 200px;
+}
+
+.user-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 12px 15px;
+  background: transparent;
+  border: none;
+  color: #ddd;
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.8rem;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.user-menu-item:hover {
+  background: rgba(249, 203, 40, 0.1);
+  color: #f9cb28;
+}
+
+.user-menu-icon {
+  width: 16px;
+  height: 16px;
+  fill: currentColor;
+}
+
+/* Ajuste para mobile */
 @media (max-width: 768px) {
   .upload-container {
     padding: 2rem 1.5rem;
     margin: 1rem;
   }
-  
+
   .title {
     font-size: 2.5rem;
+  }
+
+  .user-area {
+    top: 10px;
+    right: 10px;
+  }
+
+  .user-name {
+    display: none;
+  }
+
+  .user-info {
+    padding: 6px;
   }
 }
 </style>
