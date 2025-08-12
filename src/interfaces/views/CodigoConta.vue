@@ -107,8 +107,9 @@ const cancel = () => {
     router.push('/');
 };
 
-const handleDebitoInput = (event, taxCode) => {
-    const value = event.target.value.replace(/\D/g, '').slice(0, 5);
+const handleDebitoInput = (event: Event, taxCode: string) => {
+    const target = event.target as HTMLInputElement;
+    const value = target.value.replace(/\D/g, '').slice(0, 5);
     
     if (!taxCodes.value[taxCode]) {
         taxCodes.value[taxCode] = { debito: '_', credito: '_' };
@@ -120,11 +121,12 @@ const handleDebitoInput = (event, taxCode) => {
         taxType.codigoDebito.codigo = value || '_';
     }
     
-    event.target.value = value;
+    target.value = value;
 };
 
-const handleCreditoInput = (event, taxCode) => {
-    const value = event.target.value.replace(/\D/g, '').slice(0, 5);
+const handleCreditoInput = (event: Event, taxCode: string) => {
+    const target = event.target as HTMLInputElement;
+    const value = target.value.replace(/\D/g, '').slice(0, 5);
     
     if (!taxCodes.value[taxCode]) {
         taxCodes.value[taxCode] = { debito: '_', credito: '_' };
@@ -136,7 +138,7 @@ const handleCreditoInput = (event, taxCode) => {
         taxType.codigoCredito.codigo = value || '_';
     }
     
-    event.target.value = value;
+    target.value = value;
 };
 
 const loadTaxCodes = async () => {

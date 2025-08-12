@@ -6,25 +6,18 @@
         <h2>EDITAR USUÁRIO</h2>
         <button @click="closeModal" class="close-button" aria-label="Fechar modal">
           <svg viewBox="0 0 24 24" width="24" height="24">
-            <path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z" />
+            <path
+              d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z" />
           </svg>
         </button>
       </div>
 
       <!-- Tabs de navegação -->
       <div class="tabs">
-        <button 
-          @click="activeTab = 'user'" 
-          :class="{ 'active': activeTab === 'user' }"
-          class="tab-button"
-        >
+        <button @click="activeTab = 'user'" :class="{ 'active': activeTab === 'user' }" class="tab-button">
           Dados do Usuário
         </button>
-        <button 
-          @click="activeTab = 'account'" 
-          :class="{ 'active': activeTab === 'account' }"
-          class="tab-button"
-        >
+        <button @click="activeTab = 'account'" :class="{ 'active': activeTab === 'account' }" class="tab-button">
           Códigos de Conta
         </button>
       </div>
@@ -34,45 +27,42 @@
         <!-- Campo Nome -->
         <div class="input-group">
           <label class="input-label">NOME</label>
-          <div class="input-wrapper" :class="{ 'valid': validateName(editedUser.name), 'invalid': editedUser.name && !validateName(editedUser.name) }">
+          <div class="input-wrapper"
+            :class="{ 'valid': validateName(editedUser.name), 'invalid': editedUser.name && !validateName(editedUser.name) }">
             <svg class="input-icon" viewBox="0 0 24 24">
-              <path d="M12,4A4,4 0 0,1 16,8A4,4 0 0,1 12,12A4,4 0 0,1 9,8A4,4 0 0,1 12,4M12,14C16.42,14 20,15.79 20,18V20H4V18C4,15.79 7.58,14 12,14Z" />
+              <path
+                d="M12,4A4,4 0 0,1 16,8A4,4 0 0,1 12,12A4,4 0 0,1 9,8A4,4 0 0,1 12,4M12,14C16.42,14 20,15.79 20,18V20H4V18C4,15.79 7.58,14 12,14Z" />
             </svg>
-            <input
-              v-model="editedUser.name"
-              type="text"
-              required
-              class="input-field"
-              placeholder="NOME COMPLETO"
-            >
+            <input v-model="editedUser.name" type="text" required class="input-field" placeholder="NOME COMPLETO">
             <svg v-if="editedUser.name" class="valid-icon" viewBox="0 0 24 24">
               <path v-if="validateName(editedUser.name)" d="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z" />
-              <path v-else d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z" />
+              <path v-else
+                d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z" />
             </svg>
           </div>
-          <p v-if="editedUser.name && !validateName(editedUser.name)" class="error-message">O nome deve ter pelo menos 3 caracteres</p>
+          <p v-if="editedUser.name && !validateName(editedUser.name)" class="error-message">O nome deve ter pelo menos 3
+            caracteres</p>
         </div>
 
         <!-- Campo E-mail -->
         <div class="input-group">
           <label class="input-label">E-MAIL</label>
-          <div class="input-wrapper" :class="{ 'valid': validateEmail(editedUser.email), 'invalid': editedUser.email && !validateEmail(editedUser.email) }">
+          <div class="input-wrapper"
+            :class="{ 'valid': validateEmail(editedUser.email), 'invalid': editedUser.email && !validateEmail(editedUser.email) }">
             <svg class="input-icon" viewBox="0 0 24 24">
-              <path d="M22 6C22 4.9 21.1 4 20 4H4C2.9 4 2 4.9 2 6V18C2 19.1 2.9 20 4 20H20C21.1 20 22 19.1 22 18V6M20 6L12 11L4 6H20M20 18H4V8L12 13L20 8V18Z" />
+              <path
+                d="M22 6C22 4.9 21.1 4 20 4H4C2.9 4 2 4.9 2 6V18C2 19.1 2.9 20 4 20H20C21.1 20 22 19.1 22 18V6M20 6L12 11L4 6H20M20 18H4V8L12 13L20 8V18Z" />
             </svg>
-            <input
-              v-model="editedUser.email"
-              type="email"
-              required
-              class="input-field"
-              placeholder="NOVO@EMAIL.COM"
-            >
+            <input v-model="editedUser.email" type="email" required class="input-field" placeholder="NOVO@EMAIL.COM">
             <svg v-if="editedUser.email" class="valid-icon" viewBox="0 0 24 24">
-              <path v-if="validateEmail(editedUser.email)" d="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z" />
-              <path v-else d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z" />
+              <path v-if="validateEmail(editedUser.email)"
+                d="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z" />
+              <path v-else
+                d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z" />
             </svg>
           </div>
-          <p v-if="editedUser.email && !validateEmail(editedUser.email)" class="error-message">Por favor, insira um e-mail válido</p>
+          <p v-if="editedUser.email && !validateEmail(editedUser.email)" class="error-message">Por favor, insira um
+            e-mail válido</p>
         </div>
 
         <!-- Campo Senha Atual (se alterando senha) -->
@@ -80,15 +70,11 @@
           <label class="input-label">SENHA ATUAL</label>
           <div class="input-wrapper">
             <svg class="input-icon" viewBox="0 0 24 24">
-              <path d="M12,17A2,2 0 0,0 14,15C14,13.89 13.1,13 12,13A2,2 0 0,0 10,15A2,2 0 0,0 12,17M18,8A2,2 0 0,1 20,10V20A2,2 0 0,1 18,22H6A2,2 0 0,1 4,20V10C4,8.89 4.9,8 6,8H7V6A5,5 0 0,1 12,1A5,5 0 0,1 17,6V8H18M12,3A3,3 0 0,0 9,6V8H15V6A3,3 0 0,0 12,3Z" />
+              <path
+                d="M12,17A2,2 0 0,0 14,15C14,13.89 13.1,13 12,13A2,2 0 0,0 10,15A2,2 0 0,0 12,17M18,8A2,2 0 0,1 20,10V20A2,2 0 0,1 18,22H6A2,2 0 0,1 4,20V10C4,8.89 4.9,8 6,8H7V6A5,5 0 0,1 12,1A5,5 0 0,1 17,6V8H18M12,3A3,3 0 0,0 9,6V8H15V6A3,3 0 0,0 12,3Z" />
             </svg>
-            <input
-              v-model="currentPassword"
-              type="password"
-              required
-              class="input-field"
-              placeholder="DIGITE SUA SENHA ATUAL"
-            >
+            <input v-model="currentPassword" type="password" required class="input-field"
+              placeholder="DIGITE SUA SENHA ATUAL">
           </div>
           <p v-if="passwordError" class="error-message">{{ passwordError }}</p>
         </div>
@@ -98,18 +84,17 @@
           <label class="input-label">ALTERAR SENHA</label>
           <div class="input-wrapper">
             <svg class="input-icon" viewBox="0 0 24 24">
-              <path d="M12,17A2,2 0 0,0 14,15C14,13.89 13.1,13 12,13A2,2 0 0,0 10,15A2,2 0 0,0 12,17M18,8A2,2 0 0,1 20,10V20A2,2 0 0,1 18,22H6A2,2 0 0,1 4,20V10C4,8.89 4.9,8 6,8H7V6A5,5 0 0,1 12,1A5,5 0 0,1 17,6V8H18M12,3A3,3 0 0,0 9,6V8H15V6A3,3 0 0,0 12,3Z" />
+              <path
+                d="M12,17A2,2 0 0,0 14,15C14,13.89 13.1,13 12,13A2,2 0 0,0 10,15A2,2 0 0,0 12,17M18,8A2,2 0 0,1 20,10V20A2,2 0 0,1 18,22H6A2,2 0 0,1 4,20V10C4,8.89 4.9,8 6,8H7V6A5,5 0 0,1 12,1A5,5 0 0,1 17,6V8H18M12,3A3,3 0 0,0 9,6V8H15V6A3,3 0 0,0 12,3Z" />
             </svg>
-            <input
-              v-model="editedUser.password"
-              :type="showPassword ? 'text' : 'password'"
-              class="input-field"
-              placeholder="NOVA SENHA (DEIXE EM BRANCO PARA MANTER)"
-            >
+            <input v-model="editedUser.password" :type="showPassword ? 'text' : 'password'" class="input-field"
+              placeholder="NOVA SENHA (DEIXE EM BRANCO PARA MANTER)">
             <button @click="showPassword = !showPassword" class="password-toggle">
               <svg class="password-icon" viewBox="0 0 24 24">
-                <path v-if="showPassword" d="M11.83,9L15,12.16C15,12.11 15,12.05 15,12A3,3 0 0,0 12,9C11.94,9 11.89,9 11.83,9M7.53,9.8L9.08,11.35C9.03,11.56 9,11.77 9,12A3,3 0 0,0 12,15C12.22,15 12.44,14.97 12.65,14.92L14.2,16.47C13.53,16.8 12.79,17 12,17A5,5 0 0,1 7,12C7,11.21 7.2,10.47 7.53,9.8M2,4.27L4.28,6.55L4.73,7C3.08,8.3 1.78,10 1,12C2.73,16.39 7,19.5 12,19.5C13.55,19.5 15.03,19.2 16.38,18.66L16.81,19.08L19.73,22L21,20.73L3.27,3M12,7A5,5 0 0,1 17,12C17,12.64 16.87,13.26 16.64,13.82L19.57,16.75C21.07,15.5 22.27,13.86 23,12C21.27,7.61 17,4.5 12,4.5C10.6,4.5 9.26,4.75 8,5.2L10.17,7.35C10.74,7.13 11.35,7 12,7Z" />
-                <path v-else d="M12,9A3,3 0 0,1 15,12A3,3 0 0,1 12,15A3,3 0 0,1 9,12A3,3 0 0,1 12,9M12,4.5C17,4.5 21.27,7.61 23,12C21.27,16.39 17,19.5 12,19.5C7,19.5 2.73,16.39 1,12C2.73,7.61 7,4.5 12,4.5M3.18,12C4.83,15.36 8.24,17.5 12,17.5C15.76,17.5 19.17,15.36 20.82,12C19.17,8.64 15.76,6.5 12,6.5C8.24,6.5 4.83,8.64 3.18,12Z" />
+                <path v-if="showPassword"
+                  d="M11.83,9L15,12.16C15,12.11 15,12.05 15,12A3,3 0 0,0 12,9C11.94,9 11.89,9 11.83,9M7.53,9.8L9.08,11.35C9.03,11.56 9,11.77 9,12A3,3 0 0,0 12,15C12.22,15 12.44,14.97 12.65,14.92L14.2,16.47C13.53,16.8 12.79,17 12,17A5,5 0 0,1 7,12C7,11.21 7.2,10.47 7.53,9.8M2,4.27L4.28,6.55L4.73,7C3.08,8.3 1.78,10 1,12C2.73,16.39 7,19.5 12,19.5C13.55,19.5 15.03,19.2 16.38,18.66L16.81,19.08L19.73,22L21,20.73L3.27,3M12,7A5,5 0 0,1 17,12C17,12.64 16.87,13.26 16.64,13.82L19.57,16.75C21.07,15.5 22.27,13.86 23,12C21.27,7.61 17,4.5 12,4.5C10.6,4.5 9.26,4.75 8,5.2L10.17,7.35C10.74,7.13 11.35,7 12,7Z" />
+                <path v-else
+                  d="M12,9A3,3 0 0,1 15,12A3,3 0 0,1 12,15A3,3 0 0,1 9,12A3,3 0 0,1 12,9M12,4.5C17,4.5 21.27,7.61 23,12C21.27,16.39 17,19.5 12,19.5C7,19.5 2.73,16.39 1,12C2.73,7.61 7,4.5 12,4.5M3.18,12C4.83,15.36 8.24,17.5 12,17.5C15.76,17.5 19.17,15.36 20.82,12C19.17,8.64 15.76,6.5 12,6.5C8.24,6.5 4.83,8.64 3.18,12Z" />
               </svg>
             </button>
           </div>
@@ -117,17 +102,14 @@
             <div class="strength-bar" :class="passwordStrengthClass"></div>
             <span class="strength-text">{{ passwordStrengthText }}</span>
           </div>
-          <p v-if="editedUser.password && !validatePassword(editedUser.password)" class="error-message">A senha deve ter pelo menos 8 caracteres</p>
+          <p v-if="editedUser.password && !validatePassword(editedUser.password)" class="error-message">A senha deve ter
+            pelo menos 8 caracteres</p>
         </div>
 
         <!-- Ações do Modal -->
         <div class="modal-actions">
-          <button 
-            @click="saveUserChanges" 
-            class="auth-button" 
-            :disabled="isSaving || !isUserFormValid"
-            :class="{ 'loading': isSaving }"
-          >
+          <button @click="saveUserChanges" class="auth-button" :disabled="isSaving || !isUserFormValid"
+            :class="{ 'loading': isSaving }">
             <span v-if="!isSaving">SALVAR ALTERAÇÕES</span>
             <span v-else class="button-loading">
               <svg class="spinner" viewBox="0 0 50 50">
@@ -165,41 +147,23 @@
           <div class="tax-code-row" v-for="tax in taxTypes" :key="tax.Code">
             <label class="tax-label">
               {{ tax.nome
-                  .replace('SIMPLES_NACIONAL', 'SIMPLES NACIONAL')
-                  .replace('MULTA_JUROS', 'MULTA E JUROS') }}
+                .replace('SIMPLES_NACIONAL', 'SIMPLES NACIONAL')
+                .replace('MULTA_JUROS', 'MULTA E JUROS') }}
             </label>
             <div class="account-inputs">
-              <input
-                :value="taxCodes[tax.Code].debito === '_' ? '' : taxCodes[tax.Code].debito"
-                @input="handleDebitoInput($event, tax.Code)"
-                type="text"
-                class="tax-input"
-                :placeholder="'Débito'"
-                :disabled="isSaving"
-                maxlength="5"
-                onkeypress="return event.charCode >= 48 && event.charCode <= 57"
-              >
-              <input
-                :value="taxCodes[tax.Code].credito === '_' ? '' : taxCodes[tax.Code].credito"
-                @input="handleCreditoInput($event, tax.Code)"
-                type="text"
-                class="tax-input"
-                :placeholder="'Crédito'"
-                :disabled="isSaving"
-                maxlength="5"
-                onkeypress="return event.charCode >= 48 && event.charCode <= 57"
-              >
+              <input :value="taxCodes[tax.Code].debito === '_' ? '' : taxCodes[tax.Code].debito"
+                @input="handleDebitoInput($event, tax.Code)" type="text" class="tax-input" :placeholder="'Débito'"
+                :disabled="isSaving" maxlength="5" onkeypress="return event.charCode >= 48 && event.charCode <= 57">
+              <input :value="taxCodes[tax.Code].credito === '_' ? '' : taxCodes[tax.Code].credito"
+                @input="handleCreditoInput($event, tax.Code)" type="text" class="tax-input" :placeholder="'Crédito'"
+                :disabled="isSaving" maxlength="5" onkeypress="return event.charCode >= 48 && event.charCode <= 57">
             </div>
           </div>
 
           <!-- Ações do Modal -->
           <div class="modal-actions">
-            <button 
-              @click="saveAccountChanges" 
-              class="auth-button" 
-              :disabled="isSaving"
-              :class="{ 'loading': isSaving }"
-            >
+            <button @click="saveAccountChanges" class="auth-button" :disabled="isSaving"
+              :class="{ 'loading': isSaving }">
               <span v-if="!isSaving">SALVAR CÓDIGOS</span>
               <span v-else class="button-loading">
                 <svg class="spinner" viewBox="0 0 50 50">
@@ -244,7 +208,7 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, watch, computed, onMounted } from 'vue'
+import { ref, watch, computed } from 'vue'
 import { ImpostoService } from '../../infrastructure/services/ImpostoService'
 import { LoadImpostosCommand } from '../../application/commands/LoadImpostosCommand'
 import { UpdateImpostosCommand } from '../../application/commands/UpdateImpostosCommand'
@@ -254,7 +218,7 @@ import type { ImpostoDto } from '../../application/dtos/ImpostoDto'
 // Props e Emits
 const props = defineProps({
   isOpen: Boolean,
-  userData: Object as () => {  
+  userData: Object as () => {
     fullName?: string;
     email?: string;
     // adicione outros campos do usuário conforme necessário
@@ -302,13 +266,13 @@ const validateName = (name: string) => {
 // Computed properties
 const passwordStrength = computed(() => {
   if (!editedUser.value.password) return 0
-  
+
   let strength = 0
   if (editedUser.value.password.length >= 8) strength++
   if (editedUser.value.password.match(/[a-z]/) && editedUser.value.password.match(/[A-Z]/)) strength++
   if (editedUser.value.password.match(/[0-9]/)) strength++
   if (editedUser.value.password.match(/[^a-zA-Z0-9]/)) strength++
-  
+
   return strength
 })
 
@@ -325,42 +289,44 @@ const passwordStrengthText = computed(() => {
 })
 
 const isUserFormValid = computed(() => {
-  return validateName(editedUser.value.name) && 
-         validateEmail(editedUser.value.email) && 
-         (editedUser.value.password === '' || validatePassword(editedUser.value.password))
+  return validateName(editedUser.value.name) &&
+    validateEmail(editedUser.value.email) &&
+    (editedUser.value.password === '' || validatePassword(editedUser.value.password))
 })
 
 // Funções para códigos de imposto
-const handleDebitoInput = (event, taxCode) => {
-  const value = event.target.value.replace(/\D/g, '').slice(0, 5)
-  
+const handleDebitoInput = (event: Event, taxCode: string) => {
+  const target = event.target as HTMLInputElement;
+  const value = target.value.replace(/\D/g, '').slice(0, 5);
+
   if (!taxCodes.value[taxCode]) {
-    taxCodes.value[taxCode] = { debito: '_', credito: '_' }
+    taxCodes.value[taxCode] = { debito: '_', credito: '_' };
   }
-  taxCodes.value[taxCode].debito = value || '_'
-  
-  const taxType = taxTypes.value.find(t => t.Code === taxCode)
+  taxCodes.value[taxCode].debito = value || '_';
+
+  const taxType = taxTypes.value.find(t => t.Code === taxCode);
   if (taxType && taxType.codigoDebito) {
-    taxType.codigoDebito.codigo = value || '_'
+    taxType.codigoDebito.codigo = value || '_';
   }
-  
-  event.target.value = value
+
+  target.value = value;
 }
 
-const handleCreditoInput = (event, taxCode) => {
-  const value = event.target.value.replace(/\D/g, '').slice(0, 5)
-  
+const handleCreditoInput = (event: Event, taxCode: string) => {
+  const target = event.target as HTMLInputElement;
+  const value = target.value.replace(/\D/g, '').slice(0, 5);
+
   if (!taxCodes.value[taxCode]) {
-    taxCodes.value[taxCode] = { debito: '_', credito: '_' }
+    taxCodes.value[taxCode] = { debito: '_', credito: '_' };
   }
-  taxCodes.value[taxCode].credito = value || '_'
-  
-  const taxType = taxTypes.value.find(t => t.Code === taxCode)
+  taxCodes.value[taxCode].credito = value || '_';
+
+  const taxType = taxTypes.value.find(t => t.Code === taxCode);
   if (taxType && taxType.codigoCredito) {
-    taxType.codigoCredito.codigo = value || '_'
+    taxType.codigoCredito.codigo = value || '_';
   }
-  
-  event.target.value = value
+
+  target.value = value;
 }
 
 const loadTaxCodes = async () => {
@@ -436,33 +402,33 @@ const requestConfirmation = (type: string) => {
 }
 
 const proceedWithChange = () => {
-  confirmChanges.value = false
+  confirmChanges.value = false;
   if (activeTab.value === 'user') {
-    performUserSave()
+    performUserSave();
   } else {
-    performAccountSave()
+    saveAccountChanges();
   }
 }
 
 const saveUserChanges = async () => {
   if (isSaving.value || !isUserFormValid.value) return
-  
+
   // Se estiver alterando senha ou email, pedir confirmação
   if (editedUser.value.password && !currentPassword.value) {
     passwordError.value = 'Por favor, insira sua senha atual para alterar a senha'
     return
   }
-  
+
   if (editedUser.value.email !== props.userData?.email) {
     requestConfirmation('email')
     return
   }
-  
+
   if (editedUser.value.password) {
     requestConfirmation('password')
     return
   }
-  
+
   await performUserSave()
 }
 
@@ -710,7 +676,7 @@ const performUserSave = async () => {
   box-shadow: 0 0 0 2px rgba(249, 203, 40, 0.2);
 }
 
-.input-field:focus + .input-icon {
+.input-field:focus+.input-icon {
   fill: #f9cb28;
 }
 
@@ -780,7 +746,7 @@ const performUserSave = async () => {
   flex: 1;
   gap: 1rem;
   justify-content: flex-end;
-  padding-right: 12px; 
+  padding-right: 12px;
 }
 
 .account-type-label {
@@ -1041,24 +1007,50 @@ const performUserSave = async () => {
 
 /* Animações */
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes gradient {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
+  0% {
+    background-position: 0% 50%;
+  }
+
+  50% {
+    background-position: 100% 50%;
+  }
+
+  100% {
+    background-position: 0% 50%;
+  }
 }
 
 @keyframes rotate {
-  100% { transform: rotate(360deg); }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 @keyframes dash {
-  0% { stroke-dasharray: 1, 150; stroke-dashoffset: 0; }
-  50% { stroke-dasharray: 90, 150; stroke-dashoffset: -35; }
-  100% { stroke-dasharray: 90, 150; stroke-dashoffset: -124; }
+  0% {
+    stroke-dasharray: 1, 150;
+    stroke-dashoffset: 0;
+  }
+
+  50% {
+    stroke-dasharray: 90, 150;
+    stroke-dashoffset: -35;
+  }
+
+  100% {
+    stroke-dasharray: 90, 150;
+    stroke-dashoffset: -124;
+  }
 }
 
 /* Responsividade */
@@ -1066,36 +1058,36 @@ const performUserSave = async () => {
   .modal-body {
     padding: 1rem;
   }
-  
+
   .tax-code-row {
     flex-direction: column;
     align-items: flex-start;
     gap: 0.5rem;
   }
-  
+
   .tax-label {
     width: 100%;
     margin-bottom: 0.5rem;
   }
-  
+
   .account-inputs {
     width: 100%;
     justify-content: space-between;
     padding-right: 0;
   }
-  
+
   .tax-input {
     width: 48%;
   }
-  
+
   .modal-actions {
     flex-direction: column;
   }
-  
+
   .account-types-header {
     display: none;
   }
-  
+
   .account-types {
     display: none;
   }
@@ -1144,6 +1136,7 @@ const performUserSave = async () => {
   flex-grow: 1;
   scrollbar-width: thin;
   scrollbar-color: #f9cb28 #333;
-  max-height: calc(90vh - 150px); /* Ajuste para acomodar as tabs */
+  max-height: calc(90vh - 150px);
+  /* Ajuste para acomodar as tabs */
 }
 </style>
