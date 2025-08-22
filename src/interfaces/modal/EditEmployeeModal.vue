@@ -24,86 +24,144 @@
 
       <!-- Corpo do Modal - Dados do Usuário -->
       <div v-if="activeTab === 'user'" class="modal-body">
-        <!-- Campo Nome -->
-        <div class="input-group">
-          <label class="input-label">NOME</label>
-          <div class="input-wrapper"
-            :class="{ 'valid': validateName(editedUser.name), 'invalid': editedUser.name && !validateName(editedUser.name) }">
-            <svg class="input-icon" viewBox="0 0 24 24">
-              <path
-                d="M12,4A4,4 0 0,1 16,8A4,4 0 0,1 12,12A4,4 0 0,1 9,8A4,4 0 0,1 12,4M12,14C16.42,14 20,15.79 20,18V20H4V18C4,15.79 7.58,14 12,14Z" />
-            </svg>
-            <input v-model="editedUser.name" type="text" required class="input-field" placeholder="NOME COMPLETO">
-            <svg v-if="editedUser.name" class="valid-icon" viewBox="0 0 24 24">
-              <path v-if="validateName(editedUser.name)" d="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z" />
-              <path v-else
-                d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z" />
-            </svg>
-          </div>
-          <p v-if="editedUser.name && !validateName(editedUser.name)" class="error-message">O nome deve ter pelo menos 3
-            caracteres</p>
+        <div class="user-subtabs">
+          <button @click="activeUserSection = 'name'" :class="{ 'active': activeUserSection === 'name' }"
+            class="user-subtab-button">Nome</button>
+          <button @click="activeUserSection = 'email'" :class="{ 'active': activeUserSection === 'email' }"
+            class="user-subtab-button">E-mail</button>
+          <button @click="activeUserSection = 'password'" :class="{ 'active': activeUserSection === 'password' }"
+            class="user-subtab-button">Senha</button>
         </div>
-
-        <!-- Campo E-mail -->
-        <div class="input-group">
-          <label class="input-label">E-MAIL</label>
-          <div class="input-wrapper"
-            :class="{ 'valid': validateEmail(editedUser.email), 'invalid': editedUser.email && !validateEmail(editedUser.email) }">
-            <svg class="input-icon" viewBox="0 0 24 24">
-              <path
-                d="M22 6C22 4.9 21.1 4 20 4H4C2.9 4 2 4.9 2 6V18C2 19.1 2.9 20 4 20H20C21.1 20 22 19.1 22 18V6M20 6L12 11L4 6H20M20 18H4V8L12 13L20 8V18Z" />
-            </svg>
-            <input v-model="editedUser.email" type="email" required class="input-field" placeholder="NOVO@EMAIL.COM">
-            <svg v-if="editedUser.email" class="valid-icon" viewBox="0 0 24 24">
-              <path v-if="validateEmail(editedUser.email)"
-                d="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z" />
-              <path v-else
-                d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z" />
-            </svg>
+        <div class="user-section" v-if="activeUserSection === 'name'">
+          <div class="section-header">
+            <h3 class="section-title">DADOS PESSOAIS</h3>
+            <p class="section-subtitle">INFORMAÇÕES DO NOME DO USUÁRIO</p>
           </div>
-          <p v-if="editedUser.email && !validateEmail(editedUser.email)" class="error-message">Por favor, insira um
-            e-mail válido</p>
-        </div>
-
-        <!-- Campo Senha Atual (se alterando senha) -->
-        <div class="input-group" v-if="editedUser.password">
-          <label class="input-label">SENHA ATUAL</label>
-          <div class="input-wrapper">
-            <svg class="input-icon" viewBox="0 0 24 24">
-              <path
-                d="M12,17A2,2 0 0,0 14,15C14,13.89 13.1,13 12,13A2,2 0 0,0 10,15A2,2 0 0,0 12,17M18,8A2,2 0 0,1 20,10V20A2,2 0 0,1 18,22H6A2,2 0 0,1 4,20V10C4,8.89 4.9,8 6,8H7V6A5,5 0 0,1 12,1A5,5 0 0,1 17,6V8H18M12,3A3,3 0 0,0 9,6V8H15V6A3,3 0 0,0 12,3Z" />
-            </svg>
-            <input v-model="currentPassword" type="password" required class="input-field"
-              placeholder="DIGITE SUA SENHA ATUAL">
-          </div>
-          <p v-if="passwordError" class="error-message">{{ passwordError }}</p>
-        </div>
-
-        <!-- Campo Nova Senha -->
-        <div class="input-group">
-          <label class="input-label">ALTERAR SENHA</label>
-          <div class="input-wrapper">
-            <svg class="input-icon" viewBox="0 0 24 24">
-              <path
-                d="M12,17A2,2 0 0,0 14,15C14,13.89 13.1,13 12,13A2,2 0 0,0 10,15A2,2 0 0,0 12,17M18,8A2,2 0 0,1 20,10V20A2,2 0 0,1 18,22H6A2,2 0 0,1 4,20V10C4,8.89 4.9,8 6,8H7V6A5,5 0 0,1 12,1A5,5 0 0,1 17,6V8H18M12,3A3,3 0 0,0 9,6V8H15V6A3,3 0 0,0 12,3Z" />
-            </svg>
-            <input v-model="editedUser.password" :type="showPassword ? 'text' : 'password'" class="input-field"
-              placeholder="NOVA SENHA (DEIXE EM BRANCO PARA MANTER)">
-            <button @click="showPassword = !showPassword" class="password-toggle">
-              <svg class="password-icon" viewBox="0 0 24 24">
-                <path v-if="showPassword"
-                  d="M11.83,9L15,12.16C15,12.11 15,12.05 15,12A3,3 0 0,0 12,9C11.94,9 11.89,9 11.83,9M7.53,9.8L9.08,11.35C9.03,11.56 9,11.77 9,12A3,3 0 0,0 12,15C12.22,15 12.44,14.97 12.65,14.92L14.2,16.47C13.53,16.8 12.79,17 12,17A5,5 0 0,1 7,12C7,11.21 7.2,10.47 7.53,9.8M2,4.27L4.28,6.55L4.73,7C3.08,8.3 1.78,10 1,12C2.73,16.39 7,19.5 12,19.5C13.55,19.5 15.03,19.2 16.38,18.66L16.81,19.08L19.73,22L21,20.73L3.27,3M12,7A5,5 0 0,1 17,12C17,12.64 16.87,13.26 16.64,13.82L19.57,16.75C21.07,15.5 22.27,13.86 23,12C21.27,7.61 17,4.5 12,4.5C10.6,4.5 9.26,4.75 8,5.2L10.17,7.35C10.74,7.13 11.35,7 12,7Z" />
-                <path v-else
-                  d="M12,9A3,3 0 0,1 15,12A3,3 0 0,1 12,15A3,3 0 0,1 9,12A3,3 0 0,1 12,9M12,4.5C17,4.5 21.27,7.61 23,12C21.27,16.39 17,19.5 12,19.5C7,19.5 2.73,16.39 1,12C2.73,7.61 7,4.5 12,4.5M3.18,12C4.83,15.36 8.24,17.5 12,17.5C15.76,17.5 19.17,15.36 20.82,12C19.17,8.64 15.76,6.5 12,6.5C8.24,6.5 4.83,8.64 3.18,12Z" />
+          <!-- Campo Nome -->
+          <div class="input-group">
+            <label class="input-label">NOME</label>
+            <div class="input-wrapper"
+              :class="{ 'valid': validateName(editedUser.name), 'invalid': editedUser.name && !validateName(editedUser.name) }">
+              <svg class="input-icon" viewBox="0 0 24 24">
+                <path
+                  d="M12,4A4,4 0 0,1 16,8A4,4 0 0,1 12,12A4,4 0 0,1 9,8A4,4 0 0,1 12,4M12,14C16.42,14 20,15.79 20,18V20H4V18C4,15.79 7.58,14 12,14Z" />
               </svg>
-            </button>
+              <input v-model="editedUser.name" type="text" required class="input-field" placeholder="NOME COMPLETO">
+              <svg v-if="editedUser.name" class="valid-icon" viewBox="0 0 24 24">
+                <path v-if="validateName(editedUser.name)"
+                  d="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z" />
+                <path v-else
+                  d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z" />
+              </svg>
+            </div>
+            <p v-if="editedUser.name && !validateName(editedUser.name)" class="error-message">O nome deve ter pelo menos
+              3
+              caracteres</p>
           </div>
-          <div v-if="editedUser.password" class="password-strength">
-            <div class="strength-bar" :class="passwordStrengthClass"></div>
-            <span class="strength-text">{{ passwordStrengthText }}</span>
+        </div>
+
+        <div class="user-section" v-if="activeUserSection === 'email'">
+          <div class="section-header">
+            <h3 class="section-title">CONTATO</h3>
+            <p class="section-subtitle">ENDEREÇO DE E-MAIL</p>
           </div>
-          <p v-if="editedUser.password && !validatePassword(editedUser.password)" class="error-message">A senha deve ter
-            pelo menos 8 caracteres</p>
+          <!-- Campo E-mail -->
+          <div class="input-group">
+            <label class="input-label">E-MAIL</label>
+            <div class="input-wrapper"
+              :class="{ 'valid': validateEmail(editedUser.email), 'invalid': editedUser.email && !validateEmail(editedUser.email) }">
+              <svg class="input-icon" viewBox="0 0 24 24">
+                <path
+                  d="M22 6C22 4.9 21.1 4 20 4H4C2.9 4 2 4.9 2 6V18C2 19.1 2.9 20 4 20H20C21.1 20 22 19.1 22 18V6M20 6L12 11L4 6H20M20 18H4V8L12 13L20 8V18Z" />
+              </svg>
+              <input v-model="editedUser.email" type="email" required class="input-field" placeholder="NOVO@EMAIL.COM">
+              <svg v-if="editedUser.email" class="valid-icon" viewBox="0 0 24 24">
+                <path v-if="validateEmail(editedUser.email)"
+                  d="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z" />
+                <path v-else
+                  d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z" />
+              </svg>
+            </div>
+            <p v-if="editedUser.email && !validateEmail(editedUser.email)" class="error-message">Por favor, insira um
+              e-mail válido</p>
+          </div>
+        </div>
+
+        <div class="user-section" v-if="activeUserSection === 'password'">
+          <div class="section-header">
+            <h3 class="section-title">SEGURANÇA</h3>
+            <p class="section-subtitle">ALTERAÇÃO DE SENHA</p>
+          </div>
+          
+          <!-- Campo Senha Atual -->
+          <div class="input-group">
+            <label class="input-label">SENHA ATUAL</label>
+            <div class="input-wrapper" :class="{ 'invalid': passwordFieldErrors.currentPassword }">
+              <svg class="input-icon" viewBox="0 0 24 24">
+                <path d="M12,17A2,2 0 0,0 14,15C14,13.89 13.1,13 12,13A2,2 0 0,0 10,15A2,2 0 0,0 12,17M18,8A2,2 0 0,1 20,10V20A2,2 0 0,1 18,22H6A2,2 0 0,1 4,20V10C4,8.89 4.9,8 6,8H7V6A5,5 0 0,1 12,1A5,5 0 0,1 17,6V8H18M12,3A3,3 0 0,0 9,6V8H15V6A3,3 0 0,0 12,3Z" />
+              </svg>
+              <input v-model="currentPassword" :type="showCurrentPassword ? 'text' : 'password'" required class="input-field" placeholder="DIGITE SUA SENHA ATUAL">
+              <button @click="showCurrentPassword = !showCurrentPassword" class="password-toggle">
+                <svg class="password-icon" viewBox="0 0 24 24">
+                  <path v-if="showCurrentPassword" d="M11.83,9L15,12.16C15,12.11 15,12.05 15,12A3,3 0 0,0 12,9C11.94,9 11.89,9 11.83,9M7.53,9.8L9.08,11.35C9.03,11.56 9,11.77 9,12A3,3 0 0,0 12,15C12.22,15 12.44,14.97 12.65,14.92L14.2,16.47C13.53,16.8 12.79,17 12,17A5,5 0 0,1 7,12C7,11.21 7.2,10.47 7.53,9.8M2,4.27L4.28,6.55L4.73,7C3.08,8.3 1.78,10 1,12C2.73,16.39 7,19.5 12,19.5C13.55,19.5 15.03,19.2 16.38,18.66L16.81,19.08L19.73,22L21,20.73L3.27,3M12,7A5,5 0 0,1 17,12C17,12.64 16.87,13.26 16.64,13.82L19.57,16.75C21.07,15.5 22.27,13.86 23,12C21.27,7.61 17,4.5 12,4.5C10.6,4.5 9.26,4.75 8,5.2L10.17,7.35C10.74,7.13 11.35,7 12,7Z" />
+                  <path v-else d="M12,9A3,3 0 0,1 15,12A3,3 0 0,1 12,15A3,3 0 0,1 9,12A3,3 0 0,1 12,9M12,4.5C17,4.5 21.27,7.61 23,12C21.27,16.39 17,19.5 12,19.5C7,19.5 2.73,16.39 1,12C2.73,7.61 7,4.5 12,4.5M3.18,12C4.83,15.36 8.24,17.5 12,17.5C15.76,17.5 19.17,15.36 20.82,12C19.17,8.64 15.76,6.5 12,6.5C8.24,6.5 4.83,8.64 3.18,12Z" />
+                </svg>
+              </button>
+            </div>
+            <p v-if="passwordFieldErrors.currentPassword" class="error-message">{{ passwordFieldErrors.currentPassword }}</p>
+          </div>
+
+          <!-- Campo Nova Senha -->
+          <div class="input-group">
+            <label class="input-label">NOVA SENHA</label>
+            <div class="input-wrapper" :class="{ 
+              'valid': validatePassword(editedUser.password) && editedUser.password.length > 0, 
+              'invalid': passwordFieldErrors.newPassword || (editedUser.password && !validatePassword(editedUser.password))
+            }">
+              <svg class="input-icon" viewBox="0 0 24 24">
+                <path d="M12,17A2,2 0 0,0 14,15C14,13.89 13.1,13 12,13A2,2 0 0,0 10,15A2,2 0 0,0 12,17M18,8A2,2 0 0,1 20,10V20A2,2 0 0,1 18,22H6A2,2 0 0,1 4,20V10C4,8.89 4.9,8 6,8H7V6A5,5 0 0,1 12,1A5,5 0 0,1 17,6V8H18M12,3A3,3 0 0,0 9,6V8H15V6A3,3 0 0,0 12,3Z" />
+              </svg>
+              <input v-model="editedUser.password" :type="showPassword ? 'text' : 'password'" class="input-field" placeholder="DIGITE A NOVA SENHA">
+              <button @click="showPassword = !showPassword" class="password-toggle">
+                <svg class="password-icon" viewBox="0 0 24 24">
+                  <path v-if="showPassword" d="M11.83,9L15,12.16C15,12.11 15,12.05 15,12A3,3 0 0,0 12,9C11.94,9 11.89,9 11.83,9M7.53,9.8L9.08,11.35C9.03,11.56 9,11.77 9,12A3,3 0 0,0 12,15C12.22,15 12.44,14.97 12.65,14.92L14.2,16.47C13.53,16.8 12.79,17 12,17A5,5 0 0,1 7,12C7,11.21 7.2,10.47 7.53,9.8M2,4.27L4.28,6.55L4.73,7C3.08,8.3 1.78,10 1,12C2.73,16.39 7,19.5 12,19.5C13.55,19.5 15.03,19.2 16.38,18.66L16.81,19.08L19.73,22L21,20.73L3.27,3M12,7A5,5 0 0,1 17,12C17,12.64 16.87,13.26 16.64,13.82L19.57,16.75C21.07,15.5 22.27,13.86 23,12C21.27,7.61 17,4.5 12,4.5C10.6,4.5 9.26,4.75 8,5.2L10.17,7.35C10.74,7.13 11.35,7 12,7Z" />
+                  <path v-else d="M12,9A3,3 0 0,1 15,12A3,3 0 0,1 12,15A3,3 0 0,1 9,12A3,3 0 0,1 12,9M12,4.5C17,4.5 21.27,7.61 23,12C21.27,16.39 17,19.5 12,19.5C7,19.5 2.73,16.39 1,12C2.73,7.61 7,4.5 12,4.5M3.18,12C4.83,15.36 8.24,17.5 12,17.5C15.76,17.5 19.17,15.36 20.82,12C19.17,8.64 15.76,6.5 12,6.5C8.24,6.5 4.83,8.64 3.18,12Z" />
+                </svg>
+              </button>
+            </div>
+            <div v-if="editedUser.password" class="password-strength">
+              <div class="strength-bar" :class="passwordStrengthClass"></div>
+              <span class="strength-text">{{ passwordStrengthText }}</span>
+            </div>
+            <p v-if="passwordFieldErrors.newPassword" class="error-message">{{ passwordFieldErrors.newPassword }}</p>
+            <p v-else-if="editedUser.password && !validatePassword(editedUser.password)" class="error-message">
+              A senha deve ter pelo menos 8 caracteres
+            </p>
+          </div>
+
+          <!-- Campo Confirmar Nova Senha -->
+          <div class="input-group">
+            <label class="input-label">CONFIRMAR NOVA SENHA</label>
+            <div class="input-wrapper" :class="{ 
+              'valid': editedUser.confirmPassword === editedUser.password && editedUser.confirmPassword.length > 0, 
+              'invalid': passwordFieldErrors.confirmPassword || (editedUser.confirmPassword && editedUser.confirmPassword !== editedUser.password)
+            }">
+              <svg class="input-icon" viewBox="0 0 24 24">
+                <path d="M12,17A2,2 0 0,0 14,15C14,13.89 13.1,13 12,13A2,2 0 0,0 10,15A2,2 0 0,0 12,17M18,8A2,2 0 0,1 20,10V20A2,2 0 0,1 18,22H6A2,2 0 0,1 4,20V10C4,8.89 4.9,8 6,8H7V6A5,5 0 0,1 12,1A5,5 0 0,1 17,6V8H18M12,3A3,3 0 0,0 9,6V8H15V6A3,3 0 0,0 12,3Z" />
+              </svg>
+              <input v-model="editedUser.confirmPassword" :type="showConfirmPassword ? 'text' : 'password'" class="input-field" placeholder="CONFIRME A NOVA SENHA">
+              <button @click="showConfirmPassword = !showConfirmPassword" class="password-toggle">
+                <svg class="password-icon" viewBox="0 0 24 24">
+                  <path v-if="showConfirmPassword" d="M11.83,9L15,12.16C15,12.11 15,12.05 15,12A3,3 0 0,0 12,9C11.94,9 11.89,9 11.83,9M7.53,9.8L9.08,11.35C9.03,11.56 9,11.77 9,12A3,3 0 0,0 12,15C12.22,15 12.44,14.97 12.65,14.92L14.2,16.47C13.53,16.8 12.79,17 12,17A5,5 0 0,1 7,12C7,11.21 7.2,10.47 7.53,9.8M2,4.27L4.28,6.55L4.73,7C3.08,8.3 1.78,10 1,12C2.73,16.39 7,19.5 12,19.5C13.55,19.5 15.03,19.2 16.38,18.66L16.81,19.08L19.73,22L21,20.73L3.27,3M12,7A5,5 0 0,1 17,12C17,12.64 16.87,13.26 16.64,13.82L19.57,16.75C21.07,15.5 22.27,13.86 23,12C21.27,7.61 17,4.5 12,4.5C10.6,4.5 9.26,4.75 8,5.2L10.17,7.35C10.74,7.13 11.35,7 12,7Z" />
+                  <path v-else d="M12,9A3,3 0 0,1 15,12A3,3 0 0,1 12,15A3,3 0 0,1 9,12A3,3 0 0,1 12,9M12,4.5C17,4.5 21.27,7.61 23,12C21.27,16.39 17,19.5 12,19.5C7,19.5 2.73,16.39 1,12C2.73,7.61 7,4.5 12,4.5M3.18,12C4.83,15.36 8.24,17.5 12,17.5C15.76,17.5 19.17,15.36 20.82,12C19.17,8.64 15.76,6.5 12,6.5C8.24,6.5 4.83,8.64 3.18,12Z" />
+                </svg>
+              </button>
+            </div>
+            <p v-if="passwordFieldErrors.confirmPassword" class="error-message">{{ passwordFieldErrors.confirmPassword }}</p>
+            <p v-else-if="editedUser.confirmPassword && editedUser.confirmPassword !== editedUser.password" class="error-message">
+              As senhas não coincidem
+            </p>
+          </div>
         </div>
 
         <!-- Ações do Modal -->
@@ -120,6 +178,9 @@
           </button>
           <button @click="closeModal" class="auth-button secondary">
             CANCELAR
+          </button>
+          <button @click="requestAccountDeletion" class="auth-button delete-button">
+            EXCLUIR CONTA
           </button>
         </div>
       </div>
@@ -147,8 +208,8 @@
           <div class="tax-code-row" v-for="tax in taxTypes" :key="tax.Code">
             <label class="tax-label">
               {{ tax.nome
-                .replace('SIMPLES_NACIONAL', 'SIMPLES NACIONAL')
-                .replace('MULTA_JUROS', 'MULTA E JUROS') }}
+              .replace('SIMPLES_NACIONAL', 'SIMPLES NACIONAL')
+              .replace('MULTA_JUROS', 'MULTA E JUROS') }}
             </label>
             <div class="account-inputs">
               <input :value="taxCodes[tax.Code].debito === '_' ? '' : taxCodes[tax.Code].debito"
@@ -175,7 +236,56 @@
             <button @click="closeModal" class="auth-button secondary">
               CANCELAR
             </button>
+
           </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div v-if="showDeleteConfirmation" class="modal-overlay confirm-overlay">
+    <div class="modal-content confirm-modal">
+      <div class="modal-header">
+        <h2>CONFIRMAR EXCLUSÃO</h2>
+      </div>
+      <div class="modal-body">
+        <p>
+          Você está prestes a excluir sua conta permanentemente. Esta ação não pode ser desfeita.
+          Todos os seus dados serão removedos do sistema.
+        </p>
+        <p class="warning-text">
+          <strong>ATENÇÃO:</strong> Tem certeza que deseja continuar?
+        </p>
+        <div class="modal-actions">
+          <button @click="deleteAccount" class="auth-button delete-button" :disabled="isDeleting">
+            <span v-if="!isDeleting">CONFIRMAR EXCLUSÃO</span>
+            <span v-else class="button-loading">
+              <svg class="spinner" viewBox="0 0 50 50">
+                <circle class="path" cx="25" cy="25" r="20" fill="none" stroke-width="5"></circle>
+              </svg>
+              EXCLUINDO...
+            </span>
+          </button>
+          <button @click="showDeleteConfirmation = false" class="auth-button secondary">
+            CANCELAR
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal de Sucesso/Erro -->
+  <div v-if="showResultModal" class="modal-overlay confirm-overlay">
+    <div class="modal-content confirm-modal">
+      <div class="modal-header">
+        <h2>{{ resultModalTitle }}</h2>
+      </div>
+      <div class="modal-body">
+        <p>{{ resultModalMessage }}</p>
+        <div class="modal-actions">
+          <button @click="handleResultModalClose" class="auth-button">
+            OK
+          </button>
         </div>
       </div>
     </div>
@@ -201,6 +311,7 @@
           <button @click="confirmChanges = false" class="auth-button secondary">
             CANCELAR
           </button>
+
         </div>
       </div>
     </div>
@@ -212,6 +323,11 @@ import { ref, watch, computed } from 'vue'
 import { ImpostoService } from '../../infrastructure/services/ImpostoService'
 import { LoadImpostosCommand } from '../../application/commands/LoadImpostosCommand'
 import { UpdateImpostosCommand } from '../../application/commands/UpdateImpostosCommand'
+import { AuthService } from '../../infrastructure/services/AuthService'
+import { ChangePasswordCommand } from '../../application/commands/ChangePasswordCommand'
+import type { ChangePasswordResult } from '../../domain/models/ChangePasswordResult'
+import { useRouter } from 'vue-router'
+import { useAuthStore } from '../../stores/authStore'
 import type { TaxCodes } from '../../application/interfaces/TaxCodes'
 import type { ImpostoDto } from '../../application/dtos/ImpostoDto'
 
@@ -221,21 +337,22 @@ const props = defineProps({
   userData: Object as () => {
     fullName?: string;
     email?: string;
-    // adicione outros campos do usuário conforme necessário
   }
 })
 
-const emit = defineEmits(['close', 'save-user', 'save-account'])
+const emit = defineEmits(['close', 'save-user', 'save-account', 'delete-account'])
 
 // Dados reativos
 const activeTab = ref<'user' | 'account'>('user')
+const activeUserSection = ref<'name' | 'email' | 'password'>('name')
 const editedUser = ref({
   name: props.userData?.fullName || '',
   email: props.userData?.email || '',
-  password: ''
+  password: '',
+  confirmPassword: ''
 })
 
-// Dados para códigos de imposto (nova lógica)
+// Dados para códigos de imposto
 const taxCodes = ref<TaxCodes>({})
 const originalTaxCodes = ref<TaxCodes>({})
 const taxTypes = ref<ImpostoDto[]>([])
@@ -244,10 +361,24 @@ const isLoading = ref(false)
 
 // Dados para usuário
 const currentPassword = ref('')
-const passwordError = ref('')
 const showPassword = ref(false)
+const showCurrentPassword = ref(false)
+const showConfirmPassword = ref(false)
+const passwordFieldErrors = ref({
+  currentPassword: '',
+  newPassword: '',
+  confirmPassword: ''
+})
 const confirmChanges = ref(false)
 const changeType = ref('')
+
+const isDeleting = ref(false)
+const showDeleteConfirmation = ref(false)
+const showResultModal = ref(false)
+const resultModalTitle = ref('')
+const resultModalMessage = ref('')
+const router = useRouter()
+const authStore = useAuthStore()
 
 // Funções de validação
 const validateEmail = (email: string) => {
@@ -289,9 +420,18 @@ const passwordStrengthText = computed(() => {
 })
 
 const isUserFormValid = computed(() => {
-  return validateName(editedUser.value.name) &&
-    validateEmail(editedUser.value.email) &&
-    (editedUser.value.password === '' || validatePassword(editedUser.value.password))
+  if (activeUserSection.value === 'name') {
+    return validateName(editedUser.value.name)
+  }
+  if (activeUserSection.value === 'email') {
+    return validateEmail(editedUser.value.email)
+  }
+  if (activeUserSection.value === 'password') {
+    return currentPassword.value !== '' &&
+           validatePassword(editedUser.value.password) &&
+           editedUser.value.password === editedUser.value.confirmPassword
+  }
+  return false
 })
 
 // Funções para códigos de imposto
@@ -364,25 +504,78 @@ const loadTaxCodes = async () => {
   }
 }
 
+// Função para trocar senha
+const changePassword = async () => {
+  isSaving.value = true
+  passwordFieldErrors.value = { currentPassword: '', newPassword: '', confirmPassword: '' }
+  
+  try {
+    const command = new ChangePasswordCommand(
+      currentPassword.value,
+      editedUser.value.password,
+      editedUser.value.confirmPassword
+    )
+    
+    const result: ChangePasswordResult = await AuthService.changePassword(command)
+    
+    if (result.success) {
+      // Senha alterada com sucesso
+      resultModalTitle.value = 'SENHA ALTERADA'
+      resultModalMessage.value = 'Sua senha foi alterada com sucesso!'
+      showResultModal.value = true
+      
+      // Limpa os campos
+      currentPassword.value = ''
+      editedUser.value.password = ''
+      editedUser.value.confirmPassword = ''
+    } else {
+      // Trata erros de campo
+      if (result.fieldErrors) {
+        passwordFieldErrors.value = {
+          currentPassword: result.fieldErrors.currentPassword || '',
+          newPassword: result.fieldErrors.newPassword || '',
+          confirmPassword: result.fieldErrors.confirmPassword || ''
+        }
+      }
+      
+      resultModalTitle.value = 'ERRO AO ALTERAR SENHA'
+      resultModalMessage.value = result.message || 'Ocorreu um erro ao tentar alterar sua senha.'
+      showResultModal.value = true
+    }
+  } catch (error) {
+    console.error('Erro inesperado ao alterar senha:', error)
+    resultModalTitle.value = 'ERRO INESPERADO'
+    resultModalMessage.value = 'Ocorreu um erro inesperado ao tentar alterar sua senha.'
+    showResultModal.value = true
+  } finally {
+    isSaving.value = false
+  }
+}
+
 // Watchers
 watch(() => props.userData, (newVal) => {
   if (newVal) {
     editedUser.value = {
       name: newVal.fullName || '',
       email: newVal.email || '',
-      password: ''
+      password: '',
+      confirmPassword: ''
     }
     currentPassword.value = ''
-    passwordError.value = ''
+    passwordFieldErrors.value = { currentPassword: '', newPassword: '', confirmPassword: '' }
   }
 }, { immediate: true, deep: true })
 
-watch(() => editedUser.value.password, (newVal) => {
-  if (newVal && newVal.length > 0 && !validatePassword(newVal)) {
-    passwordError.value = 'A senha deve ter pelo menos 8 caracteres'
-  } else {
-    passwordError.value = ''
-  }
+watch(() => currentPassword.value, () => {
+  passwordFieldErrors.value.currentPassword = ''
+})
+
+watch(() => editedUser.value.password, () => {
+  passwordFieldErrors.value.newPassword = ''
+})
+
+watch(() => editedUser.value.confirmPassword, () => {
+  passwordFieldErrors.value.confirmPassword = ''
 })
 
 watch(() => activeTab.value, (newVal) => {
@@ -402,34 +595,55 @@ const requestConfirmation = (type: string) => {
 }
 
 const proceedWithChange = () => {
-  confirmChanges.value = false;
+  confirmChanges.value = false
   if (activeTab.value === 'user') {
-    performUserSave();
+    if (changeType.value === 'password') {
+      changePassword()
+    } else {
+      performUserSave(changeType.value as 'name' | 'email')
+    }
   } else {
-    saveAccountChanges();
+    saveAccountChanges()
   }
 }
 
 const saveUserChanges = async () => {
-  if (isSaving.value || !isUserFormValid.value) return
+  if (isSaving.value) return
 
-  // Se estiver alterando senha ou email, pedir confirmação
-  if (editedUser.value.password && !currentPassword.value) {
-    passwordError.value = 'Por favor, insira sua senha atual para alterar a senha'
+  if (activeUserSection.value === 'name') {
+    if (!isUserFormValid.value) return
+    await performUserSave('name')
     return
   }
 
-  if (editedUser.value.email !== props.userData?.email) {
-    requestConfirmation('email')
+  if (activeUserSection.value === 'email') {
+    if (!isUserFormValid.value) return
+    if (editedUser.value.email !== props.userData?.email) {
+      requestConfirmation('email')
+    } else {
+      alert('Nenhuma alteração para salvar.')
+    }
     return
   }
 
-  if (editedUser.value.password) {
+  if (activeUserSection.value === 'password') {
+    if (!isUserFormValid.value) {
+      // Mostra mensagens de erro específicas
+      if (!currentPassword.value) {
+        passwordFieldErrors.value.currentPassword = 'Por favor, insira sua senha atual'
+      }
+      if (!validatePassword(editedUser.value.password)) {
+        passwordFieldErrors.value.newPassword = 'A senha deve ter pelo menos 8 caracteres'
+      }
+      if (editedUser.value.password !== editedUser.value.confirmPassword) {
+        passwordFieldErrors.value.confirmPassword = 'As senhas não coincidem'
+      }
+      return
+    }
+    
     requestConfirmation('password')
     return
   }
-
-  await performUserSave()
 }
 
 const saveAccountChanges = async () => {
@@ -479,17 +693,67 @@ const saveAccountChanges = async () => {
   }
 }
 
-const performUserSave = async () => {
+const requestAccountDeletion = () => {
+  showDeleteConfirmation.value = true
+}
+
+const deleteAccount = async () => {
+  isDeleting.value = true
+  try {
+    const result = await AuthService.deleteUser()
+
+    if (result.success) {
+      // Logout após exclusão bem-sucedida
+      await authStore.logout()
+
+      // Mostra mensagem de sucesso
+      resultModalTitle.value = 'CONTA EXCLUÍDA'
+      resultModalMessage.value = 'Sua conta foi excluída com sucesso. Todos os seus dados foram removidos do sistema.'
+      showDeleteConfirmation.value = false
+      showResultModal.value = true
+    } else {
+      // Mostra mensagem de erro
+      resultModalTitle.value = 'ERRO AO EXCLUIR'
+      resultModalMessage.value = result.message || 'Ocorreu um erro ao tentar excluir sua conta.'
+      if (result.errors) {
+        resultModalMessage.value += '\n' + result.errors.map(e => e.description).join('\n')
+      }
+      showDeleteConfirmation.value = false
+      showResultModal.value = true
+    }
+  } catch (error) {
+    console.error('Erro ao excluir conta:', error)
+    resultModalTitle.value = 'ERRO INESPERADO'
+    resultModalMessage.value = 'Ocorreu um erro inesperado ao tentar excluir sua conta.'
+    showDeleteConfirmation.value = false
+    showResultModal.value = true
+  } finally {
+    isDeleting.value = false
+  }
+}
+
+const handleResultModalClose = () => {
+  showResultModal.value = false
+  if (resultModalTitle.value === 'CONTA EXCLUÍDA') {
+    // Redireciona para a página inicial após exclusão bem-sucedida
+    router.push('/')
+  }
+}
+
+const performUserSave = async (change: 'name' | 'email') => {
   isSaving.value = true
   try {
-    // Simula uma chamada API
+    // Simula uma chamada API (substitua pela sua implementação real)
     await new Promise(resolve => setTimeout(resolve, 1000))
-    emit('save-user', {
-      name: editedUser.value.name,
-      email: editedUser.value.email,
-      password: editedUser.value.password,
-      currentPassword: currentPassword.value
-    })
+
+    const payload: any = { type: change }
+    if (change === 'name') {
+      payload.name = editedUser.value.name
+    } else if (change === 'email') {
+      payload.email = editedUser.value.email
+    }
+
+    emit('save-user', payload)
     closeModal()
   } catch (error) {
     console.error('Erro ao salvar usuário:', error)
@@ -1005,6 +1269,23 @@ const performUserSave = async () => {
   border-color: #555;
 }
 
+/* No style, junto com os outros estilos de botão */
+.delete-button {
+  background: linear-gradient(to right, #ff4d4d, #d93636);
+  color: white;
+}
+
+.delete-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(255, 77, 77, 0.3);
+}
+
+.warning-text {
+  color: #ff4d4d;
+  margin: 1rem 0;
+  font-size: 0.95rem;
+}
+
 /* Animações */
 @keyframes fadeIn {
   from {
@@ -1091,6 +1372,34 @@ const performUserSave = async () => {
   .account-types {
     display: none;
   }
+}
+
+.user-subtabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.user-subtab-button {
+  padding: 0.5rem 0.75rem;
+  background: transparent;
+  border: 1px solid #333;
+  border-radius: 4px;
+  color: #aaa;
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.user-subtab-button:hover {
+  color: #f9cb28;
+  border-color: #555;
+}
+
+.user-subtab-button.active {
+  color: #f9cb28;
+  border-color: #f9cb28;
 }
 
 .tabs {

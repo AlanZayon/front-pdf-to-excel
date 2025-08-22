@@ -11,10 +11,18 @@
             <p class="page-subtitle">CONFIGURAÇÃO DOS TIPOS DE IMPOSTO</p>
         </div>
 
-        <!-- Loading State -->
+        <!-- Loading State melhorado -->
         <div v-if="isLoading" class="loading-overlay">
-            <div class="spinner"></div>
-            <p>Carregando códigos de conta...</p>
+            <div class="loading-container">
+                <div class="loading-spinner">
+                    <div class="spinner-circle"></div>
+                    <div class="spinner-circle"></div>
+                    <div class="spinner-circle"></div>
+                    <div class="spinner-circle"></div>
+                </div>
+                <p class="loading-text">Carregando códigos de conta...</p>
+                <p class="loading-subtext">Isso pode levar alguns instantes</p>
+            </div>
         </div>
 
         <!-- Tabela de Códigos de Conta -->
@@ -29,35 +37,35 @@
                 </div>
             </div>
 
-<div class="tax-code-row" v-for="tax in taxTypes" :key="tax.id">
-    <label class="tax-label">
-        {{ tax.nome
-            .replace('SIMPLES_NACIONAL', 'SIMPLES NACIONAL')
-            .replace('MULTA_JUROS', 'MULTA E JUROS') }}
-    </label>
-    <div class="account-inputs">
-        <input
-            :value="taxCodes[tax.Code].debito === '_' ? '' : taxCodes[tax.Code].debito"
-            @input="handleDebitoInput($event, tax.Code)"
-            type="text"
-            class="tax-input"
-            :placeholder="'Débito'"
-            :disabled="isSaving"
-            maxlength="5"
-            onkeypress="return event.charCode >= 48 && event.charCode <= 57"
-        >
-        <input
-            :value="taxCodes[tax.Code].credito === '_' ? '' : taxCodes[tax.Code].credito"
-            @input="handleCreditoInput($event, tax.Code)"
-            type="text"
-            class="tax-input"
-            :placeholder="'Crédito'"
-            :disabled="isSaving"
-            maxlength="5"
-            onkeypress="return event.charCode >= 48 && event.charCode <= 57"
-        >
-    </div>
-</div>
+            <div class="tax-code-row" v-for="tax in taxTypes" :key="tax.id">
+                <label class="tax-label">
+                    {{ tax.nome
+                        .replace('SIMPLES_NACIONAL', 'SIMPLES NACIONAL')
+                        .replace('MULTA_JUROS', 'MULTA E JUROS') }}
+                </label>
+                <div class="account-inputs">
+                    <input
+                        :value="taxCodes[tax.Code].debito === '_' ? '' : taxCodes[tax.Code].debito"
+                        @input="handleDebitoInput($event, tax.Code)"
+                        type="text"
+                        class="tax-input"
+                        :placeholder="'Débito'"
+                        :disabled="isSaving"
+                        maxlength="5"
+                        onkeypress="return event.charCode >= 48 && event.charCode <= 57"
+                    >
+                    <input
+                        :value="taxCodes[tax.Code].credito === '_' ? '' : taxCodes[tax.Code].credito"
+                        @input="handleCreditoInput($event, tax.Code)"
+                        type="text"
+                        class="tax-input"
+                        :placeholder="'Crédito'"
+                        :disabled="isSaving"
+                        maxlength="5"
+                        onkeypress="return event.charCode >= 48 && event.charCode <= 57"
+                    >
+                </div>
+            </div>
         </div>
 
         <!-- Ações da Página -->
@@ -233,6 +241,7 @@ onMounted(() => {
     padding: 2rem;
     background: #1a1a1a;
     position: relative;
+    min-height: 100vh;
 }
 
 /* Botão de Avançar */
@@ -280,6 +289,77 @@ onMounted(() => {
     color: #aaa;
     font-size: 0.9rem;
     margin-top: 0.5rem;
+}
+
+/* Loading State Melhorado */
+.loading-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(26, 26, 26, 0.95);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 100;
+    backdrop-filter: blur(5px);
+}
+
+.loading-container {
+    text-align: center;
+    max-width: 300px;
+}
+
+.loading-spinner {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 1.5rem;
+}
+
+.spinner-circle {
+    width: 12px;
+    height: 12px;
+    margin: 0 4px;
+    background-color: #f9cb28;
+    border-radius: 50%;
+    display: inline-block;
+    animation: bounce 1.4s infinite ease-in-out both;
+}
+
+.spinner-circle:nth-child(1) {
+    animation-delay: -0.32s;
+}
+
+.spinner-circle:nth-child(2) {
+    animation-delay: -0.16s;
+}
+
+.spinner-circle:nth-child(3) {
+    animation-delay: -0.08s;
+}
+
+@keyframes bounce {
+    0%, 80%, 100% {
+        transform: scale(0.8);
+        opacity: 0.5;
+    }
+    40% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.loading-text {
+    color: #f9cb28;
+    font-size: 1.2rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.loading-subtext {
+    color: #aaa;
+    font-size: 0.9rem;
 }
 
 /* Seção de códigos fiscais */
@@ -546,6 +626,14 @@ onMounted(() => {
     .cancel-button,
     .save-button {
         width: 100%;
+    }
+    
+    .loading-text {
+        font-size: 1rem;
+    }
+    
+    .loading-subtext {
+        font-size: 0.8rem;
     }
 }
 </style>

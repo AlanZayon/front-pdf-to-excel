@@ -76,11 +76,10 @@ export class ImpostoService {
         };
       }
 
-      const response = await http.put('/api/configuracao/impostos', command.changes, {
+      await http.put('/api/configuracao/impostos', command.changes, {
         withCredentials: true
       });
 
-      logger.info('Impostos atualizados com sucesso', response.data);
       return {
         success: true,
         message: 'Alterações salvas com sucesso'

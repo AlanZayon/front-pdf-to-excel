@@ -1,103 +1,146 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { AuthService } from '../infrastructure/services/AuthService'
 import { LoginCommand } from '../application/commands/LoginCommand'
-
 import { useRouter } from 'vue-router'
+
+// Tipos para os erros de campo
+interface FieldErrors {
+    email?: string[]
+    password?: string[]
+}
+
+// Tipo para o estado da store
+interface AuthState {
+    user: {
+        email: string
+        fullName: string
+        roles: string[]
+    } | null
+    isAuthenticated: boolean
+    isLoading: boolean
+    error: string | null
+    isPageReady: boolean
+    fieldErrors: FieldErrors
+}
 
 export const useAuthStore = defineStore('auth', () => {
     const router = useRouter()
-    const user = ref<{ email: string; fullName: string; roles: string[] } | null>(null)
-    const isAuthenticated = ref(false)
-    const isLoading = ref(false)
-    const error = ref<string | null>(null)
-    const isPageReady = ref(false)
+
+    // Estado reativo com tipagem explícita
+    const state = ref<AuthState>({
+        user: null,
+        isAuthenticated: false,
+        isLoading: false,
+        error: null,
+        isPageReady: false,
+        fieldErrors: {}
+    })
 
     const markPageReady = () => {
-        isPageReady.value = true
+        state.value.isPageReady = true
+    }
+
+    const clearErrors = () => {
+        state.value.error = null
+        state.value.fieldErrors = {}
     }
 
     const login = async (email: string, password: string) => {
-        isLoading.value = true
-        error.value = null
+        state.value.isLoading = true
+        clearErrors()
+
         try {
             const command = new LoginCommand(email, password)
             const result = await AuthService.login(command)
 
             if (result.success && result.user) {
-                user.value = result.user
-                isAuthenticated.value = true
+                state.value.user = result.user
+                state.value.isAuthenticated = true
                 await router.push('/codigo')
             } else {
-                error.value = result.message
+                state.value.error = result.message || 'Erro ao fazer login'
+
+                // Tratamento específico para erros de campo
+                if (result.fieldErrors) {
+                    state.value.fieldErrors = {
+                        email: result.fieldErrors.email,
+                        password: result.fieldErrors.password
+                    }
+
+                }
             }
-        } catch (err) {
-            error.value = 'Ocorreu um erro durante o login'
-            console.error(err)
+        } catch (err: any) {
+            console.error('Login error:', err)
+            state.value.error = err.response?.data?.message || 'Ocorreu um erro durante o login'
         } finally {
-            isLoading.value = false
+            state.value.isLoading = false
         }
     }
 
     const logout = async () => {
-        isLoading.value = true
-        error.value = null
+        state.value.isLoading = true
+        clearErrors()
+
         try {
             const result = await AuthService.logout()
 
             if (result.success) {
-                user.value = null
-                isAuthenticated.value = false
+                state.value.user = null
+                state.value.isAuthenticated = false
                 await router.push('/access')
             } else {
-                error.value = result.message
+                state.value.error = result.message || 'Erro ao fazer logout'
             }
-        } catch (err) {
-            error.value = 'Ocorreu um erro durante o logout'
-            console.error(err)
+        } catch (err: any) {
+            console.error('Logout error:', err)
+            state.value.error = err.response?.data?.message || 'Ocorreu um erro durante o logout'
         } finally {
-            isLoading.value = false
+            state.value.isLoading = false
         }
     }
 
     const checkAuth = async (): Promise<boolean> => {
-        isLoading.value = true
-        error.value = null
         try {
             const result = await AuthService.checkAuth()
 
             if (result.success && result.user) {
-                user.value = {
+                state.value.user = {
                     email: result.user.email,
                     fullName: result.user.fullName,
                     roles: result.user.roles || []
                 }
-                isAuthenticated.value = true
+                state.value.isAuthenticated = true
                 return true
-            } else {
-                user.value = null
-                isAuthenticated.value = false
-                return false
             }
-        } catch (err) {
-            console.error('Erro ao verificar autenticação:', err)
-            user.value = null
-            isAuthenticated.value = false
+
+            state.value.user = null
+            state.value.isAuthenticated = false
             return false
-        } finally {
-            isLoading.value = false
+        } catch (err) {
+            console.error('Auth check error:', err)
+            state.value.user = null
+            state.value.isAuthenticated = false
+            return false
         }
     }
 
     return {
-        user,
-        isAuthenticated,
-        isLoading,
-        error,
+        // Estado
+        user: computed(() => state.value.user),
+        isAuthenticated: computed(() => state.value.isAuthenticated),
+        isLoading: computed(() => state.value.isLoading),
+        error: computed(() => state.value.error),
+        isPageReady: computed({
+            get: () => state.value.isPageReady,
+            set: (val) => state.value.isPageReady = val
+        }), fieldErrors: computed(() => state.value.fieldErrors),
+
+        // Ações
         login,
         logout,
         checkAuth,
-        isPageReady,
-        markPageReady
+        markPageReady,
+        clearErrors
     }
 })

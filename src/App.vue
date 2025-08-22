@@ -1,32 +1,44 @@
 <script setup lang="ts">
 import { RouterView, useRouter } from 'vue-router'
 import { useAuthStore } from './stores/authStore'
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import LoadingScreen from './interfaces/ui/LoadingScreen.vue'
 
 const authStore = useAuthStore()
 const router = useRouter()
-
+const initialLoad = ref(true)
 
 onMounted(async () => {
-  await authStore.checkAuth()
+  try {
+    await authStore.checkAuth()
+  } finally {
+    initialLoad.value = false
+    authStore.markPageReady()
+  }
 })
 
-const isStillLoading = computed(() => {
-  return authStore.isLoading || !authStore.isPageReady
+const showLoading = computed(() => {
+  return (initialLoad.value || authStore.isLoading) && !authStore.isPageReady
 })
 
-router.beforeEach((_to, _from, next) => {
-  authStore.isPageReady = false
+router.beforeEach(async (to, from, next) => {
+  // Não reinicie o estado se for a mesma rota
+  if (to.path !== from.path) {
+    authStore.isPageReady = false
+  }
   next()
+})
+
+router.afterEach(() => {
+  authStore.markPageReady()
 })
 </script>
 
 <template>
   <RouterView />
   <transition name="fade">
-  <LoadingScreen v-if="isStillLoading" :visible="true"/>
-</transition>
+    <LoadingScreen v-if="showLoading" :visible="true"/>
+  </transition>
 </template>
 
 <style>

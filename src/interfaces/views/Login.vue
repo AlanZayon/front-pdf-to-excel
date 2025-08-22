@@ -1,7 +1,6 @@
 <template>
   <div class="auth-container">
     <div class="auth-card">
-      <!-- Botão de voltar adicionado aqui -->
       <button @click="goToHome" class="back-button">
         <svg viewBox="0 0 24 24" width="24" height="24">
           <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z" fill="currentColor"/>
@@ -12,10 +11,15 @@
       <h1 class="auth-title">LOGIN</h1>
       <p class="auth-subtitle">ACESSE SUA CONTA</p>
 
+      <!-- Mensagem de erro geral -->
+      <div v-if="authStore.error" class="error-message">
+        {{ authStore.error }}
+      </div>
+
       <form @submit.prevent="handleLogin" class="auth-form">
         <div class="input-group">
           <label for="email" class="input-label">E-MAIL</label>
-          <div class="input-wrapper">
+          <div class="input-wrapper" :class="{ 'input-error': emailError }">
             <svg class="input-icon" viewBox="0 0 24 24">
               <path d="M22 6C22 4.9 21.1 4 20 4H4C2.9 4 2 4.9 2 6V18C2 19.1 2.9 20 4 20H20C21.1 20 22 19.1 22 18V6M20 6L12 11L4 6H20M20 18H4V8L12 13L20 8V18Z" />
             </svg>
@@ -26,13 +30,15 @@
               required
               class="input-field"
               placeholder="SEU@EMAIL.COM"
+              @input="clearEmailError"
             >
           </div>
+          <span v-if="emailError" class="error-text">{{ emailError }}</span>
         </div>
 
         <div class="input-group">
           <label for="password" class="input-label">SENHA</label>
-          <div class="input-wrapper">
+          <div class="input-wrapper" :class="{ 'input-error': passwordError }">
             <svg class="input-icon" viewBox="0 0 24 24">
               <path d="M12,17A2,2 0 0,0 14,15C14,13.89 13.1,13 12,13A2,2 0 0,0 10,15A2,2 0 0,0 12,17M18,8A2,2 0 0,1 20,10V20A2,2 0 0,1 18,22H6A2,2 0 0,1 4,20V10C4,8.89 4.9,8 6,8H7V6A5,5 0 0,1 12,1A5,5 0 0,1 17,6V8H18M12,3A3,3 0 0,0 9,6V8H15V6A3,3 0 0,0 12,3Z" />
             </svg>
@@ -43,13 +49,15 @@
               required
               class="input-field"
               placeholder="SUA SENHA"
+              @input="clearPasswordError"
             >
           </div>
+          <span v-if="passwordError" class="error-text">{{ passwordError }}</span>
         </div>
 
         <div class="auth-actions">
-          <button type="submit" class="auth-button" :disabled="isLoading">
-            <span v-if="!isLoading">ENTRAR</span>
+          <button type="submit" class="auth-button" :disabled="authStore.isLoading">
+            <span v-if="!authStore.isLoading">ENTRAR</span>
             <span v-else class="button-loading">
               <svg class="spinner" viewBox="0 0 50 50">
                 <circle class="path" cx="25" cy="25" r="20" fill="none" stroke-width="5"></circle>
@@ -74,7 +82,7 @@
           <p>DIGITE SEU E-MAIL PARA RECEBER O LINK DE RECUPERAÇÃO</p>
           
           <div class="input-group">
-            <div class="input-wrapper">
+            <div class="input-wrapper" :class="{ 'input-error': recoveryEmailError }">
               <svg class="input-icon" viewBox="0 0 24 24">
                 <path d="M22 6C22 4.9 21.1 4 20 4H4C2.9 4 2 4.9 2 6V18C2 19.1 2.9 20 4 20H20C21.1 20 22 19.1 22 18V6M20 6L12 11L4 6H20M20 18H4V8L12 13L20 8V18Z" />
               </svg>
@@ -84,13 +92,21 @@
                 required
                 class="input-field"
                 placeholder="SEU@EMAIL.COM"
+                @input="recoveryEmailError = ''"
               >
             </div>
+            <span v-if="recoveryEmailError" class="error-text">{{ recoveryEmailError }}</span>
           </div>
 
           <div class="modal-actions">
-            <button @click="sendRecoveryEmail" class="auth-button" :disabled="isLoading">
-              ENVIAR LINK
+            <button @click="sendRecoveryEmail" class="auth-button" :disabled="isLoadingRecovery">
+              <span v-if="!isLoadingRecovery">ENVIAR LINK</span>
+              <span v-else class="button-loading">
+                <svg class="spinner" viewBox="0 0 50 50">
+                  <circle class="path" cx="25" cy="25" r="20" fill="none" stroke-width="5"></circle>
+                </svg>
+                ENVIANDO...
+              </span>
             </button>
             <button @click="toggleForgotPassword" class="auth-button secondary">
               CANCELAR
@@ -101,6 +117,7 @@
     </div>
   </div>
 </template>
+
 <script lang="ts" setup>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
@@ -109,39 +126,118 @@ import { useAuthStore } from '../../stores/authStore'
 const router = useRouter()
 const authStore = useAuthStore()
 
-onMounted(() => {
-  authStore.markPageReady()
-})
-
-
+// Refs para os campos do formulário
 const email = ref('')
 const password = ref('')
-const isLoading = ref(false)
-const showForgotPassword = ref(false)
 const recoveryEmail = ref('')
+
+// Refs para erros e estados
+const emailError = ref('')
+const passwordError = ref('')
+const recoveryEmailError = ref('')
+const showForgotPassword = ref(false)
+const isLoadingRecovery = ref(false)
+
+onMounted(() => {
+  authStore.markPageReady()
+  // Limpa erros ao montar o componente
+  authStore.clearErrors()
+})
 
 const goToHome = () => {
   router.push('/')
 }
 
+const clearEmailError = () => {
+  emailError.value = ''
+}
+
+const clearPasswordError = () => {
+  passwordError.value = ''
+}
+
+const validateForm = () => {
+  let isValid = true
+
+  // Validação do email
+  if (!email.value) {
+    emailError.value = 'E-mail é obrigatório'
+    isValid = false
+  } else if (!/^\S+@\S+\.\S+$/.test(email.value)) {
+    emailError.value = 'Por favor, insira um e-mail válido'
+    isValid = false
+  }
+
+  // Validação da senha
+  if (!password.value) {
+    passwordError.value = 'Senha é obrigatória'
+    isValid = false
+  }
+
+  return isValid
+}
+
 const handleLogin = async () => {
+  // Limpa erros anteriores
+  emailError.value = ''
+  passwordError.value = ''
+  authStore.clearErrors()
+
+  // Validação do formulário
+  if (!validateForm()) {
+    return
+  }
+
   await authStore.login(email.value, password.value)
+
+
+  // Trata erros específicos retornados pelo authStore
+  if (authStore.fieldErrors) {
+    if (authStore.fieldErrors.email) {
+      emailError.value = authStore.fieldErrors.email[0]
+    }
+    if (authStore.fieldErrors.password) {
+      passwordError.value = authStore.fieldErrors.password[0]
+    }
+  }
 }
 
 const toggleForgotPassword = () => {
   showForgotPassword.value = !showForgotPassword.value
+  recoveryEmailError.value = ''
+  recoveryEmail.value = email.value
+}
+
+const validateRecoveryEmail = () => {
+  if (!recoveryEmail.value) {
+    recoveryEmailError.value = 'E-mail é obrigatório'
+    return false
+  }
+  if (!/^\S+@\S+\.\S+$/.test(recoveryEmail.value)) {
+    recoveryEmailError.value = 'Por favor, insira um e-mail válido'
+    return false
+  }
+  return true
 }
 
 const sendRecoveryEmail = async () => {
-  isLoading.value = true
+  if (!validateRecoveryEmail()) {
+    return
+  }
+
+  isLoadingRecovery.value = true
   try {
+    // Aqui você chamaria o método real de recuperação de senha
     await new Promise(resolve => setTimeout(resolve, 1500))
+    
+    // Simulação de sucesso
     alert(`Link de recuperação enviado para: ${recoveryEmail.value}`)
     showForgotPassword.value = false
   } catch (error) {
     console.error('Recovery failed:', error)
+    recoveryEmailError.value = 'Erro ao enviar e-mail de recuperação'
   } finally {
-    isLoading.value = false
+    isLoadingRecovery.value = false
   }
 }
 
@@ -447,6 +543,24 @@ const goToRegister = () => {
   stroke: #000;
   stroke-linecap: round;
   animation: dash 1.5s ease-in-out infinite;
+}
+.error-text {
+  color: #ff4444;
+  font-size: 12px;
+  margin-top: 4px;
+  display: block;
+}
+
+.input-error {
+  border-color: #ff4444 !important;
+}
+
+.input-error .input-field {
+  color: #ff4444;
+}
+
+.input-error .input-icon {
+  color: #ff4444;
 }
 
 @keyframes rotate {

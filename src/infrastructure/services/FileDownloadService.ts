@@ -18,7 +18,6 @@ export class FileDownloadService {
       link.click()
       link.remove()
 
-      logger.info('Download realizado com sucesso')
     } catch (error) {
       logger.error('Erro ao realizar download', error)
     }

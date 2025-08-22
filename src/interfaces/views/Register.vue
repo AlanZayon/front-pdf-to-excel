@@ -3,7 +3,7 @@
     <div class="auth-card">
       <button @click="goToLogin" class="back-button">
         <svg viewBox="0 0 24 24" width="24" height="24">
-          <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z" fill="currentColor"/>
+          <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z" fill="currentColor" />
         </svg>
         VOLTAR
       </button>
@@ -16,17 +16,11 @@
           <label for="name" class="input-label">NOME</label>
           <div class="input-wrapper">
             <svg class="input-icon" viewBox="0 0 24 24">
-              <path d="M12,4A4,4 0 0,1 16,8A4,4 0 0,1 12,12A4,4 0 0,1 8,8A4,4 0 0,1 12,4M12,14C16.42,14 20,15.79 20,18V20H4V18C4,15.79 7.58,14 12,14Z" />
+              <path
+                d="M12,4A4,4 0 0,1 16,8A4,4 0 0,1 12,12A4,4 0 0,1 8,8A4,4 0 0,1 12,4M12,14C16.42,14 20,15.79 20,18V20H4V18C4,15.79 7.58,14 12,14Z" />
             </svg>
-            <input
-              id="name"
-              v-model="name"
-              type="text"
-              required
-              class="input-field"
-              placeholder="SEU NOME"
-              @input="validateName"
-            >
+            <input id="name" v-model="name" type="text" required class="input-field" placeholder="SEU NOME"
+              @input="validateName">
           </div>
           <p v-if="nameError" class="error-message">{{ nameError }}</p>
         </div>
@@ -35,17 +29,11 @@
           <label for="email" class="input-label">E-MAIL</label>
           <div class="input-wrapper">
             <svg class="input-icon" viewBox="0 0 24 24">
-              <path d="M22 6C22 4.9 21.1 4 20 4H4C2.9 4 2 4.9 2 6V18C2 19.1 2.9 20 4 20H20C21.1 20 22 19.1 22 18V6M20 6L12 11L4 6H20M20 18H4V8L12 13L20 8V18Z" />
+              <path
+                d="M22 6C22 4.9 21.1 4 20 4H4C2.9 4 2 4.9 2 6V18C2 19.1 2.9 20 4 20H20C21.1 20 22 19.1 22 18V6M20 6L12 11L4 6H20M20 18H4V8L12 13L20 8V18Z" />
             </svg>
-            <input
-              id="email"
-              v-model="email"
-              type="email"
-              required
-              class="input-field"
-              placeholder="SEU@EMAIL.COM"
-              @input="validateEmail"
-            >
+            <input id="email" v-model="email" type="email" required class="input-field" placeholder="SEU@EMAIL.COM"
+              @input="validateEmail">
           </div>
           <p v-if="emailError" class="error-message">{{ emailError }}</p>
         </div>
@@ -54,27 +42,22 @@
           <label for="password" class="input-label">SENHA</label>
           <div class="input-wrapper">
             <svg class="input-icon" viewBox="0 0 24 24">
-              <path d="M12,17A2,2 0 0,0 14,15C14,13.89 13.1,13 12,13A2,2 0 0,0 10,15A2,2 0 0,0 12,17M18,8A2,2 0 0,1 20,10V20A2,2 0 0,1 18,22H6A2,2 0 0,1 4,20V10C4,8.89 4.9,8 6,8H7V6A5,5 0 0,1 12,1A5,5 0 0,1 17,6V8H18M12,3A3,3 0 0,0 9,6V8H15V6A3,3 0 0,0 12,3Z" />
+              <path
+                d="M12,17A2,2 0 0,0 14,15C14,13.89 13.1,13 12,13A2,2 0 0,0 10,15A2,2 0 0,0 12,17M18,8A2,2 0 0,1 20,10V20A2,2 0 0,1 18,22H6A2,2 0 0,1 4,20V10C4,8.89 4.9,8 6,8H7V6A5,5 0 0,1 12,1A5,5 0 0,1 17,6V8H18M12,3A3,3 0 0,0 9,6V8H15V6A3,3 0 0,0 12,3Z" />
             </svg>
-            <input
-              id="password"
-              v-model="password"
-              :type="showPassword ? 'text' : 'password'"
-              required
-              class="input-field"
-              placeholder="CRIE UMA SENHA FORTE"
-              @input="validatePassword"
-              @focus="showPasswordRules = true"
-              @blur="showPasswordRules = false"
-            >
+            <input id="password" v-model="password" :type="showPassword ? 'text' : 'password'" required
+              class="input-field" placeholder="CRIE UMA SENHA FORTE" @input="validatePassword"
+              @focus="showPasswordRules = true" @blur="showPasswordRules = false">
             <button @click="togglePasswordVisibility" class="password-toggle" type="button">
               <svg class="password-icon" viewBox="0 0 24 24">
-                <path v-if="showPassword" d="M11.83,9L15,12.16C15,12.11 15,12.05 15,12A3,3 0 0,0 12,9C11.94,9 11.89,9 11.83,9M7.53,9.8L9.08,11.35C9.03,11.56 9,11.77 9,12A3,3 0 0,0 12,15C12.22,15 12.44,14.97 12.65,14.92L14.2,16.47C13.53,16.8 12.79,17 12,17A5,5 0 0,1 7,12C7,11.21 7.2,10.47 7.53,9.8M2,4.27L4.28,6.55L4.73,7C3.08,8.3 1.78,10 1,12C2.73,16.39 7,19.5 12,19.5C13.55,19.5 15.03,19.2 16.38,18.66L16.81,19.08L19.73,22L21,20.73L3.27,3M12,7A5,5 0 0,1 17,12C17,12.64 16.87,13.26 16.64,13.82L19.57,16.75C21.07,15.5 22.27,13.86 23,12C21.27,7.61 17,4.5 12,4.5C10.6,4.5 9.26,4.75 8,5.2L10.17,7.35C10.74,7.13 11.35,7 12,7Z" />
-                <path v-else d="M12,9A3,3 0 0,1 15,12A3,3 0 0,1 12,15A3,3 0 0,1 9,12A3,3 0 0,1 12,9M12,4.5C17,4.5 21.27,7.61 23,12C21.27,16.39 17,19.5 12,19.5C7,19.5 2.73,16.39 1,12C2.73,7.61 7,4.5 12,4.5M3.18,12C4.83,15.36 8.24,17.5 12,17.5C15.76,17.5 19.17,15.36 20.82,12C19.17,8.64 15.76,6.5 12,6.5C8.24,6.5 4.83,8.64 3.18,12Z" />
+                <path v-if="showPassword"
+                  d="M11.83,9L15,12.16C15,12.11 15,12.05 15,12A3,3 0 0,0 12,9C11.94,9 11.89,9 11.83,9M7.53,9.8L9.08,11.35C9.03,11.56 9,11.77 9,12A3,3 0 0,0 12,15C12.22,15 12.44,14.97 12.65,14.92L14.2,16.47C13.53,16.8 12.79,17 12,17A5,5 0 0,1 7,12C7,11.21 7.2,10.47 7.53,9.8M2,4.27L4.28,6.55L4.73,7C3.08,8.3 1.78,10 1,12C2.73,16.39 7,19.5 12,19.5C13.55,19.5 15.03,19.2 16.38,18.66L16.81,19.08L19.73,22L21,20.73L3.27,3M12,7A5,5 0 0,1 17,12C17,12.64 16.87,13.26 16.64,13.82L19.57,16.75C21.07,15.5 22.27,13.86 23,12C21.27,7.61 17,4.5 12,4.5C10.6,4.5 9.26,4.75 8,5.2L10.17,7.35C10.74,7.13 11.35,7 12,7Z" />
+                <path v-else
+                  d="M12,9A3,3 0 0,1 15,12A3,3 0 0,1 12,15A3,3 0 0,1 9,12A3,3 0 0,1 12,9M12,4.5C17,4.5 21.27,7.61 23,12C21.27,16.39 17,19.5 12,19.5C7,19.5 2.73,16.39 1,12C2.73,7.61 7,4.5 12,4.5M3.18,12C4.83,15.36 8.24,17.5 12,17.5C15.76,17.5 19.17,15.36 20.82,12C19.17,8.64 15.76,6.5 12,6.5C8.24,6.5 4.83,8.64 3.18,12Z" />
               </svg>
             </button>
           </div>
-          
+
           <div v-if="showPasswordRules" class="password-rules">
             <p :class="{ 'rule-valid': hasMinLength }">• Mínimo 8 caracteres</p>
             <p :class="{ 'rule-valid': hasUpperCase }">• Pelo menos 1 letra maiúscula</p>
@@ -82,7 +65,7 @@
             <p :class="{ 'rule-valid': hasNumber }">• Pelo menos 1 número</p>
             <p :class="{ 'rule-valid': hasSpecialChar }">• Pelo menos 1 caractere especial</p>
           </div>
-          
+
           <div class="password-strength">
             <div class="strength-bar" :class="passwordStrengthClass"></div>
             <span class="strength-text">{{ passwordStrengthText }}</span>
@@ -94,21 +77,17 @@
           <label for="confirmPassword" class="input-label">CONFIRMAR SENHA</label>
           <div class="input-wrapper">
             <svg class="input-icon" viewBox="0 0 24 24">
-              <path d="M12,17A2,2 0 0,0 14,15C14,13.89 13.1,13 12,13A2,2 0 0,0 10,15A2,2 0 0,0 12,17M18,8A2,2 0 0,1 20,10V20A2,2 0 0,1 18,22H6A2,2 0 0,1 4,20V10C4,8.89 4.9,8 6,8H7V6A5,5 0 0,1 12,1A5,5 0 0,1 17,6V8H18M12,3A3,3 0 0,0 9,6V8H15V6A3,3 0 0,0 12,3Z" />
+              <path
+                d="M12,17A2,2 0 0,0 14,15C14,13.89 13.1,13 12,13A2,2 0 0,0 10,15A2,2 0 0,0 12,17M18,8A2,2 0 0,1 20,10V20A2,2 0 0,1 18,22H6A2,2 0 0,1 4,20V10C4,8.89 4.9,8 6,8H7V6A5,5 0 0,1 12,1A5,5 0 0,1 17,6V8H18M12,3A3,3 0 0,0 9,6V8H15V6A3,3 0 0,0 12,3Z" />
             </svg>
-            <input
-              id="confirmPassword"
-              v-model="confirmPassword"
-              :type="showConfirmPassword ? 'text' : 'password'"
-              required
-              class="input-field"
-              placeholder="CONFIRME SUA SENHA"
-              @input="validateConfirmPassword"
-            >
+            <input id="confirmPassword" v-model="confirmPassword" :type="showConfirmPassword ? 'text' : 'password'"
+              required class="input-field" placeholder="CONFIRME SUA SENHA" @input="validateConfirmPassword">
             <button @click="toggleConfirmPasswordVisibility" class="password-toggle" type="button">
               <svg class="password-icon" viewBox="0 0 24 24">
-                <path v-if="showConfirmPassword" d="M11.83,9L15,12.16C15,12.11 15,12.05 15,12A3,3 0 0,0 12,9C11.94,9 11.89,9 11.83,9M7.53,9.8L9.08,11.35C9.03,11.56 9,11.77 9,12A3,3 0 0,0 12,15C12.22,15 12.44,14.97 12.65,14.92L14.2,16.47C13.53,16.8 12.79,17 12,17A5,5 0 0,1 7,12C7,11.21 7.2,10.47 7.53,9.8M2,4.27L4.28,6.55L4.73,7C3.08,8.3 1.78,10 1,12C2.73,16.39 7,19.5 12,19.5C13.55,19.5 15.03,19.2 16.38,18.66L16.81,19.08L19.73,22L21,20.73L3.27,3M12,7A5,5 0 0,1 17,12C17,12.64 16.87,13.26 16.64,13.82L19.57,16.75C21.07,15.5 22.27,13.86 23,12C21.27,7.61 17,4.5 12,4.5C10.6,4.5 9.26,4.75 8,5.2L10.17,7.35C10.74,7.13 11.35,7 12,7Z" />
-                <path v-else d="M12,9A3,3 0 0,1 15,12A3,3 0 0,1 12,15A3,3 0 0,1 9,12A3,3 0 0,1 12,9M12,4.5C17,4.5 21.27,7.61 23,12C21.27,16.39 17,19.5 12,19.5C7,19.5 2.73,16.39 1,12C2.73,7.61 7,4.5 12,4.5M3.18,12C4.83,15.36 8.24,17.5 12,17.5C15.76,17.5 19.17,15.36 20.82,12C19.17,8.64 15.76,6.5 12,6.5C8.24,6.5 4.83,8.64 3.18,12Z" />
+                <path v-if="showConfirmPassword"
+                  d="M11.83,9L15,12.16C15,12.11 15,12.05 15,12A3,3 0 0,0 12,9C11.94,9 11.89,9 11.83,9M7.53,9.8L9.08,11.35C9.03,11.56 9,11.77 9,12A3,3 0 0,0 12,15C12.22,15 12.44,14.97 12.65,14.92L14.2,16.47C13.53,16.8 12.79,17 12,17A5,5 0 0,1 7,12C7,11.21 7.2,10.47 7.53,9.8M2,4.27L4.28,6.55L4.73,7C3.08,8.3 1.78,10 1,12C2.73,16.39 7,19.5 12,19.5C13.55,19.5 15.03,19.2 16.38,18.66L16.81,19.08L19.73,22L21,20.73L3.27,3M12,7A5,5 0 0,1 17,12C17,12.64 16.87,13.26 16.64,13.82L19.57,16.75C21.07,15.5 22.27,13.86 23,12C21.27,7.61 17,4.5 12,4.5C10.6,4.5 9.26,4.75 8,5.2L10.17,7.35C10.74,7.13 11.35,7 12,7Z" />
+                <path v-else
+                  d="M12,9A3,3 0 0,1 15,12A3,3 0 0,1 12,15A3,3 0 0,1 9,12A3,3 0 0,1 12,9M12,4.5C17,4.5 21.27,7.61 23,12C21.27,16.39 17,19.5 12,19.5C7,19.5 2.73,16.39 1,12C2.73,7.61 7,4.5 12,4.5M3.18,12C4.83,15.36 8.24,17.5 12,17.5C15.76,17.5 19.17,15.36 20.82,12C19.17,8.64 15.76,6.5 12,6.5C8.24,6.5 4.83,8.64 3.18,12Z" />
               </svg>
             </button>
           </div>
@@ -116,12 +95,8 @@
         </div>
 
         <div class="auth-actions">
-          <button 
-            type="submit" 
-            class="auth-button" 
-            :disabled="isLoading || !isFormValid"
-            :class="{ 'disabled': isLoading || !isFormValid }"
-          >
+          <button type="submit" class="auth-button" :disabled="isLoading || !isFormValid"
+            :class="{ 'disabled': isLoading || !isFormValid }">
             <span v-if="!isLoading">CRIAR CONTA</span>
             <span v-else class="button-loading">
               <svg class="spinner" viewBox="0 0 50 50">
@@ -242,12 +217,12 @@ const validatePassword = () => {
     passwordError.value = 'A senha deve ter pelo menos 8 caracteres'
     return
   }
-  
+
   if (!hasUpperCase.value || !hasLowerCase.value || !hasNumber.value || !hasSpecialChar.value) {
     passwordError.value = 'A senha não atende a todos os requisitos'
     return
   }
-  
+
   passwordError.value = ''
 }
 
@@ -272,48 +247,69 @@ const goToLogin = () => {
   router.push('/access')
 }
 
-// Função principal de registro
 const handleRegister = async () => {
-  // Validar todos os campos antes de enviar
-  validateName()
-  validateEmail()
-  validatePassword()
-  validateConfirmPassword()
+  resetErrors();
+
+  validateName();
+  validateEmail();
+  validatePassword();
+  validateConfirmPassword();
 
   if (!isFormValid.value) {
-    return
+    return;
   }
 
-  isLoading.value = true
-  
+  isLoading.value = true;
+
   try {
     const command = new RegisterCommand(
       name.value,
       email.value,
       password.value,
       confirmPassword.value
-    )
-    
-    const result = await AuthService.register(command)
-    
+    );
+
+    const result = await AuthService.register(command);
+
     if (result.success) {
-      router.push('/access')
+      router.push('/access');
+      showSuccessNotification(result.message || 'Registro realizado com sucesso!');
     } else {
-      // Tratar erros específicos da API
-      if (result.message.includes('Email')) {
-        emailError.value = result.message
-      } else if (result.message.includes('Senha')) {
-        passwordError.value = result.message
+      if (result.errors) {
+        if (result.errors['Email']) {
+          emailError.value = result.errors['Email'].join(', ');
+        }
+        if (result.errors['Password']) {
+          passwordError.value = result.errors['Password'].join(', ');
+        }
+        if (result.errors['DuplicateUserName']) {
+          emailError.value = 'Este e-mail já está em uso';
+        }
       } else {
-        alert(result.message)
+        showErrorNotification(result.message || 'Erro ao realizar registro');
       }
     }
   } catch (error) {
-    console.error('Registration failed:', error)
-    alert('Ocorreu um erro durante o registro. Por favor, tente novamente.')
+    console.error('Registration failed:', error);
+    showErrorNotification('Ocorreu um erro inesperado durante o registro');
   } finally {
-    isLoading.value = false
+    isLoading.value = false;
   }
+};
+
+function resetErrors() {
+  emailError.value = '';
+  passwordError.value = '';
+  confirmPasswordError.value = '';
+  nameError.value = '';
+}
+
+function showSuccessNotification(message: string) {
+  alert(message); 
+}
+
+function showErrorNotification(message: string) {
+  alert(message);
 }
 </script>
 
@@ -358,9 +354,17 @@ const handleRegister = async () => {
 }
 
 @keyframes gradient {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
+  0% {
+    background-position: 0% 50%;
+  }
+
+  50% {
+    background-position: 100% 50%;
+  }
+
+  100% {
+    background-position: 0% 50%;
+  }
 }
 
 .back-button {
@@ -562,15 +566,15 @@ const handleRegister = async () => {
   font-weight: 600;
 }
 
-.strength-bar.weak + .strength-text {
+.strength-bar.weak+.strength-text {
   color: #ff4d4d;
 }
 
-.strength-bar.medium + .strength-text {
+.strength-bar.medium+.strength-text {
   color: #f9cb28;
 }
 
-.strength-bar.strong + .strength-text {
+.strength-bar.strong+.strength-text {
   color: #4CAF50;
 }
 
@@ -666,10 +670,12 @@ const handleRegister = async () => {
     stroke-dasharray: 1, 150;
     stroke-dashoffset: 0;
   }
+
   50% {
     stroke-dasharray: 90, 150;
     stroke-dashoffset: -35;
   }
+
   100% {
     stroke-dasharray: 90, 150;
     stroke-dashoffset: -124;
@@ -680,20 +686,20 @@ const handleRegister = async () => {
   .auth-card {
     padding: 2rem 1.5rem;
   }
-  
+
   .auth-title {
     font-size: 2.2rem;
   }
-  
+
   .auth-subtitle {
     font-size: 0.9rem;
   }
-  
+
   .input-field {
     padding: 10px 14px 10px 36px;
     font-size: 0.9rem;
   }
-  
+
   .input-icon {
     width: 18px;
     height: 18px;
@@ -705,7 +711,7 @@ const handleRegister = async () => {
     left: 15px;
     font-size: 0.8rem;
   }
-  
+
   .password-rules {
     font-size: 0.75rem;
   }
