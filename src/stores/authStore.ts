@@ -46,6 +46,15 @@ export const useAuthStore = defineStore('auth', () => {
         state.value.fieldErrors = {}
     }
 
+        const updateUserInfo = (userInfo: { fullName?: string; email?: string }) => {
+        if (state.value.user) {
+            state.value.user = {
+                ...state.value.user,
+                ...userInfo
+            }
+        }
+    }
+
     const login = async (email: string, password: string) => {
         state.value.isLoading = true
         clearErrors()
@@ -141,6 +150,7 @@ export const useAuthStore = defineStore('auth', () => {
         logout,
         checkAuth,
         markPageReady,
-        clearErrors
+        clearErrors,
+        updateUserInfo
     }
 })

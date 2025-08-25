@@ -4,6 +4,8 @@ import { LoginCommand } from '../../application/commands/LoginCommand'
 import type { LoginResult } from '../../domain/models/LoginResult'
 import { ChangePasswordCommand } from '../../application/commands/ChangePasswordCommand'
 import type { ChangePasswordResult } from '../../domain/models/ChangePasswordResult'
+import { ChangeUserNameCommand } from '../../application/commands/ChangeUserNameCommand'
+import type { ChangeUserNameResult } from '../../domain/models/ChangeUserNameResult'
 import { http } from '../../shared/utils/http'
 import { logger } from '../../shared/logging/logger'
 
@@ -118,11 +120,9 @@ export class AuthService {
       if (error.response?.data) {
         const apiError = error.response.data;
 
-        // Mapear erros específicos para campos
         const fieldErrors: any = {};
         
         if (apiError.errors) {
-          // Mapear erros comuns de senha
           apiError.errors.forEach((error: any) => {
             if (error.code?.includes('Password')) {
               fieldErrors.newPassword = error.description;
@@ -144,6 +144,60 @@ export class AuthService {
         return {
           success: false,
           message: apiError.message || 'Erro ao alterar senha',
+          exception: apiError.exception
+        };
+      }
+
+      return {
+        success: false,
+        message: 'Erro de conexão com o servidor'
+      };
+    }
+  }
+
+  static async changeUserName(command: ChangeUserNameCommand): Promise<ChangeUserNameResult> {
+    try {
+      const response = await http.put(
+        '/api/auth/change-username',
+        {
+          newFullName: command.newFullName
+        },
+        {
+          withCredentials: true
+        }
+      );
+
+      return {
+        success: true,
+        message: response.data.message || 'Nome alterado com sucesso'
+      };
+    } catch (error: any) {
+      logger.error('Erro ao alterar nome', error);
+
+      if (error.response?.data) {
+        const apiError = error.response.data;
+
+        const fieldErrors: any = {};
+        
+        if (apiError.errors) {
+          // Processar erros de validação do nome
+          apiError.errors.forEach((error: any) => {
+            if (error.code?.includes('Name') || error.code?.includes('FullName')) {
+              fieldErrors.newFullName = error.description;
+            }
+          });
+
+          return {
+            success: false,
+            message: apiError.message || 'Erro ao alterar nome',
+            errors: apiError.errors,
+            fieldErrors
+          };
+        }
+
+        return {
+          success: false,
+          message: apiError.message || 'Erro ao alterar nome',
           exception: apiError.exception
         };
       }

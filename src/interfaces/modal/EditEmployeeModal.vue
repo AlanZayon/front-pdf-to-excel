@@ -325,7 +325,9 @@ import { LoadImpostosCommand } from '../../application/commands/LoadImpostosComm
 import { UpdateImpostosCommand } from '../../application/commands/UpdateImpostosCommand'
 import { AuthService } from '../../infrastructure/services/AuthService'
 import { ChangePasswordCommand } from '../../application/commands/ChangePasswordCommand'
+import { ChangeUserNameCommand } from '../../application/commands/ChangeUserNameCommand'
 import type { ChangePasswordResult } from '../../domain/models/ChangePasswordResult'
+import type { ChangeUserNameResult } from '../../domain/models/ChangeUserNameResult'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../../stores/authStore'
 import type { TaxCodes } from '../../application/interfaces/TaxCodes'
@@ -368,6 +370,9 @@ const passwordFieldErrors = ref({
   currentPassword: '',
   newPassword: '',
   confirmPassword: ''
+})
+const nameFieldErrors = ref({
+  newFullName: ''
 })
 const confirmChanges = ref(false)
 const changeType = ref('')
@@ -552,6 +557,48 @@ const changePassword = async () => {
   }
 }
 
+// Função para alterar nome do usuário
+const changeUserName = async () => {
+  isSaving.value = true
+  nameFieldErrors.value = { newFullName: '' }
+  
+  try {
+    const command = new ChangeUserNameCommand(editedUser.value.name)
+    const result: ChangeUserNameResult = await AuthService.changeUserName(command)
+    
+    if (result.success) {
+      // Nome alterado com sucesso
+      resultModalTitle.value = 'NOME ALTERADO'
+      resultModalMessage.value = 'Seu nome foi alterado com sucesso!'
+      showResultModal.value = true
+      
+      // Atualiza o store de autenticação
+      authStore.updateUserInfo({ fullName: editedUser.value.name })
+      
+      // Emite evento para o componente pai
+      emit('save-user', { type: 'name', name: editedUser.value.name })
+    } else {
+      // Trata erros de campo
+      if (result.fieldErrors) {
+        nameFieldErrors.value = {
+          newFullName: result.fieldErrors.newFullName || ''
+        }
+      }
+      
+      resultModalTitle.value = 'ERRO AO ALTERAR NOME'
+      resultModalMessage.value = result.message || 'Ocorreu um erro ao tentar alterar seu nome.'
+      showResultModal.value = true
+    }
+  } catch (error) {
+    console.error('Erro inesperado ao alterar nome:', error)
+    resultModalTitle.value = 'ERRO INESPERADO'
+    resultModalMessage.value = 'Ocorreu um erro inesperado ao tentar alterar seu nome.'
+    showResultModal.value = true
+  } finally {
+    isSaving.value = false
+  }
+}
+
 // Watchers
 watch(() => props.userData, (newVal) => {
   if (newVal) {
@@ -563,6 +610,7 @@ watch(() => props.userData, (newVal) => {
     }
     currentPassword.value = ''
     passwordFieldErrors.value = { currentPassword: '', newPassword: '', confirmPassword: '' }
+    nameFieldErrors.value = { newFullName: '' }
   }
 }, { immediate: true, deep: true })
 
@@ -576,6 +624,10 @@ watch(() => editedUser.value.password, () => {
 
 watch(() => editedUser.value.confirmPassword, () => {
   passwordFieldErrors.value.confirmPassword = ''
+})
+
+watch(() => editedUser.value.name, () => {
+  nameFieldErrors.value.newFullName = ''
 })
 
 watch(() => activeTab.value, (newVal) => {
@@ -599,8 +651,10 @@ const proceedWithChange = () => {
   if (activeTab.value === 'user') {
     if (changeType.value === 'password') {
       changePassword()
+    } else if (changeType.value === 'name') {
+      changeUserName()
     } else {
-      performUserSave(changeType.value as 'name' | 'email')
+      performUserSave(changeType.value as 'email')
     }
   } else {
     saveAccountChanges()
@@ -612,7 +666,16 @@ const saveUserChanges = async () => {
 
   if (activeUserSection.value === 'name') {
     if (!isUserFormValid.value) return
-    await performUserSave('name')
+    
+    // Verifica se o nome realmente mudou
+    if (editedUser.value.name === props.userData?.fullName) {
+      resultModalTitle.value = 'NENHUMA ALTERAÇÃO'
+      resultModalMessage.value = 'O nome não foi alterado.'
+      showResultModal.value = true
+      return
+    }
+    
+    await changeUserName()
     return
   }
 
@@ -621,7 +684,9 @@ const saveUserChanges = async () => {
     if (editedUser.value.email !== props.userData?.email) {
       requestConfirmation('email')
     } else {
-      alert('Nenhuma alteração para salvar.')
+      resultModalTitle.value = 'NENHUMA ALTERAÇÃO'
+      resultModalMessage.value = 'O e-mail não foi alterado.'
+      showResultModal.value = true
     }
     return
   }
@@ -737,19 +802,20 @@ const handleResultModalClose = () => {
   if (resultModalTitle.value === 'CONTA EXCLUÍDA') {
     // Redireciona para a página inicial após exclusão bem-sucedida
     router.push('/')
+  } else if (resultModalTitle.value === 'NOME ALTERADO') {
+    // Fecha o modal após alteração bem-sucedida do nome
+    closeModal()
   }
 }
 
-const performUserSave = async (change: 'name' | 'email') => {
+const performUserSave = async (change: 'email') => {
   isSaving.value = true
   try {
     // Simula uma chamada API (substitua pela sua implementação real)
     await new Promise(resolve => setTimeout(resolve, 1000))
 
     const payload: any = { type: change }
-    if (change === 'name') {
-      payload.name = editedUser.value.name
-    } else if (change === 'email') {
+    if (change === 'email') {
       payload.email = editedUser.value.email
     }
 
