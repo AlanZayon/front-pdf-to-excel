@@ -22,11 +22,17 @@ const router = createRouter({
       component: () => import('../interfaces/views/Register.vue'),
       meta: { requiresGuest: true }
     },
-        {
+    {
       path: '/codigo',
       name: 'codigo',
       component: () => import('../interfaces/views/CodigoConta.vue'),
       meta: { requiresAuth: true }
+    },
+    {
+      path: '/reset-password',
+      name: 'resetPassword',
+      component: () => import('../interfaces/views/ResetPassword.vue'),
+      meta: { requiresGuest: true }
     },
   ]
 })

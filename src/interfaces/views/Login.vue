@@ -81,6 +81,11 @@
           <h3>RECUPERAR SENHA</h3>
           <p>DIGITE SEU E-MAIL PARA RECEBER O LINK DE RECUPERAÇÃO</p>
           
+          <!-- Mensagem de sucesso/erro da recuperação -->
+          <div v-if="recoveryMessage" :class="['recovery-message', recoveryMessageType]">
+            {{ recoveryMessage }}
+          </div>
+          
           <div class="input-group">
             <div class="input-wrapper" :class="{ 'input-error': recoveryEmailError }">
               <svg class="input-icon" viewBox="0 0 24 24">
@@ -92,7 +97,8 @@
                 required
                 class="input-field"
                 placeholder="SEU@EMAIL.COM"
-                @input="recoveryEmailError = ''"
+                @input="recoveryEmailError = ''; recoveryMessage = ''"
+                :disabled="isLoadingRecovery"
               >
             </div>
             <span v-if="recoveryEmailError" class="error-text">{{ recoveryEmailError }}</span>
@@ -108,7 +114,7 @@
                 ENVIANDO...
               </span>
             </button>
-            <button @click="toggleForgotPassword" class="auth-button secondary">
+            <button @click="toggleForgotPassword" class="auth-button secondary" :disabled="isLoadingRecovery">
               CANCELAR
             </button>
           </div>
@@ -122,6 +128,9 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../../stores/authStore'
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -137,6 +146,8 @@ const passwordError = ref('')
 const recoveryEmailError = ref('')
 const showForgotPassword = ref(false)
 const isLoadingRecovery = ref(false)
+const recoveryMessage = ref('')
+const recoveryMessageType = ref('') // 'success' ou 'error'
 
 onMounted(() => {
   authStore.markPageReady()
@@ -190,7 +201,6 @@ const handleLogin = async () => {
 
   await authStore.login(email.value, password.value)
 
-
   // Trata erros específicos retornados pelo authStore
   if (authStore.fieldErrors) {
     if (authStore.fieldErrors.email) {
@@ -205,6 +215,7 @@ const handleLogin = async () => {
 const toggleForgotPassword = () => {
   showForgotPassword.value = !showForgotPassword.value
   recoveryEmailError.value = ''
+  recoveryMessage.value = ''
   recoveryEmail.value = email.value
 }
 
@@ -221,21 +232,47 @@ const validateRecoveryEmail = () => {
 }
 
 const sendRecoveryEmail = async () => {
+  // Limpa mensagens anteriores
+  recoveryMessage.value = ''
+  
   if (!validateRecoveryEmail()) {
     return
   }
 
   isLoadingRecovery.value = true
+
   try {
-    // Aqui você chamaria o método real de recuperação de senha
-    await new Promise(resolve => setTimeout(resolve, 1500))
-    
-    // Simulação de sucesso
-    alert(`Link de recuperação enviado para: ${recoveryEmail.value}`)
-    showForgotPassword.value = false
+    const response = await fetch(`${API_BASE_URL}/api/auth/forgot-password`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        Email: recoveryEmail.value
+      })
+    })
+
+    const data = await response.json()
+
+    if (response.ok) {
+      // Sucesso
+      recoveryMessage.value = 'E-mail de recuperação enviado com sucesso! Verifique sua caixa de entrada.'
+      recoveryMessageType.value = 'success'
+      
+      // Fecha o modal após 3 segundos
+      setTimeout(() => {
+        showForgotPassword.value = false
+        recoveryMessage.value = ''
+      }, 3000)
+    } else {
+      // Erro do servidor
+      recoveryMessage.value = data.message || 'Erro ao enviar e-mail de recuperação'
+      recoveryMessageType.value = 'error'
+    }
   } catch (error) {
     console.error('Recovery failed:', error)
-    recoveryEmailError.value = 'Erro ao enviar e-mail de recuperação'
+    recoveryMessage.value = 'Erro de conexão. Tente novamente.'
+    recoveryMessageType.value = 'error'
   } finally {
     isLoadingRecovery.value = false
   }
