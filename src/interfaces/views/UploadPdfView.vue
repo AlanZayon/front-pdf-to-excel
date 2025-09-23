@@ -1,3 +1,4 @@
+
 <template>
   <div class="app-container">
 
@@ -31,9 +32,8 @@
     </div>
     <div class="upload-container">
 
-
-      <h1 class="title">UPLOAD DE PDF</h1>
-      <p class="subtitle">UPLOAD PDF</p>
+      <h1 class="title">UPLOAD DE ARQUIVOS</h1>
+      <p class="subtitle">UPLOAD PDF E OFX</p>
 
       <form class="upload-form">
         <div class="drop-zone" @dragover.prevent="isDragging = true" @dragleave.prevent="isDragging = false"
@@ -42,17 +42,19 @@
             <svg class="upload-icon" viewBox="0 0 24 24">
               <path d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z" />
             </svg>
-            <p class="drop-text">ARRASTE E SOLTE SEU PDF AQUI</p>
-            <p class="drop-subtext">ou clique para selecionar</p>
+            <p class="drop-text">ARRASTE E SOLTE SEU ARQUIVO AQUI</p>
+            <p class="drop-subtext">ou clique para selecionar (PDF ou OFX)</p>
           </div>
-          <input ref="fileInput" type="file" accept=".pdf" @change="onFileChange" class="hidden-input" />
+          <input ref="fileInput" type="file" accept=".pdf,.ofx,application/pdf,application/x-ofx" @change="onFileChange"
+            class="hidden-input" />
         </div>
 
-        <div v-if="fileName" class="file-info">
+        <div v-if="fileName || ofxFileName" class="file-info">
           <svg class="file-icon" viewBox="0 0 24 24">
             <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z" />
           </svg>
-          <span class="file-name">{{ fileName }}</span>
+          <span class="file-name">{{ fileName || ofxFileName }}</span>
+          <span class="file-type">({{ fileType }})</span>
           <button @click="clearFile" class="clear-button" type="button">
             <svg viewBox="0 0 24 24" width="18" height="18">
               <path
@@ -71,8 +73,8 @@
         </div>
 
         <div v-if="uploadResult" class="result-message"
-          :class="{ 'error': uploadResult.message === 'Erro ao enviar o PDF' }">
-          <svg v-if="uploadResult.message !== 'Erro ao enviar o PDF'" class="result-icon" viewBox="0 0 24 24">
+          :class="{ 'error': uploadResult.message === 'Erro ao enviar o arquivo' }">
+          <svg v-if="uploadResult.message !== 'Erro ao enviar o arquivo'" class="result-icon" viewBox="0 0 24 24">
             <path d="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z" />
           </svg>
           <svg v-else class="result-icon" viewBox="0 0 24 24">
@@ -82,28 +84,268 @@
           <p>{{ uploadResult.message.toUpperCase() }}</p>
         </div>
 
-        <button v-if="uploadResult && uploadResult.message !== 'Erro ao enviar o PDF'" @click="handleDownload"
+        <button v-if="uploadResult && uploadResult.message !== 'Erro ao enviar o arquivo'" @click="handleDownload"
           class="download-button">
           <svg class="download-icon" viewBox="0 0 24 24">
             <path d="M5,20H19V18H5M19,9H15V3H9V9H5L12,16L19,9Z" />
           </svg>
-          BAIXAR ARQUIVO PDF
+          BAIXAR ARQUIVO {{ fileType.toUpperCase() }}
         </button>
       </form>
     </div>
-  </div>
 
+    <div v-if="showBankDataModal" class="modal-overlay" @click.self="closeBankDataModal">
+      <div class="bank-data-modal">
+        <div class="modal-header">
+          <h2>INFORMAÇÕES BANCÁRIAS</h2>
+          <button class="close-button" @click="closeBankDataModal">
+            <svg viewBox="0 0 24 24" width="24" height="24">
+              <path
+                d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z" />
+            </svg>
+          </button>
+        </div>
+
+        <div class="modal-content">
+          <div class="file-info-modal">
+            <svg class="file-icon" viewBox="0 0 24 24">
+              <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z" />
+            </svg>
+            <span>{{ fileName || ofxFileName }} - Arquivo OFX</span>
+          </div>
+          <div class="bank-fields">
+            <div class="input-group">
+              <label>CNPJ:</label>
+              <input type="text" v-model="cnpj" v-maska="'##.###.###/####-##'" placeholder="00.000.000/0000-00">
+            </div>
+
+          </div>
+
+          <div class="modal-actions">
+            <button @click="proceedWithOfxProcessing" :disabled="!isBankFormValid || isProcessingOfx" class="confirm-button"
+              :class="{ 'loading': isProcessingOfx }">
+              <div v-if="isProcessingOfx" class="button-loading">
+                <svg class="spinner" viewBox="0 0 50 50" width="18" height="18">
+                  <circle class="path" cx="25" cy="25" r="20" fill="none" stroke-width="5"></circle>
+                </svg>
+                PROCESSANDO...
+              </div>
+              <span v-else>CONFIRMAR E PROCESSAR</span>
+            </button>
+            <button @click="closeBankDataModal" class="cancel-button" :disabled="isProcessingOfx">
+              CANCELAR
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal de Classificação OFX -->
+    <div v-if="showClassificationModal" class="modal-overlay" @click.self="closeClassificationModal">
+      <div class="classification-modal">
+        <div class="modal-header">
+          <h2>CLASSIFICAÇÃO DE TRANSAÇÕES OFX</h2>
+          <button class="close-button" @click="closeClassificationModal">
+            <svg viewBox="0 0 24 24" width="24" height="24">
+              <path
+                d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z" />
+            </svg>
+          </button>
+        </div>
+
+
+
+        <div class="modal-content">
+          <div class="file-info-modal">
+            <svg class="file-icon" viewBox="0 0 24 24">
+              <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z" />
+            </svg>
+            <span>{{ fileName }} - {{ ofxTransactions.length }} transações para classificar</span>
+
+            <div class="input-group-codeBank">
+              <div class="combobox-container">
+                <input type="text" v-model="bankCodeInput" @input="filterBanks" @focus="showBankDropdown = true"
+                  @blur="onBankCodeBlur" placeholder="Código banco" class="combobox-input">
+                <button class="combobox-toggle" @click="showBankDropdown = !showBankDropdown">
+                  <svg viewBox="0 0 24 24" width="16" height="16">
+                    <path d="M7,10L12,15L17,10H7Z" />
+                  </svg>
+                </button>
+
+                <div v-if="showBankDropdown" class="combobox-dropdown">
+                  <div v-for="bank in filteredBanks" :key="bank.code" class="combobox-option"
+                    @mousedown="selectBank(bank)">
+                    {{ bank.code }}
+                  </div>
+                  <div v-if="filteredBanks.length === 0" class="combobox-no-results">
+                    Nenhum banco encontrado
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Sistema de Pesquisa e Classificação em Lote -->
+          <div class="batch-classification-section">
+            <div class="search-container">
+              <div class="search-input-group">
+                <svg class="search-icon" viewBox="0 0 24 24">
+                  <path
+                    d="M9.5,3A6.5,6.5 0 0,1 16,9.5C16,11.11 15.41,12.59 14.44,13.73L14.71,14H15.5L20.5,19L19,20.5L14,15.5V14.71L13.73,14.44C12.59,15.41 11.11,16 9.5,16A6.5,6.5 0 0,1 3,9.5A6.5,6.5 0 0,1 9.5,3M9.5,5C7,5 5,7 5,9.5C5,12 7,14 9.5,14C12,14 14,12 14,9.5C14,7 12,5 9.5,5Z" />
+                </svg>
+                <input type="text" v-model="searchTerm" @input="searchTransactions"
+                  placeholder="Pesquisar por descrição..." class="search-input">
+                <button v-if="searchTerm" @click="clearSearch" class="clear-search-button">
+                  <svg viewBox="0 0 24 24" width="18" height="18">
+                    <path
+                      d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z" />
+                  </svg>
+                </button>
+              </div>
+
+              <div class="search-results" v-if="searchTerm && searchResults.length > 0">
+                <div class="search-stats">
+                  Encontradas {{ searchResults.length }} transações
+                  <span v-if="searchResultsPositive.length > 0">
+                    ({{ searchResultsPositive.length }} positivas, {{ searchResultsNegative.length }} negativas)
+                  </span>
+                </div>
+
+                <!-- Classificação para transações positivas -->
+                <div v-if="searchResultsPositive.length > 0" class="batch-classification-group">
+                  <h4 class="batch-group-title positive">
+                    TRANSAÇÕES POSITIVAS ({{ searchResultsPositive.length }})
+                  </h4>
+                  <div class="batch-input-fields">
+
+                    <div class="code-input-group">
+                      <label>Código Crédito (Positivas):</label>
+                      <input type="text" v-model="batchCodesPositive.credito" placeholder="Ex: 5678"
+                        class="batch-input">
+                    </div>
+                    <button @click="applyBatchClassification('positive')" :disabled="!batchCodesPositive.credito"
+                      class="batch-apply-button">
+                      <svg viewBox="0 0 24 24" width="18" height="18">
+                        <path d="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z" />
+                      </svg>
+                      APLICAR PARA {{ searchResultsPositive.length }} TRANSAÇÕES POSITIVAS
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Classificação para transações negativas -->
+                <div v-if="searchResultsNegative.length > 0" class="batch-classification-group">
+                  <h4 class="batch-group-title negative">
+                    TRANSAÇÕES NEGATIVAS ({{ searchResultsNegative.length }})
+                  </h4>
+                  <div class="batch-input-fields">
+                    <div class="code-input-group">
+                      <label>Código Débito (Negativas):</label>
+                      <input type="text" v-model="batchCodesNegative.debito" placeholder="Ex: 1234" class="batch-input">
+                    </div>
+                    <button @click="applyBatchClassification('negative')" :disabled="!batchCodesNegative.debito"
+                      class="batch-apply-button">
+                      <svg viewBox="0 0 24 24" width="18" height="18">
+                        <path d="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z" />
+                      </svg>
+                      APLICAR PARA {{ searchResultsNegative.length }} TRANSAÇÕES NEGATIVAS
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div v-if="searchTerm && searchResults.length === 0" class="no-results">
+                Nenhuma transação encontrada para "{{ searchTerm }}"
+              </div>
+            </div>
+          </div>
+
+          <!-- Estatísticas -->
+          <div class="classification-stats">
+            <div class="stat-item">
+              <span class="stat-label">Total:</span>
+              <span class="stat-value">{{ ofxTransactions.length }}</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">Classificadas:</span>
+              <span class="stat-value classified">{{ classifiedCount }}</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">Pendentes:</span>
+              <span class="stat-value pending">{{ pendingCount }}</span>
+            </div>
+          </div>
+
+          <!-- Lista de Transações -->
+          <div class="transactions-container">
+            <div class="transaction-item" v-for="(transaction, index) in filteredTransactions" :key="index"
+              :class="{ 'classified': isTransactionClassified(transaction), 'search-highlight': isInSearchResults(transaction) }">
+              <div class="transaction-header">
+                <span class="transaction-date">{{ transaction.data }}</span>
+                <span class="transaction-value"
+                  :class="{ negative: transaction.valor < 0, positive: transaction.valor >= 0 }">
+                  {{ formatCurrency(transaction.valor) }}
+                </span>
+              </div>
+              <div class="transaction-description">{{ transaction.descricao }}</div>
+
+              <div class="classification-fields">
+                <div class="code-input-group">
+                  <label>Código Débito:</label>
+                  <input type="text" v-model="transaction.codigoDebito" @input="validateCode(transaction, 'debito')"
+                    placeholder="Ex: 1234" :class="{ error: transaction.debitoError }"
+                    :readonly="transaction.debitoLocked" @focus="handleDebitoFocus(transaction, $event)">
+                  <span class="error-message" v-if="transaction.debitoError">{{ transaction.debitoError }}</span>
+                </div>
+
+                <div class="code-input-group">
+                  <label>Código Crédito:</label>
+                  <input type="text" v-model="transaction.codigoCredito" @input="validateCode(transaction, 'credito')"
+                    placeholder="Ex: 5678" :class="{ error: transaction.creditoError }"
+                    :readonly="transaction.creditoLocked" @focus="handleCreditoFocus(transaction, $event)">
+                  <span class="error-message" v-if="transaction.creditoError">{{ transaction.creditoError }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="modal-actions">
+            <button @click="saveClassification" :disabled="!isFormValid || isSavingClassification" class="save-button"
+              :class="{ 'loading': isSavingClassification }">
+              <div v-if="isSavingClassification" class="button-loading">
+                <svg class="spinner" viewBox="0 0 50 50" width="18" height="18">
+                  <circle class="path" cx="25" cy="25" r="20" fill="none" stroke-width="5"></circle>
+                </svg>
+                SALVANDO...
+              </div>
+              <div v-else class="button-content">
+                <svg viewBox="0 0 24 24" width="18" height="18">
+                  <path
+                    d="M15,9H5V5H15M12,19A3,3 0 0,1 9,16A3,3 0 0,1 12,13A3,3 0 0,1 15,16A3,3 0 0,1 12,19M17,3H5C3.89,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V7L17,3Z" />
+                </svg>
+                SALVAR CLASSIFICAÇÃO
+              </div>
+            </button>
+            <button @click="closeClassificationModal" class="cancel-button" :disabled="isSavingClassification">
+              CANCELAR
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script lang="ts" setup>
-import { ref } from 'vue'
-import { UploadPdfCommand } from '../../application/commands/UploadPdfCommand'
-import { PdfUploadService } from '../../infrastructure/services/PdfUploadService'
+import { ref, computed, onMounted, watch } from 'vue'
+import { UploadCommand } from '../../application/commands/UploadCommand'
+import { UploadService } from '../../infrastructure/services/UploadService'
 import { FileDownloadService } from '../../infrastructure/services/FileDownloadService'
 import defaultAvatar from '../../images/avatar-sistema-pdf.png'
 import EditEmployeeModal from '../modal/EditEmployeeModal.vue'
 import { useAuthStore } from '../../stores/authStore'
-import { computed, onMounted } from 'vue'
+import type { UploadResult } from '../../domain/models/UploadResult'
+import { vMaska } from "maska/vue"
 
 const authStore = useAuthStore()
 onMounted(() => {
@@ -115,14 +357,11 @@ const user = computed(() => authStore.user)
 
 const showUserMenu = ref(false)
 const showEditModal = ref(false)
-// const selectedEmployee = ref(null)
 
-// Abre o modal
 const openEditModal = () => {
   showEditModal.value = true
 }
 
-// Fecha o modal
 const closeEditModal = () => {
   showEditModal.value = false
 }
@@ -131,40 +370,201 @@ const toggleUserMenu = () => {
   showUserMenu.value = !showUserMenu.value
 }
 
-
-
 const handleLogout = async () => {
   await authStore.logout()
 }
 
-// Código existente
+// Código atualizado para suportar PDF e OFX
 const file = ref<File | null>(null)
 const fileName = ref<string | null>(null)
-const uploadResult = ref<{ message: string } | null>(null)
+const fileType = ref<string>('') // PDF ou OFX
+const uploadResult = ref<UploadResult | null>(null)
 const isLoading = ref(false)
 const fileInput = ref<HTMLInputElement | null>(null)
 const isDragging = ref(false)
 
+// Variáveis para o modal de classificação
+const showClassificationModal = ref(false)
+const ofxTransactions = ref<any[]>([])
+const ofxFileName = ref('')
+const ofxResponse = ref<any>(null)
+
+// Novas variáveis para o modal de dados bancários
+const showBankDataModal = ref(false)
+const cnpj = ref('')
+const cnpjFormatted = ref('')
+const selectedBankCode = ref('')
+const availableBanks = ref<any[]>([])
+
+const bankCodeInput = ref('')
+const showBankDropdown = ref(false)
+const filteredBanks = ref<any[]>([])
+
+// Estados de loading para os botões
+const isProcessingOfx = ref(false)
+const isSavingClassification = ref(false)
+
+// Variáveis para pesquisa e classificação em lote
+const searchTerm = ref('')
+const searchResults = ref<any[]>([])
+const batchCodesPositive = ref({
+  debito: '',
+  credito: ''
+})
+const batchCodesNegative = ref({
+  debito: '',
+  credito: ''
+})
+
+// Função para aplicar o código banco às transações
+const applyBankCodeToTransactions = () => {
+  if (!selectedBankCode.value) return;
+
+  ofxTransactions.value.forEach(transaction => {
+    // Aplica o código banco baseado no valor da transação
+    if (transaction.valor < 0) {
+      // Transação negativa: código banco vai para débito
+      transaction.codigoCredito = selectedBankCode.value;
+      transaction.debitoLocked = false; // Bloqueia edição direta
+      transaction.creditoLocked = true; // Permite edição no crédito
+    } else {
+      // Transação positiva: código banco vai para crédito
+      transaction.codigoDebito = selectedBankCode.value;
+      transaction.creditoLocked = false; // Bloqueia edição direta
+      transaction.debitoLocked = true; // Permite edição no débito
+    }
+  });
+};
+
+// Quando o código banco é alterado, aplica às transações
+watch(selectedBankCode, (newCode) => {
+  if (newCode) {
+    applyBankCodeToTransactions();
+  }
+});
+
+// Funções para manipular o foco nos campos
+const handleDebitoFocus = (transaction: any, event: FocusEvent) => {
+
+  if (transaction.debitoLocked) {
+    (event.target as HTMLInputElement).blur();
+  }
+};
+
+const handleCreditoFocus = (transaction: any, event: FocusEvent) => {
+
+  if (transaction.creditoLocked) {
+    (event.target as HTMLInputElement).blur();
+
+  }
+};
+
+const filterBanks = () => {
+  if (!bankCodeInput.value.trim()) {
+    filteredBanks.value = availableBanks.value
+    return
+  }
+
+  const searchTerm = bankCodeInput.value.toLowerCase()
+  filteredBanks.value = availableBanks.value.filter(bank =>
+    String(bank.code).toLowerCase().includes(searchTerm) ||
+    String(bank.name).toLowerCase().includes(searchTerm)
+  )
+
+}
+
+// Seleciona um banco da lista
+const selectBank = (bank: any) => {
+  bankCodeInput.value = `${bank.code}`
+  selectedBankCode.value = bank.code
+  showBankDropdown.value = false
+}
+
+// Quando o input perde o foco, tenta encontrar um banco correspondente
+const onBankCodeBlur = () => {
+  setTimeout(() => {
+    showBankDropdown.value = false
+
+    // Se o input contém apenas números, assume que é um código de banco
+    if (/^\d+$/.test(bankCodeInput.value)) {
+      const bank = availableBanks.value.find(b => b.code === bankCodeInput.value)
+      if (bank) {
+        selectedBankCode.value = bank.code
+        bankCodeInput.value = `${bank.code} - ${bank.name}`
+      } else {
+        // Permite que o usuário digite manualmente
+        selectedBankCode.value = bankCodeInput.value
+      }
+    } else if (bankCodeInput.value.includes(' - ')) {
+      // Se está no formato "código - nome", extrai o código
+      const parts = bankCodeInput.value.split(' - ')
+      if (parts.length > 0) {
+        selectedBankCode.value = parts[0]
+      }
+    }
+  }, 200)
+}
+
+// Inicializa a lista filtrada quando os bancos são carregados
+watch(availableBanks, (newBanks) => {
+  filteredBanks.value = newBanks
+}, { immediate: true })
+
+const isValidFileType = (file: File): boolean => {
+  const validTypes = [
+    'application/pdf',
+    'application/x-ofx',
+    'text/xml',
+    'application/xml'
+  ];
+  const validExtensions = ['.pdf', '.ofx'];
+
+  const extension = '.' + file.name.split('.').pop()?.toLowerCase();
+
+  return validTypes.includes(file.type) || validExtensions.includes(extension);
+}
+
+const getFileType = (file: File): string => {
+  if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
+    return 'PDF';
+  } else if (file.type === 'application/x-ofx' || file.name.toLowerCase().endsWith('.ofx') ||
+    file.type.includes('xml') || file.name.toLowerCase().endsWith('.xml')) {
+    return 'OFX';
+  }
+  return '';
+}
+
 const onFileChange = async (event: Event) => {
   const target = event.target as HTMLInputElement
   if (target.files && target.files[0]) {
-    file.value = target.files[0]
-    fileName.value = target.files[0].name
-    await handleUpload()
+    const selectedFile = target.files[0];
+
+    if (!isValidFileType(selectedFile)) {
+      uploadResult.value = { success: false, message: 'Tipo de arquivo inválido. Use PDF ou OFX.' };
+      return;
+    }
+
+    file.value = selectedFile;
+    fileName.value = selectedFile.name;
+    fileType.value = getFileType(selectedFile);
+    await handleUpload();
   }
 }
 
 const onDrop = async (event: DragEvent) => {
   isDragging.value = false
   if (event.dataTransfer?.files && event.dataTransfer.files.length > 0) {
-    const droppedFile = event.dataTransfer.files[0]
-    if (droppedFile.type === "application/pdf") {
-      file.value = droppedFile
-      fileName.value = droppedFile.name
-      await handleUpload()
-    } else {
-      uploadResult.value = { message: 'INVALID PDF - TRY AGAIN ROCKSTAR' }
+    const droppedFile = event.dataTransfer.files[0];
+
+    if (!isValidFileType(droppedFile)) {
+      uploadResult.value = { success: false, message: 'Tipo de arquivo inválido. Use PDF ou OFX.' };
+      return;
     }
+
+    file.value = droppedFile;
+    fileName.value = droppedFile.name;
+    fileType.value = getFileType(droppedFile);
+    await handleUpload();
   }
 }
 
@@ -175,11 +575,15 @@ const triggerFileInput = () => {
 const clearFile = () => {
   file.value = null
   fileName.value = null
+  ofxFileName.value =
+    fileType.value = ''
   uploadResult.value = null
   if (fileInput.value) {
     fileInput.value.value = ''
   }
 }
+
+
 
 const handleUpload = async () => {
   if (!file.value) return
@@ -188,13 +592,114 @@ const handleUpload = async () => {
   uploadResult.value = null
 
   try {
-    const command = new UploadPdfCommand(file.value)
-    const result = await PdfUploadService.execute(command)
-    uploadResult.value = result
+    if (fileType.value === 'PDF') {
+      const command = new UploadCommand(file.value)
+      const result = await UploadService.execute(command)
+      uploadResult.value = result
+    } else if (fileType.value === 'OFX') {
+      showBankDataModal.value = true
+    }
   } catch (error) {
-    uploadResult.value = { message: 'UPLOAD FAILED - ROCK N ROLL AIN\'T NOISE POLLUTION' }
+    console.error('Erro ao processar arquivo:', error)
+    uploadResult.value = { success: false, message: 'Erro ao processar arquivo' }
   } finally {
     isLoading.value = false
+  }
+}
+
+const closeBankDataModal = () => {
+  showBankDataModal.value = false
+  cnpj.value = ''
+  selectedBankCode.value = ''
+  clearFile()
+}
+
+function validarCNPJ(cnpj: string): boolean {
+  cnpj = cnpj.replace(/[^\d]+/g, '');
+
+  if (cnpj.length !== 14) return false;
+  if (/^(\d)\1{13}$/.test(cnpj)) return false;
+
+  // Pesos para cálculo dos dígitos verificadores
+  const pesos1 = [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
+  const pesos2 = [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
+
+  // Primeiro dígito verificador
+  let soma = 0;
+  for (let i = 0; i < 12; i++) {
+    soma += parseInt(cnpj.charAt(i)) * pesos1[i];
+  }
+
+  let resto = soma % 11;
+  let digito1 = resto < 2 ? 0 : 11 - resto;
+
+  if (digito1 !== parseInt(cnpj.charAt(12))) return false;
+
+  // Segundo dígito verificador
+  soma = 0;
+  for (let i = 0; i < 13; i++) {
+    soma += parseInt(cnpj.charAt(i)) * pesos2[i];
+  }
+
+  resto = soma % 11;
+  let digito2 = resto < 2 ? 0 : 11 - resto;
+
+  return digito2 === parseInt(cnpj.charAt(13));
+}
+
+
+const isBankFormValid = computed(() => {
+  return validarCNPJ(cnpj.value)
+})
+
+
+const proceedWithOfxProcessing = async () => {
+  if (!file.value || !isBankFormValid.value) return
+
+  isProcessingOfx.value = true
+  cnpjFormatted.value = cnpj.value.replace(/\D/g, '')
+
+  const command = new UploadCommand(file.value, cnpj.value.replace(/\D/g, ''))
+
+  try {
+    const result = await UploadService.execute(command)
+
+    if (result.success && result.type === 'ofx' && result.status === 'pending_classification') {
+      ofxResponse.value = result
+      ofxTransactions.value = result.pendingTransactions.map(transaction => ({
+        ...transaction,
+        codigoDebito: '',
+        codigoCredito: '',
+        debitoError: '',
+        creditoError: '',
+        debitoLocked: false, // Novo campo para controlar bloqueio
+        creditoLocked: false // Novo campo para controlar bloqueio
+      }))
+      ofxFileName.value = file.value.name
+
+      availableBanks.value = ofxTransactions.value
+        .flatMap(t => t.codigosBanco || [])
+        .filter((code, index, self) => code != null && self.indexOf(code) === index)
+        .sort((a, b) => a - b)
+        .map(code => ({ code, name: `Banco ${code}` })) // Adicionando nome para os bancos
+
+      showBankDataModal.value = false
+      showClassificationModal.value = true
+    } else {
+      uploadResult.value = {
+        success: true,
+        status: 'completed',
+        type: 'ofx',
+        outputPath: 'outputPath' in result ? result.outputPath : '',
+        message: result.message || 'Nenhuma transação encontrada no arquivo OFX'
+      }
+      showBankDataModal.value = false
+    }
+  } catch (error) {
+    console.error('Erro ao processar OFX:', error)
+    uploadResult.value = { success: false, message: 'Erro ao processar arquivo OFX' }
+  } finally {
+    isProcessingOfx.value = false
   }
 }
 
@@ -204,15 +709,217 @@ const handleDownload = async (event: Event) => {
   try {
     await FileDownloadService.execute()
   } catch (error) {
-    uploadResult.value = { message: 'DOWNLOAD FAILED - TRY AGAIN' }
+    uploadResult.value = { success: false, message: 'DOWNLOAD FAILED - TRY AGAIN' }
   }
 }
+
+// Funções do modal de classificação
+const closeClassificationModal = () => {
+  showClassificationModal.value = false
+  ofxTransactions.value = []
+  ofxFileName.value = ''
+  cnpj.value = ''
+  bankCodeInput.value = ''
+  clearSearch()
+  clearFile()
+}
+
+// Formata valor monetário
+const formatCurrency = (value: number) => {
+  return new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL'
+  }).format(value)
+}
+
+// Valida código
+const validateCode = (transaction: any, type: 'debito' | 'credito') => {
+  const code = type === 'debito' ? transaction.codigoDebito : transaction.codigoCredito
+  const errorField = type === 'debito' ? 'debitoError' : 'creditoError'
+
+  if (!code || code.trim() === '') {
+    transaction[errorField] = 'Código é obrigatório'
+    return false
+  }
+
+  if (!/^\d+$/.test(code)) {
+    transaction[errorField] = 'Apenas números são permitidos'
+    return false
+  }
+
+  transaction[errorField] = ''
+  return true
+}
+
+// Verifica se o formulário é válido
+const isFormValid = computed(() => {
+  return ofxTransactions.value.every(transaction => {
+    return transaction.codigoDebito &&
+      transaction.codigoCredito &&
+      !transaction.debitoError &&
+      !transaction.creditoError
+  })
+})
+
+// Funções de pesquisa
+const searchTransactions = () => {
+  if (!searchTerm.value.trim()) {
+    searchResults.value = []
+    return
+  }
+
+  searchResults.value = ofxTransactions.value.filter(transaction =>
+    transaction.descricao.toLowerCase().includes(searchTerm.value.toLowerCase())
+  )
+}
+
+const clearSearch = () => {
+  searchTerm.value = ''
+  searchResults.value = []
+  batchCodesPositive.value = { debito: '', credito: '' }
+  batchCodesNegative.value = { debito: '', credito: '' }
+}
+
+// Computed para separar transações positivas e negativas nos resultados da pesquisa
+const searchResultsPositive = computed(() => {
+  return searchResults.value.filter(transaction => transaction.valor >= 0)
+})
+
+const searchResultsNegative = computed(() => {
+  return searchResults.value.filter(transaction => transaction.valor < 0)
+})
+
+// Aplica classificação em lote
+const applyBatchClassification = (type: 'positive' | 'negative') => {
+  const codes = type === 'positive' ? batchCodesPositive.value : batchCodesNegative.value
+  const targetTransactions = type === 'positive' ? searchResultsPositive.value : searchResultsNegative.value
+
+  // Valida os códigos antes de aplicar
+  if (!codes.credito && type === 'positive') {
+    alert('Por favor, preencha codigo de débito antes de aplicar.')
+    return
+  }
+
+  if (!codes.debito && type === 'negative') {
+    alert('Por favor, preencha codigo de crédito antes de aplicar.')
+    return
+  }
+
+  // Aplica os códigos para todas as transações encontradas
+  targetTransactions.forEach(transaction => {
+    transaction.codigoDebito = codes.debito || selectedBankCode.value
+    transaction.codigoCredito = codes.credito || selectedBankCode.value
+    transaction.debitoError = ''
+    transaction.creditoError = ''
+    // Desbloqueia os campos para que possam ser editados manualmente
+    transaction.debitoLocked = false
+    transaction.creditoLocked = false
+  })
+
+  // Limpa os campos de pesquisa após aplicar
+  if (type === 'positive') {
+    batchCodesPositive.value = { debito: '', credito: '' }
+  } else {
+    batchCodesNegative.value = { debito: '', credito: '' }
+  }
+
+  alert(`Códigos aplicados para ${targetTransactions.length} transações ${type === 'positive' ? 'positivas' : 'negativas'}!`)
+}
+
+// Verifica se uma transação está nos resultados da pesquisa
+const isInSearchResults = (transaction: any) => {
+  return searchResults.value.includes(transaction)
+}
+
+// Verifica se uma transação foi classificada
+const isTransactionClassified = (transaction: any) => {
+  return transaction.codigoDebito && transaction.codigoCredito
+}
+
+// Computed para contar transações classificadas
+const classifiedCount = computed(() => {
+  return ofxTransactions.value.filter(transaction =>
+    transaction.codigoDebito && transaction.codigoCredito
+  ).length
+})
+
+const pendingCount = computed(() => {
+  return ofxTransactions.value.length - classifiedCount.value
+})
+
+// Transações filtradas para exibição
+const filteredTransactions = computed(() => {
+  if (searchTerm.value.trim()) {
+    return searchResults.value
+  }
+  return ofxTransactions.value
+})
+
+const saveClassification = async () => {
+  // Valida todos os campos antes de enviar
+  let isValid = true
+
+  ofxTransactions.value.forEach(transaction => {
+    const debitoValid = validateCode(transaction, 'debito')
+    const creditoValid = validateCode(transaction, 'credito')
+
+    if (!debitoValid || !creditoValid) {
+      isValid = false
+    }
+  })
+
+  if (!isValid) {
+    alert('Por favor, corrija os erros antes de salvar.')
+    return
+  }
+
+  isSavingClassification.value = true
+
+  // Prepara os dados para enviar
+  const classifiedData = ofxTransactions.value.map(transaction => ({
+    descricao: transaction.descricao,
+    data: transaction.data,
+    valor: transaction.valor,
+    codigoDebito: transaction.codigoDebito,
+    codigoCredito: transaction.codigoCredito,
+    codigoBanco: selectedBankCode.value
+  }))
+
+  try {
+    // Usa o serviço de upload para salvar a classificação
+    const result = await UploadService.saveClassification({
+      TransacoesClassificadas: ofxResponse.value?.transacoesClassificadas || [],
+      Classificacoes: classifiedData,
+      TransacoesPendentes: ofxResponse.value?.pendingTransactions || [],
+      cnpj: cnpjFormatted.value,
+    })
+
+    if (result.success) {
+      // Sucesso
+      uploadResult.value = {
+        success: true,
+        message: 'Classificação salva com sucesso',
+        status: 'completed',
+        type: 'ofx',
+        outputPath: ''
+      }
+      showClassificationModal.value = false
+    } else {
+      throw new Error(result.message || 'Erro ao salvar classificação')
+    }
+  } catch (error) {
+    alert('Erro ao salvar classificação. Tente novamente.')
+  } finally {
+    isSavingClassification.value = false
+  }
+}
+
 </script>
 
 <style scoped>
 @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Montserrat:wght@400;600;700&display=swap');
 
-.app-container{
+.app-container {
   display: flex;
   justify-content: center;
   align-items: center;
@@ -220,7 +927,7 @@ const handleDownload = async (event: Event) => {
   background: #000;
   padding: 20px;
   box-sizing: border-box;
-} 
+}
 
 .upload-container {
   max-width: 600px;
@@ -246,6 +953,91 @@ const handleDownload = async (event: Event) => {
   background: linear-gradient(90deg, #ff4d4d, #f9cb28, #ff4d4d);
   background-size: 200% 200%;
   animation: gradient 3s ease infinite;
+}
+
+input[readonly] {
+  background-color: #f5f5f5;
+  cursor: not-allowed;
+  border-color: #ddd;
+  color: #555;
+}
+
+.transaction-item.classified .classification-fields input[readonly] {
+  background-color: #e8f5e9;
+  border-color: #4caf50;
+  color: #2e7d32;
+}
+
+/* Estilos para os botões com loading */
+.confirm-button,
+.save-button {
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+.confirm-button.loading,
+.save-button.loading {
+  background-color: #666;
+  cursor: not-allowed;
+}
+
+.confirm-button:disabled,
+.save-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.button-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.button-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.spinner {
+  animation: spin 1s linear infinite;
+}
+
+.spinner .path {
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-dasharray: 90, 150;
+  stroke-dashoffset: 0;
+  animation: dash 1.5s ease-in-out infinite;
+}
+
+@keyframes spin {
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes dash {
+  0% {
+    stroke-dasharray: 1, 150;
+    stroke-dashoffset: 0;
+  }
+  50% {
+    stroke-dasharray: 90, 150;
+    stroke-dashoffset: -35;
+  }
+  100% {
+    stroke-dasharray: 90, 150;
+    stroke-dashoffset: -124;
+  }
+}
+
+/* Estilos para desabilitar botões durante loading */
+.cancel-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 @keyframes gradient {
@@ -630,6 +1422,506 @@ const handleDownload = async (event: Event) => {
   fill: currentColor;
 }
 
+/* Estilos para o modal de classificação */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.8);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  padding: 20px;
+  backdrop-filter: blur(5px);
+}
+
+.classification-modal {
+  background: linear-gradient(135deg, #1a1a1a 0%, #000 100%);
+  border-radius: 8px;
+  width: 95%;
+  max-width: 1200px;
+  max-height: 95vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.7);
+  border: 1px solid #333;
+  position: relative;
+}
+
+.classification-modal::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #ff4d4d, #f9cb28, #ff4d4d);
+  background-size: 200% 200%;
+  animation: gradient 3s ease infinite;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem;
+  border-bottom: 1px solid #333;
+  background: rgba(30, 30, 30, 0.8);
+}
+
+.modal-header h2 {
+  color: #fff;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.8rem;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin: 0;
+  text-shadow: 0 0 10px rgba(249, 203, 40, 0.5);
+}
+
+.close-button {
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.close-button:hover {
+  background-color: rgba(255, 77, 77, 0.3);
+  transform: rotate(90deg);
+}
+
+.close-button svg {
+  fill: #aaa;
+}
+
+.modal-content {
+  padding: 1.5rem;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.batch-classification-section {
+  margin-bottom: 2rem;
+}
+
+.search-container {
+  background: rgba(30, 30, 30, 0.8);
+  border-radius: 8px;
+  padding: 1.5rem;
+  border: 1px solid #333;
+}
+
+.search-input-group {
+  position: relative;
+  margin-bottom: 1rem;
+}
+
+.search-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 20px;
+  height: 20px;
+  fill: #aaa;
+  pointer-events: none;
+}
+
+.search-input {
+  width: 100%;
+  padding: 0.75rem 0.75rem 0.75rem 3rem;
+  border-radius: 4px;
+  border: 1px solid #444;
+  background: rgba(40, 40, 40, 0.8);
+  color: #fff;
+  font-family: 'Montserrat', sans-serif;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+  box-sizing: border-box;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: #f9cb28;
+  box-shadow: 0 0 0 2px rgba(249, 203, 40, 0.3);
+}
+
+.clear-search-button {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.clear-search-button:hover {
+  background-color: rgba(255, 77, 77, 0.3);
+  transform: translateY(-50%) rotate(90deg);
+}
+
+.clear-search-button svg {
+  fill: #aaa;
+}
+
+.search-results {
+  background: rgba(40, 40, 40, 0.5);
+  border-radius: 6px;
+  padding: 1.5rem;
+  margin-top: 1rem;
+  border: 1px solid #444;
+}
+
+.search-stats {
+  color: #f9cb28;
+  font-weight: 600;
+  margin-bottom: 1.5rem;
+  text-align: center;
+  font-size: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.batch-classification-group {
+  margin-bottom: 2rem;
+  background: rgba(50, 50, 50, 0.3);
+  border-radius: 6px;
+  padding: 1.5rem;
+  border: 1px solid #555;
+}
+
+.batch-group-title {
+  margin: 0 0 1rem 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.batch-group-title.positive {
+  color: #4CAF50;
+  border-left: 3px solid #4CAF50;
+  padding-left: 1rem;
+}
+
+.batch-group-title.negative {
+  color: #ff4d4d;
+  border-left: 3px solid #ff4d4d;
+  padding-left: 1rem;
+}
+
+.batch-input-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.batch-input {
+  width: 100%;
+  padding: 0.75rem;
+  border-radius: 4px;
+  border: 1px solid #444;
+  background: rgba(30, 30, 30, 0.8);
+  color: #fff;
+  font-family: 'Montserrat', sans-serif;
+  transition: all 0.3s ease;
+  box-sizing: border-box;
+}
+
+.batch-input:focus {
+  outline: none;
+  border-color: #f9cb28;
+  box-shadow: 0 0 0 2px rgba(249, 203, 40, 0.3);
+}
+
+.batch-apply-button {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 1rem 1.5rem;
+  background: linear-gradient(to right, #4CAF50, #2E7D32);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  transition: all 0.3s ease;
+  font-size: 0.9rem;
+}
+
+.batch-apply-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(76, 175, 80, 0.4);
+}
+
+.batch-apply-button:disabled {
+  background: #444;
+  cursor: not-allowed;
+  transform: none;
+  opacity: 0.7;
+}
+
+.no-results {
+  text-align: center;
+  color: #aaa;
+  font-style: italic;
+  padding: 2rem;
+  background: rgba(40, 40, 40, 0.5);
+  border-radius: 6px;
+  margin-top: 1rem;
+  border: 1px solid #444;
+}
+
+/* Estilos para as estatísticas */
+.classification-stats {
+  display: flex;
+  justify-content: space-around;
+  background: rgba(30, 30, 30, 0.8);
+  border-radius: 6px;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+  border: 1px solid #333;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.stat-label {
+  color: #aaa;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-weight: 600;
+}
+
+.stat-value {
+  color: #fff;
+  font-size: 1.5rem;
+  font-weight: 700;
+  font-family: 'Bebas Neue', sans-serif;
+}
+
+.stat-value.classified {
+  color: #4CAF50;
+}
+
+.stat-value.pending {
+  color: #ff4d4d;
+}
+
+.transactions-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  max-height: 40vh;
+  overflow-y: auto;
+  padding-right: 5px;
+}
+
+.transactions-container::-webkit-scrollbar {
+  width: 6px;
+}
+
+.transactions-container::-webkit-scrollbar-track {
+  background: rgba(40, 40, 40, 0.5);
+  border-radius: 3px;
+}
+
+.transactions-container::-webkit-scrollbar-thumb {
+  background: #f9cb28;
+  border-radius: 3px;
+}
+
+.transactions-container::-webkit-scrollbar-thumb:hover {
+  background: #ff4d4d;
+}
+
+.transaction-item {
+  background: rgba(40, 40, 40, 0.7);
+  border-radius: 6px;
+  padding: 1rem;
+  border: 1px solid #333;
+  transition: all 0.3s ease;
+}
+
+.transaction-item:hover {
+  border-color: #f9cb28;
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(249, 203, 40, 0.2);
+}
+
+.transaction-item.classified {
+  border-left: 3px solid #4CAF50;
+  background: rgba(40, 60, 40, 0.3);
+}
+
+.transaction-item.search-highlight {
+  border-color: #f9cb28;
+  box-shadow: 0 0 15px rgba(249, 203, 40, 0.3);
+  background: rgba(249, 203, 40, 0.1);
+}
+
+.transaction-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.transaction-date {
+  color: #aaa;
+  font-size: 0.9rem;
+}
+
+.transaction-value {
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+
+.transaction-value.negative {
+  color: #ff4d4d;
+}
+
+.transaction-value.positive {
+  color: #4CAF50;
+}
+
+.transaction-description {
+  color: #ddd;
+  margin-bottom: 1rem;
+  font-size: 0.95rem;
+  line-height: 1.4;
+}
+
+.classification-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.code-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.code-input-group label {
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.code-input-group input {
+  padding: 0.75rem;
+  border-radius: 4px;
+  border: 1px solid #444;
+  background: rgba(30, 30, 30, 0.8);
+  color: #fff;
+  font-family: 'Montserrat', sans-serif;
+  transition: all 0.3s ease;
+}
+
+.code-input-group input:focus {
+  outline: none;
+  border-color: #f9cb28;
+  box-shadow: 0 0 0 2px rgba(249, 203, 40, 0.3);
+}
+
+.code-input-group input.error {
+  border-color: #ff4d4d;
+  box-shadow: 0 0 0 2px rgba(255, 77, 77, 0.3);
+}
+
+.error-message {
+  color: #ff4d4d;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #333;
+}
+
+.save-button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  background: linear-gradient(to right, #4CAF50, #2E7D32);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  transition: all 0.3s ease;
+}
+
+.save-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(76, 175, 80, 0.4);
+}
+
+.save-button:disabled {
+  background: #444;
+  cursor: not-allowed;
+  transform: none;
+  opacity: 0.7;
+}
+
+.cancel-button {
+  padding: 0.75rem 1.5rem;
+  background: rgba(255, 255, 255, 0.1);
+  color: #ddd;
+  border: 1px solid #444;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  transition: all 0.3s ease;
+}
+
+.cancel-button:hover {
+  background: rgba(255, 77, 77, 0.2);
+  color: #ff4d4d;
+  border-color: #ff4d4d;
+}
+
 /* Ajuste para mobile */
 @media (max-width: 768px) {
   .upload-container {
@@ -653,5 +1945,371 @@ const handleDownload = async (event: Event) => {
   .user-info {
     padding: 6px;
   }
+
+  .classification-modal {
+    width: 98%;
+    margin: 5px;
+    max-height: 98vh;
+  }
+
+  .modal-header h2 {
+    font-size: 1.4rem;
+  }
+
+  .classification-fields,
+  .batch-input-fields {
+    grid-template-columns: 1fr;
+  }
+
+  .modal-actions {
+    flex-direction: column;
+  }
+
+  .save-button,
+  .cancel-button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .classification-stats {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .stat-item {
+    flex-direction: row;
+    justify-content: space-between;
+  }
+
+  .transactions-container {
+    max-height: 30vh;
+  }
+
+  .search-container {
+    padding: 1rem;
+  }
+
+  .batch-classification-group {
+    padding: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .modal-content {
+    padding: 1rem;
+  }
+
+  .search-input {
+    padding: 0.5rem 0.5rem 0.5rem 2.5rem;
+  }
+
+  .batch-apply-button {
+    font-size: 0.8rem;
+    padding: 0.75rem 1rem;
+  }
+}
+
+/* Estilos melhorados para o modal de dados bancários */
+.bank-data-modal {
+  background: linear-gradient(135deg, #1a1a1a 0%, #000 100%);
+  border-radius: 8px;
+  width: 95%;
+  max-width: 500px;
+  max-height: 90vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.7);
+  border: 1px solid #333;
+  position: relative;
+}
+
+.bank-data-modal::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #ff4d4d, #f9cb28, #ff4d4d);
+  background-size: 200% 200%;
+  animation: gradient 3s ease infinite;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem;
+  border-bottom: 1px solid #333;
+  background: rgba(30, 30, 30, 0.8);
+}
+
+.modal-header h2 {
+  color: #fff;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.8rem;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin: 0;
+  text-shadow: 0 0 10px rgba(249, 203, 40, 0.5);
+}
+
+.close-button {
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.close-button:hover {
+  background-color: rgba(255, 77, 77, 0.3);
+  transform: rotate(90deg);
+}
+
+.close-button svg {
+  fill: #aaa;
+}
+
+.file-info-modal {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem;
+  background-color: rgba(40, 40, 40, 0.8);
+  border-radius: 4px;
+  margin-bottom: 1.5rem;
+  border-left: 3px solid #f9cb28;
+  font-size: 0.95rem;
+  color: #ddd;
+}
+
+.bank-fields {
+  padding: 0;
+}
+
+.input-group {
+  margin-bottom: 1.5rem;
+
+}
+
+.input-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  color: #fff;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.input-group input,
+.input-group select {
+  width: 100%;
+  padding: 0.75rem;
+  border-radius: 4px;
+  border: 1px solid #444;
+  background: rgba(30, 30, 30, 0.8);
+  color: #fff;
+  font-family: 'Montserrat', sans-serif;
+  transition: all 0.3s ease;
+  box-sizing: border-box;
+}
+
+.input-group input:focus,
+.input-group select:focus {
+  outline: none;
+  border-color: #f9cb28;
+  box-shadow: 0 0 0 2px rgba(249, 203, 40, 0.3);
+}
+
+.input-group input::placeholder {
+  color: #777;
+}
+
+.input-group-codeBank input,
+.input-group-codeBank select {
+  width: 100%;
+  padding: 0.75rem;
+  border-radius: 4px;
+  border: 1px solid #444;
+  background: rgba(30, 30, 30, 0.8);
+  color: #fff;
+  font-family: 'Montserrat', sans-serif;
+  transition: all 0.3s ease;
+  box-sizing: border-box;
+}
+
+.input-group-codeBank input:focus,
+.input-group-codeBank select:focus {
+  outline: none;
+  border-color: #f9cb28;
+  box-shadow: 0 0 0 2px rgba(249, 203, 40, 0.3);
+}
+
+.input-group-codeBank input::placeholder {
+  color: #777;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #333;
+}
+
+.confirm-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  background: linear-gradient(to right, #4CAF50, #2E7D32);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  transition: all 0.3s ease;
+  font-family: 'Montserrat', sans-serif;
+}
+
+.confirm-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(76, 175, 80, 0.4);
+}
+
+.confirm-button:disabled {
+  background: #444;
+  cursor: not-allowed;
+  transform: none;
+  opacity: 0.7;
+}
+
+.cancel-button {
+  padding: 0.75rem 1.5rem;
+  background: rgba(255, 255, 255, 0.1);
+  color: #ddd;
+  border: 1px solid #444;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  transition: all 0.3s ease;
+  font-family: 'Montserrat', sans-serif;
+}
+
+.cancel-button:hover {
+  background: rgba(255, 77, 77, 0.2);
+  color: #ff4d4d;
+  border-color: #ff4d4d;
+}
+
+/* Ajuste para mobile */
+@media (max-width: 768px) {
+  .bank-data-modal {
+    width: 98%;
+    margin: 5px;
+    max-height: 98vh;
+  }
+
+  .modal-header h2 {
+    font-size: 1.4rem;
+  }
+
+  .modal-actions {
+    flex-direction: column;
+  }
+
+  .confirm-button,
+  .cancel-button {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* Animações */
+@keyframes gradient {
+  0% {
+    background-position: 0% 50%;
+  }
+
+  50% {
+    background-position: 100% 50%;
+  }
+
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+/* Estilos para o combobox */
+.combobox-container {
+  position: relative;
+  width: 100%;
+}
+
+.combobox-input {
+  width: 100%;
+  padding: 10px 40px 10px 12px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.combobox-toggle {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+}
+
+.combobox-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  max-height: 200px;
+  overflow-y: auto;
+  background: white;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  z-index: 1000;
+  margin-top: 4px;
+}
+
+.combobox-option {
+  padding: 8px 12px;
+  cursor: pointer;
+  border-bottom: 1px solid #eee;
+  color: #000;
+}
+
+.combobox-option:hover {
+  background-color: #f5f5f5;
+}
+
+.combobox-option:last-child {
+  border-bottom: none;
+}
+
+.combobox-no-results {
+  padding: 8px 12px;
+  color: #666;
+  font-style: italic;
 }
 </style>
