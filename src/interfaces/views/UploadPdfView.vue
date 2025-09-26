@@ -767,12 +767,12 @@ const closeClassificationModal = () => {
 }
 
 // Formata valor monetário
-const formatCurrency = (value: number) => {
-  return new Intl.NumberFormat('pt-BR', {
-    style: 'currency',
-    currency: 'BRL'
-  }).format(value)
-}
+// const formatCurrency = (value: number) => {
+//   return new Intl.NumberFormat('pt-BR', {
+//     style: 'currency',
+//     currency: 'BRL'
+//   }).format(value)
+// }
 
 // Valida código para grupos
 const validateGroupCode = (group: any, type: 'debito' | 'credito') => {
