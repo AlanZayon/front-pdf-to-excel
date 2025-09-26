@@ -1,4 +1,3 @@
-
 <template>
   <div class="app-container">
 
@@ -122,8 +121,8 @@
           </div>
 
           <div class="modal-actions">
-            <button @click="proceedWithOfxProcessing" :disabled="!isBankFormValid || isProcessingOfx" class="confirm-button"
-              :class="{ 'loading': isProcessingOfx }">
+            <button @click="proceedWithOfxProcessing" :disabled="!isBankFormValid || isProcessingOfx"
+              class="confirm-button" :class="{ 'loading': isProcessingOfx }">
               <div v-if="isProcessingOfx" class="button-loading">
                 <svg class="spinner" viewBox="0 0 50 50" width="18" height="18">
                   <circle class="path" cx="25" cy="25" r="20" fill="none" stroke-width="5"></circle>
@@ -153,14 +152,12 @@
           </button>
         </div>
 
-
-
         <div class="modal-content">
           <div class="file-info-modal">
             <svg class="file-icon" viewBox="0 0 24 24">
               <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z" />
             </svg>
-            <span>{{ fileName }} - {{ ofxTransactions.length }} transações para classificar</span>
+            <span>{{ fileName }} - {{ groupedTransactions.length }} descrições para classificar</span>
 
             <div class="input-group-codeBank">
               <div class="combobox-container">
@@ -205,19 +202,18 @@
 
               <div class="search-results" v-if="searchTerm && searchResults.length > 0">
                 <div class="search-stats">
-                  Encontradas {{ searchResults.length }} transações
+                  Encontradas {{ searchResults.length }} descrições
                   <span v-if="searchResultsPositive.length > 0">
                     ({{ searchResultsPositive.length }} positivas, {{ searchResultsNegative.length }} negativas)
                   </span>
                 </div>
 
-                <!-- Classificação para transações positivas -->
+                <!-- Classificação para descrições positivas -->
                 <div v-if="searchResultsPositive.length > 0" class="batch-classification-group">
                   <h4 class="batch-group-title positive">
-                    TRANSAÇÕES POSITIVAS ({{ searchResultsPositive.length }})
+                    DESCRIÇÕES POSITIVAS ({{ searchResultsPositive.length }})
                   </h4>
                   <div class="batch-input-fields">
-
                     <div class="code-input-group">
                       <label>Código Crédito (Positivas):</label>
                       <input type="text" v-model="batchCodesPositive.credito" placeholder="Ex: 5678"
@@ -228,15 +224,15 @@
                       <svg viewBox="0 0 24 24" width="18" height="18">
                         <path d="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z" />
                       </svg>
-                      APLICAR PARA {{ searchResultsPositive.length }} TRANSAÇÕES POSITIVAS
+                      APLICAR PARA {{ searchResultsPositive.length }} DESCRIÇÕES POSITIVAS
                     </button>
                   </div>
                 </div>
 
-                <!-- Classificação para transações negativas -->
+                <!-- Classificação para descrições negativas -->
                 <div v-if="searchResultsNegative.length > 0" class="batch-classification-group">
                   <h4 class="batch-group-title negative">
-                    TRANSAÇÕES NEGATIVAS ({{ searchResultsNegative.length }})
+                    DESCRIÇÕES NEGATIVAS ({{ searchResultsNegative.length }})
                   </h4>
                   <div class="batch-input-fields">
                     <div class="code-input-group">
@@ -248,14 +244,14 @@
                       <svg viewBox="0 0 24 24" width="18" height="18">
                         <path d="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z" />
                       </svg>
-                      APLICAR PARA {{ searchResultsNegative.length }} TRANSAÇÕES NEGATIVAS
+                      APLICAR PARA {{ searchResultsNegative.length }} DESCRIÇÕES NEGATIVAS
                     </button>
                   </div>
                 </div>
               </div>
 
               <div v-if="searchTerm && searchResults.length === 0" class="no-results">
-                Nenhuma transação encontrada para "{{ searchTerm }}"
+                Nenhuma descrição encontrada para "{{ searchTerm }}"
               </div>
             </div>
           </div>
@@ -264,7 +260,7 @@
           <div class="classification-stats">
             <div class="stat-item">
               <span class="stat-label">Total:</span>
-              <span class="stat-value">{{ ofxTransactions.length }}</span>
+              <span class="stat-value">{{ groupedTransactions.length }}</span>
             </div>
             <div class="stat-item">
               <span class="stat-label">Classificadas:</span>
@@ -276,34 +272,53 @@
             </div>
           </div>
 
-          <!-- Lista de Transações -->
+          <!-- Lista de Descrições Agrupadas -->
           <div class="transactions-container">
-            <div class="transaction-item" v-for="(transaction, index) in filteredTransactions" :key="index"
-              :class="{ 'classified': isTransactionClassified(transaction), 'search-highlight': isInSearchResults(transaction) }">
-              <div class="transaction-header">
-                <span class="transaction-date">{{ transaction.data }}</span>
-                <span class="transaction-value"
-                  :class="{ negative: transaction.valor < 0, positive: transaction.valor >= 0 }">
-                  {{ formatCurrency(transaction.valor) }}
-                </span>
-              </div>
-              <div class="transaction-description">{{ transaction.descricao }}</div>
+            <div class="description-group" v-for="(group, index) in filteredGroupedTransactions" :key="index"
+              :class="{ 'classified': isDescriptionClassified(group), 'search-highlight': isInSearchResults(group) }">
 
+              <!-- Cabeçalho da Descrição -->
+              <div class="description-header" @click="toggleDescription(group)">
+                <div class="description-main">
+                  <span class="description-text">{{ group.descricao }}</span>
+                </div>
+                <div class="description-controls">
+                  <svg class="description-arrow" :class="{ 'rotated': group.expanded }" viewBox="0 0 24 24">
+                    <path d="M7,10L12,15L17,10H7Z" />
+                  </svg>
+                </div>
+              </div>
+
+              <!-- Campos de Classificação (sempre visíveis) -->
               <div class="classification-fields">
                 <div class="code-input-group">
                   <label>Código Débito:</label>
-                  <input type="text" v-model="transaction.codigoDebito" @input="validateCode(transaction, 'debito')"
-                    placeholder="Ex: 1234" :class="{ error: transaction.debitoError }"
-                    :readonly="transaction.debitoLocked" @focus="handleDebitoFocus(transaction, $event)">
-                  <span class="error-message" v-if="transaction.debitoError">{{ transaction.debitoError }}</span>
+                  <input type="text" v-model="group.codigoDebito" @input="validateGroupCode(group, 'debito')"
+                    placeholder="Ex: 1234" :class="{ error: group.debitoError }" :readonly="group.debitoLocked"
+                    @focus="handleGroupDebitoFocus(group, $event)">
+                  <span class="error-message" v-if="group.debitoError">{{ group.debitoError }}</span>
                 </div>
 
                 <div class="code-input-group">
                   <label>Código Crédito:</label>
-                  <input type="text" v-model="transaction.codigoCredito" @input="validateCode(transaction, 'credito')"
-                    placeholder="Ex: 5678" :class="{ error: transaction.creditoError }"
-                    :readonly="transaction.creditoLocked" @focus="handleCreditoFocus(transaction, $event)">
-                  <span class="error-message" v-if="transaction.creditoError">{{ transaction.creditoError }}</span>
+                  <input type="text" v-model="group.codigoCredito" @input="validateGroupCode(group, 'credito')"
+                    placeholder="Ex: 5678" :class="{ error: group.creditoError }" :readonly="group.creditoLocked"
+                    @focus="handleGroupCreditoFocus(group, $event)">
+                  <span class="error-message" v-if="group.creditoError">{{ group.creditoError }}</span>
+                </div>
+              </div>
+
+              <!-- Detalhes das Transações (expandíveis) -->
+              <div v-if="group.expanded" class="transactions-details">
+                <div class="transactions-list">
+                  <div v-for="(data, i) in group.transacoes[0].data" :key="i" class="transaction-detail">
+                    <span class="transaction-date">{{ data }}</span>
+                    <span class="transaction-value"
+                      :class="{ negative: group.transacoes[0].valor[i] < 0, positive: group.transacoes[0].valor[i] >= 0 }">
+                      {{ group.transacoes[0].valor[i] }}
+                    </span>
+                  </div>
+
                 </div>
               </div>
             </div>
@@ -386,6 +401,7 @@ const isDragging = ref(false)
 // Variáveis para o modal de classificação
 const showClassificationModal = ref(false)
 const ofxTransactions = ref<any[]>([])
+const groupedTransactions = ref<any[]>([])
 const ofxFileName = ref('')
 const ofxResponse = ref<any>(null)
 
@@ -416,47 +432,80 @@ const batchCodesNegative = ref({
   credito: ''
 })
 
-// Função para aplicar o código banco às transações
-const applyBankCodeToTransactions = () => {
+const groupTransactionsByDescription = (transactions: any[]) => {
+  const groupsMap = new Map()
+
+  transactions.forEach(transaction => {
+    if (!groupsMap.has(transaction.descricao)) {
+      groupsMap.set(transaction.descricao, {
+        descricao: transaction.descricao,
+        transacoes: [],
+        total: 0,
+        codigoDebito: '',
+        codigoCredito: '',
+        debitoError: '',
+        creditoError: '',
+        debitoLocked: false,
+        creditoLocked: false,
+        expanded: false
+      })
+    }
+
+
+    const group = groupsMap.get(transaction.descricao)
+    group.transacoes.push({
+      data: transaction.datas,
+      valor: transaction.valores
+    })
+  })
+
+
+  return Array.from(groupsMap.values())
+}
+
+// Função para aplicar o código banco às descrições
+const applyBankCodeToGroups = () => {
   if (!selectedBankCode.value) return;
 
-  ofxTransactions.value.forEach(transaction => {
-    // Aplica o código banco baseado no valor da transação
-    if (transaction.valor < 0) {
-      // Transação negativa: código banco vai para débito
-      transaction.codigoCredito = selectedBankCode.value;
-      transaction.debitoLocked = false; // Bloqueia edição direta
-      transaction.creditoLocked = true; // Permite edição no crédito
+  groupedTransactions.value.forEach(group => {
+
+    if (group.transacoes[0].valor[0] < 0) {
+      // Descrição com total negativo: código banco vai para débito
+      group.codigoCredito = selectedBankCode.value;
+      group.debitoLocked = false;
+      group.creditoLocked = true;
     } else {
-      // Transação positiva: código banco vai para crédito
-      transaction.codigoDebito = selectedBankCode.value;
-      transaction.creditoLocked = false; // Bloqueia edição direta
-      transaction.debitoLocked = true; // Permite edição no débito
+      // Descrição com total positivo: código banco vai para crédito
+      group.codigoDebito = selectedBankCode.value;
+      group.creditoLocked = false;
+      group.debitoLocked = true;
     }
   });
 };
 
-// Quando o código banco é alterado, aplica às transações
+// Quando o código banco é alterado, aplica às descrições
 watch(selectedBankCode, (newCode) => {
   if (newCode) {
-    applyBankCodeToTransactions();
+    applyBankCodeToGroups();
   }
 });
 
-// Funções para manipular o foco nos campos
-const handleDebitoFocus = (transaction: any, event: FocusEvent) => {
-
-  if (transaction.debitoLocked) {
+// Funções para manipular o foco nos campos das descrições
+const handleGroupDebitoFocus = (group: any, event: FocusEvent) => {
+  if (group.debitoLocked) {
     (event.target as HTMLInputElement).blur();
   }
 };
 
-const handleCreditoFocus = (transaction: any, event: FocusEvent) => {
-
-  if (transaction.creditoLocked) {
+const handleGroupCreditoFocus = (group: any, event: FocusEvent) => {
+  if (group.creditoLocked) {
     (event.target as HTMLInputElement).blur();
-
   }
+};
+
+// Função para expandir/recolher os detalhes de uma descrição
+const toggleDescription = (group: any) => {
+  group.expanded = !group.expanded;
 };
 
 const filterBanks = () => {
@@ -470,7 +519,6 @@ const filterBanks = () => {
     String(bank.code).toLowerCase().includes(searchTerm) ||
     String(bank.name).toLowerCase().includes(searchTerm)
   )
-
 }
 
 // Seleciona um banco da lista
@@ -485,18 +533,15 @@ const onBankCodeBlur = () => {
   setTimeout(() => {
     showBankDropdown.value = false
 
-    // Se o input contém apenas números, assume que é um código de banco
     if (/^\d+$/.test(bankCodeInput.value)) {
       const bank = availableBanks.value.find(b => b.code === bankCodeInput.value)
       if (bank) {
         selectedBankCode.value = bank.code
         bankCodeInput.value = `${bank.code} - ${bank.name}`
       } else {
-        // Permite que o usuário digite manualmente
         selectedBankCode.value = bankCodeInput.value
       }
     } else if (bankCodeInput.value.includes(' - ')) {
-      // Se está no formato "código - nome", extrai o código
       const parts = bankCodeInput.value.split(' - ')
       if (parts.length > 0) {
         selectedBankCode.value = parts[0]
@@ -575,15 +620,13 @@ const triggerFileInput = () => {
 const clearFile = () => {
   file.value = null
   fileName.value = null
-  ofxFileName.value =
-    fileType.value = ''
+  ofxFileName.value = ''
+  fileType.value = ''
   uploadResult.value = null
   if (fileInput.value) {
     fileInput.value.value = ''
   }
 }
-
-
 
 const handleUpload = async () => {
   if (!file.value) return
@@ -620,11 +663,9 @@ function validarCNPJ(cnpj: string): boolean {
   if (cnpj.length !== 14) return false;
   if (/^(\d)\1{13}$/.test(cnpj)) return false;
 
-  // Pesos para cálculo dos dígitos verificadores
   const pesos1 = [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
   const pesos2 = [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
 
-  // Primeiro dígito verificador
   let soma = 0;
   for (let i = 0; i < 12; i++) {
     soma += parseInt(cnpj.charAt(i)) * pesos1[i];
@@ -635,7 +676,6 @@ function validarCNPJ(cnpj: string): boolean {
 
   if (digito1 !== parseInt(cnpj.charAt(12))) return false;
 
-  // Segundo dígito verificador
   soma = 0;
   for (let i = 0; i < 13; i++) {
     soma += parseInt(cnpj.charAt(i)) * pesos2[i];
@@ -647,11 +687,9 @@ function validarCNPJ(cnpj: string): boolean {
   return digito2 === parseInt(cnpj.charAt(13));
 }
 
-
 const isBankFormValid = computed(() => {
   return validarCNPJ(cnpj.value)
 })
-
 
 const proceedWithOfxProcessing = async () => {
   if (!file.value || !isBankFormValid.value) return
@@ -672,16 +710,19 @@ const proceedWithOfxProcessing = async () => {
         codigoCredito: '',
         debitoError: '',
         creditoError: '',
-        debitoLocked: false, // Novo campo para controlar bloqueio
-        creditoLocked: false // Novo campo para controlar bloqueio
+        debitoLocked: false,
+        creditoLocked: false
       }))
+
+      // Agrupa as transações por descrição
+      groupedTransactions.value = groupTransactionsByDescription(ofxTransactions.value)
       ofxFileName.value = file.value.name
 
       availableBanks.value = ofxTransactions.value
         .flatMap(t => t.codigosBanco || [])
         .filter((code, index, self) => code != null && self.indexOf(code) === index)
         .sort((a, b) => a - b)
-        .map(code => ({ code, name: `Banco ${code}` })) // Adicionando nome para os bancos
+        .map(code => ({ code, name: `Banco ${code}` }))
 
       showBankDataModal.value = false
       showClassificationModal.value = true
@@ -717,6 +758,7 @@ const handleDownload = async (event: Event) => {
 const closeClassificationModal = () => {
   showClassificationModal.value = false
   ofxTransactions.value = []
+  groupedTransactions.value = []
   ofxFileName.value = ''
   cnpj.value = ''
   bankCodeInput.value = ''
@@ -732,32 +774,32 @@ const formatCurrency = (value: number) => {
   }).format(value)
 }
 
-// Valida código
-const validateCode = (transaction: any, type: 'debito' | 'credito') => {
-  const code = type === 'debito' ? transaction.codigoDebito : transaction.codigoCredito
+// Valida código para grupos
+const validateGroupCode = (group: any, type: 'debito' | 'credito') => {
+  const code = type === 'debito' ? group.codigoDebito : group.codigoCredito
   const errorField = type === 'debito' ? 'debitoError' : 'creditoError'
 
   if (!code || code.trim() === '') {
-    transaction[errorField] = 'Código é obrigatório'
+    group[errorField] = 'Código é obrigatório'
     return false
   }
 
   if (!/^\d+$/.test(code)) {
-    transaction[errorField] = 'Apenas números são permitidos'
+    group[errorField] = 'Apenas números são permitidos'
     return false
   }
 
-  transaction[errorField] = ''
+  group[errorField] = ''
   return true
 }
 
 // Verifica se o formulário é válido
 const isFormValid = computed(() => {
-  return ofxTransactions.value.every(transaction => {
-    return transaction.codigoDebito &&
-      transaction.codigoCredito &&
-      !transaction.debitoError &&
-      !transaction.creditoError
+  return groupedTransactions.value.every(group => {
+    return group.codigoDebito &&
+      group.codigoCredito &&
+      !group.debitoError &&
+      !group.creditoError
   })
 })
 
@@ -768,8 +810,8 @@ const searchTransactions = () => {
     return
   }
 
-  searchResults.value = ofxTransactions.value.filter(transaction =>
-    transaction.descricao.toLowerCase().includes(searchTerm.value.toLowerCase())
+  searchResults.value = groupedTransactions.value.filter(group =>
+    group.descricao.toLowerCase().includes(searchTerm.value.toLowerCase())
   )
 }
 
@@ -780,88 +822,83 @@ const clearSearch = () => {
   batchCodesNegative.value = { debito: '', credito: '' }
 }
 
-// Computed para separar transações positivas e negativas nos resultados da pesquisa
+// Computed para separar descrições positivas e negativas nos resultados da pesquisa
 const searchResultsPositive = computed(() => {
-  return searchResults.value.filter(transaction => transaction.valor >= 0)
+  return searchResults.value.filter(group => group.total >= 0)
 })
 
 const searchResultsNegative = computed(() => {
-  return searchResults.value.filter(transaction => transaction.valor < 0)
+  return searchResults.value.filter(group => group.total < 0)
 })
 
-// Aplica classificação em lote
+// Aplica classificação em lote para grupos
 const applyBatchClassification = (type: 'positive' | 'negative') => {
   const codes = type === 'positive' ? batchCodesPositive.value : batchCodesNegative.value
-  const targetTransactions = type === 'positive' ? searchResultsPositive.value : searchResultsNegative.value
+  const targetGroups = type === 'positive' ? searchResultsPositive.value : searchResultsNegative.value
 
-  // Valida os códigos antes de aplicar
   if (!codes.credito && type === 'positive') {
-    alert('Por favor, preencha codigo de débito antes de aplicar.')
+    alert('Por favor, preencha código de crédito antes de aplicar.')
     return
   }
 
   if (!codes.debito && type === 'negative') {
-    alert('Por favor, preencha codigo de crédito antes de aplicar.')
+    alert('Por favor, preencha código de débito antes de aplicar.')
     return
   }
 
-  // Aplica os códigos para todas as transações encontradas
-  targetTransactions.forEach(transaction => {
-    transaction.codigoDebito = codes.debito || selectedBankCode.value
-    transaction.codigoCredito = codes.credito || selectedBankCode.value
-    transaction.debitoError = ''
-    transaction.creditoError = ''
-    // Desbloqueia os campos para que possam ser editados manualmente
-    transaction.debitoLocked = false
-    transaction.creditoLocked = false
+  targetGroups.forEach(group => {
+    group.codigoDebito = codes.debito || selectedBankCode.value
+    group.codigoCredito = codes.credito || selectedBankCode.value
+    group.debitoError = ''
+    group.creditoError = ''
+    group.debitoLocked = false
+    group.creditoLocked = false
   })
 
-  // Limpa os campos de pesquisa após aplicar
   if (type === 'positive') {
     batchCodesPositive.value = { debito: '', credito: '' }
   } else {
     batchCodesNegative.value = { debito: '', credito: '' }
   }
 
-  alert(`Códigos aplicados para ${targetTransactions.length} transações ${type === 'positive' ? 'positivas' : 'negativas'}!`)
+  alert(`Códigos aplicados para ${targetGroups.length} descrições ${type === 'positive' ? 'positivas' : 'negativas'}!`)
 }
 
-// Verifica se uma transação está nos resultados da pesquisa
-const isInSearchResults = (transaction: any) => {
-  return searchResults.value.includes(transaction)
+// Verifica se uma descrição está nos resultados da pesquisa
+const isInSearchResults = (group: any) => {
+  return searchResults.value.includes(group)
 }
 
-// Verifica se uma transação foi classificada
-const isTransactionClassified = (transaction: any) => {
-  return transaction.codigoDebito && transaction.codigoCredito
+// Verifica se uma descrição foi classificada
+const isDescriptionClassified = (group: any) => {
+  return group.codigoDebito && group.codigoCredito
 }
 
-// Computed para contar transações classificadas
+// Computed para contar descrições classificadas
 const classifiedCount = computed(() => {
-  return ofxTransactions.value.filter(transaction =>
-    transaction.codigoDebito && transaction.codigoCredito
+  return groupedTransactions.value.filter(group =>
+    group.codigoDebito && group.codigoCredito
   ).length
 })
 
 const pendingCount = computed(() => {
-  return ofxTransactions.value.length - classifiedCount.value
+  return groupedTransactions.value.length - classifiedCount.value
 })
 
-// Transações filtradas para exibição
-const filteredTransactions = computed(() => {
+// Descrições filtradas para exibição
+const filteredGroupedTransactions = computed(() => {
   if (searchTerm.value.trim()) {
     return searchResults.value
   }
-  return ofxTransactions.value
+  return groupedTransactions.value
 })
 
 const saveClassification = async () => {
-  // Valida todos os campos antes de enviar
   let isValid = true
 
-  ofxTransactions.value.forEach(transaction => {
-    const debitoValid = validateCode(transaction, 'debito')
-    const creditoValid = validateCode(transaction, 'credito')
+  groupedTransactions.value.forEach(group => {
+    const debitoValid = validateGroupCode(group, 'debito')
+    const creditoValid = validateGroupCode(group, 'credito')
 
     if (!debitoValid || !creditoValid) {
       isValid = false
@@ -875,18 +912,33 @@ const saveClassification = async () => {
 
   isSavingClassification.value = true
 
-  // Prepara os dados para enviar
-  const classifiedData = ofxTransactions.value.map(transaction => ({
-    descricao: transaction.descricao,
-    data: transaction.data,
-    valor: transaction.valor,
-    codigoDebito: transaction.codigoDebito,
-    codigoCredito: transaction.codigoCredito,
-    codigoBanco: selectedBankCode.value
-  }))
+  // Prepara os dados para enviar - desagrupa as transações
+  interface ClassifiedTransaction {
+    descricao: string;
+    data: string;
+    valor: number;
+    codigoDebito: string;
+    codigoCredito: string;
+    codigoBanco: string;
+  }
+
+  const classifiedData: ClassifiedTransaction[] = groupedTransactions.value.flatMap((group: {
+    descricao: string;
+    transacoes: { data: string; valor: number }[];
+    codigoDebito: string;
+    codigoCredito: string;
+  }) =>
+    group.transacoes.map((transacao: { data: string; valor: number }) => ({
+      descricao: group.descricao,
+      data: transacao.data,
+      valor: transacao.valor,
+      codigoDebito: group.codigoDebito,
+      codigoCredito: group.codigoCredito,
+      codigoBanco: selectedBankCode.value
+    }))
+  )
 
   try {
-    // Usa o serviço de upload para salvar a classificação
     const result = await UploadService.saveClassification({
       TransacoesClassificadas: ofxResponse.value?.transacoesClassificadas || [],
       Classificacoes: classifiedData,
@@ -895,7 +947,6 @@ const saveClassification = async () => {
     })
 
     if (result.success) {
-      // Sucesso
       uploadResult.value = {
         success: true,
         message: 'Classificação salva com sucesso',
@@ -913,7 +964,6 @@ const saveClassification = async () => {
     isSavingClassification.value = false
   }
 }
-
 </script>
 
 <style scoped>
@@ -1024,10 +1074,12 @@ input[readonly] {
     stroke-dasharray: 1, 150;
     stroke-dashoffset: 0;
   }
+
   50% {
     stroke-dasharray: 90, 150;
     stroke-dashoffset: -35;
   }
+
   100% {
     stroke-dasharray: 90, 150;
     stroke-dashoffset: -124;
@@ -2311,5 +2363,335 @@ input[readonly] {
   padding: 8px 12px;
   color: #666;
   font-style: italic;
+}
+
+.description-group {
+  border: 1px solid #333;
+  border-radius: 6px;
+  margin-bottom: 1rem;
+  background: rgba(40, 40, 40, 0.7);
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.description-group.classified {
+  border-left: 3px solid #4CAF50;
+  background: rgba(40, 60, 40, 0.3);
+}
+
+.description-group.search-highlight {
+  background: rgba(249, 203, 40, 0.1);
+  border-color: #f9cb28;
+  box-shadow: 0 0 15px rgba(249, 203, 40, 0.3);
+}
+
+.description-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  cursor: pointer;
+  background: rgba(30, 30, 30, 0.8);
+  border-radius: 6px 6px 0 0;
+  transition: all 0.3s ease;
+}
+
+.description-header:hover {
+  background: rgba(50, 50, 50, 0.8);
+  border-color: #f9cb28;
+}
+
+.description-main {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.description-text {
+  font-weight: 700;
+  font-size: 1rem;
+  color: #fff;
+  margin-bottom: 0.25rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.description-count {
+  font-size: 0.9rem;
+  color: #aaa;
+  font-weight: 600;
+}
+
+.description-controls {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.description-total {
+  font-weight: 700;
+  font-size: 1.1rem;
+  font-family: 'Bebas Neue', sans-serif;
+  letter-spacing: 1px;
+}
+
+.description-total.positive {
+  color: #4CAF50;
+  text-shadow: 0 0 10px rgba(76, 175, 80, 0.3);
+}
+
+.description-total.negative {
+  color: #ff4d4d;
+  text-shadow: 0 0 10px rgba(255, 77, 77, 0.3);
+}
+
+.description-arrow {
+  width: 20px;
+  height: 20px;
+  transition: transform 0.3s ease;
+  fill: #f9cb28;
+}
+
+.description-arrow.rotated {
+  transform: rotate(180deg);
+}
+
+.classification-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  padding: 1rem;
+  border-top: 1px solid #333;
+  background: rgba(30, 30, 30, 0.5);
+}
+
+.transactions-details {
+  border-top: 1px solid #333;
+  background: rgba(40, 40, 40, 0.5);
+}
+
+.transactions-list {
+  padding: 0.75rem 1rem;
+}
+
+.transaction-detail {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #444;
+  transition: all 0.3s ease;
+}
+
+.transaction-detail:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.transaction-detail:last-child {
+  border-bottom: none;
+}
+
+.transaction-date {
+  font-size: 0.9rem;
+  color: #aaa;
+  font-weight: 600;
+}
+
+.transaction-value {
+  font-weight: 700;
+  font-size: 0.9rem;
+  font-family: 'Bebas Neue', sans-serif;
+  letter-spacing: 1px;
+}
+
+.transaction-value.positive {
+  color: #4CAF50;
+}
+
+.transaction-value.negative {
+  color: #ff4d4d;
+}
+
+/* Ajustes responsivos */
+@media (max-width: 768px) {
+  .description-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+
+  .description-controls {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .classification-fields {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Estilos para os campos de código */
+.code-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.code-input-group label {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #fff;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.code-input-group input {
+  padding: 0.75rem;
+  border: 1px solid #444;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  background: rgba(30, 30, 30, 0.8);
+  color: #fff;
+  font-family: 'Montserrat', sans-serif;
+  transition: all 0.3s ease;
+}
+
+.code-input-group input:focus {
+  outline: none;
+  border-color: #f9cb28;
+  box-shadow: 0 0 0 2px rgba(249, 203, 40, 0.3);
+}
+
+.code-input-group input.error {
+  border-color: #ff4d4d;
+  box-shadow: 0 0 0 2px rgba(255, 77, 77, 0.3);
+}
+
+.error-message {
+  font-size: 0.8rem;
+  color: #ff4d4d;
+  font-weight: 600;
+}
+
+/* Estilos para os botões de classificação em lote */
+.batch-classification-group {
+  margin: 1rem 0;
+  padding: 1rem;
+  background: rgba(30, 30, 30, 0.8);
+  border-radius: 6px;
+  border-left: 3px solid #f9cb28;
+}
+
+.batch-group-title {
+  margin: 0 0 0.5rem 0;
+  font-size: 1rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  padding-left: 0.75rem;
+}
+
+.batch-group-title.positive {
+  color: #4CAF50;
+  border-left-color: #4CAF50;
+}
+
+.batch-group-title.negative {
+  color: #ff4d4d;
+  border-left-color: #ff4d4d;
+}
+
+.batch-input-fields {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.75rem;
+  align-items: end;
+}
+
+.batch-apply-button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: linear-gradient(to right, #4CAF50, #2E7D32);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-size: 0.8rem;
+  transition: all 0.3s ease;
+}
+
+.batch-apply-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(76, 175, 80, 0.4);
+}
+
+.batch-apply-button:disabled {
+  background: #444;
+  cursor: not-allowed;
+  transform: none;
+  opacity: 0.7;
+}
+
+/* Estatísticas */
+.classification-stats {
+  display: flex;
+  gap: 1.5rem;
+  margin: 1rem 0;
+  padding: 1rem;
+  background: rgba(30, 30, 30, 0.8);
+  border-radius: 6px;
+  border: 1px solid #333;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.stat-label {
+  font-size: 0.8rem;
+  color: #aaa;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-weight: 600;
+}
+
+.stat-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  font-family: 'Bebas Neue', sans-serif;
+  color: #fff;
+}
+
+.stat-value.classified {
+  color: #4CAF50;
+}
+
+.stat-value.pending {
+  color: #ff4d4d;
+}
+
+/* Animações */
+.description-group {
+  animation: fadeInUp 0.5s ease;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 </style>

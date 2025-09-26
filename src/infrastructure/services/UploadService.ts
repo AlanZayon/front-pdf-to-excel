@@ -17,6 +17,8 @@ export class UploadService {
         withCredentials: true,
       })
 
+      console.log('Upload bem-sucedido:', response.data)
+
 
       return {
         success: true,
