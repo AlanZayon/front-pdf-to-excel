@@ -20,6 +20,10 @@
         <button @click="activeTab = 'account'" :class="{ 'active': activeTab === 'account' }" class="tab-button">
           Códigos de Conta
         </button>
+        <button @click="activeTab = 'descriptions'" :class="{ 'active': activeTab === 'descriptions' }"
+          class="tab-button">
+          Buscar Descrições
+        </button>
       </div>
 
       <!-- Corpo do Modal - Dados do Usuário -->
@@ -92,40 +96,49 @@
             <h3 class="section-title">SEGURANÇA</h3>
             <p class="section-subtitle">ALTERAÇÃO DE SENHA</p>
           </div>
-          
+
           <!-- Campo Senha Atual -->
           <div class="input-group">
             <label class="input-label">SENHA ATUAL</label>
             <div class="input-wrapper" :class="{ 'invalid': passwordFieldErrors.currentPassword }">
               <svg class="input-icon" viewBox="0 0 24 24">
-                <path d="M12,17A2,2 0 0,0 14,15C14,13.89 13.1,13 12,13A2,2 0 0,0 10,15A2,2 0 0,0 12,17M18,8A2,2 0 0,1 20,10V20A2,2 0 0,1 18,22H6A2,2 0 0,1 4,20V10C4,8.89 4.9,8 6,8H7V6A5,5 0 0,1 12,1A5,5 0 0,1 17,6V8H18M12,3A3,3 0 0,0 9,6V8H15V6A3,3 0 0,0 12,3Z" />
+                <path
+                  d="M12,17A2,2 0 0,0 14,15C14,13.89 13.1,13 12,13A2,2 0 0,0 10,15A2,2 0 0,0 12,17M18,8A2,2 0 0,1 20,10V20A2,2 0 0,1 18,22H6A2,2 0 0,1 4,20V10C4,8.89 4.9,8 6,8H7V6A5,5 0 0,1 12,1A5,5 0 0,1 17,6V8H18M12,3A3,3 0 0,0 9,6V8H15V6A3,3 0 0,0 12,3Z" />
               </svg>
-              <input v-model="currentPassword" :type="showCurrentPassword ? 'text' : 'password'" required class="input-field" placeholder="DIGITE SUA SENHA ATUAL">
+              <input v-model="currentPassword" :type="showCurrentPassword ? 'text' : 'password'" required
+                class="input-field" placeholder="DIGITE SUA SENHA ATUAL">
               <button @click="showCurrentPassword = !showCurrentPassword" class="password-toggle">
                 <svg class="password-icon" viewBox="0 0 24 24">
-                  <path v-if="showCurrentPassword" d="M11.83,9L15,12.16C15,12.11 15,12.05 15,12A3,3 0 0,0 12,9C11.94,9 11.89,9 11.83,9M7.53,9.8L9.08,11.35C9.03,11.56 9,11.77 9,12A3,3 0 0,0 12,15C12.22,15 12.44,14.97 12.65,14.92L14.2,16.47C13.53,16.8 12.79,17 12,17A5,5 0 0,1 7,12C7,11.21 7.2,10.47 7.53,9.8M2,4.27L4.28,6.55L4.73,7C3.08,8.3 1.78,10 1,12C2.73,16.39 7,19.5 12,19.5C13.55,19.5 15.03,19.2 16.38,18.66L16.81,19.08L19.73,22L21,20.73L3.27,3M12,7A5,5 0 0,1 17,12C17,12.64 16.87,13.26 16.64,13.82L19.57,16.75C21.07,15.5 22.27,13.86 23,12C21.27,7.61 17,4.5 12,4.5C10.6,4.5 9.26,4.75 8,5.2L10.17,7.35C10.74,7.13 11.35,7 12,7Z" />
-                  <path v-else d="M12,9A3,3 0 0,1 15,12A3,3 0 0,1 12,15A3,3 0 0,1 9,12A3,3 0 0,1 12,9M12,4.5C17,4.5 21.27,7.61 23,12C21.27,16.39 17,19.5 12,19.5C7,19.5 2.73,16.39 1,12C2.73,7.61 7,4.5 12,4.5M3.18,12C4.83,15.36 8.24,17.5 12,17.5C15.76,17.5 19.17,15.36 20.82,12C19.17,8.64 15.76,6.5 12,6.5C8.24,6.5 4.83,8.64 3.18,12Z" />
+                  <path v-if="showCurrentPassword"
+                    d="M11.83,9L15,12.16C15,12.11 15,12.05 15,12A3,3 0 0,0 12,9C11.94,9 11.89,9 11.83,9M7.53,9.8L9.08,11.35C9.03,11.56 9,11.77 9,12A3,3 0 0,0 12,15C12.22,15 12.44,14.97 12.65,14.92L14.2,16.47C13.53,16.8 12.79,17 12,17A5,5 0 0,1 7,12C7,11.21 7.2,10.47 7.53,9.8M2,4.27L4.28,6.55L4.73,7C3.08,8.3 1.78,10 1,12C2.73,16.39 7,19.5 12,19.5C13.55,19.5 15.03,19.2 16.38,18.66L16.81,19.08L19.73,22L21,20.73L3.27,3M12,7A5,5 0 0,1 17,12C17,12.64 16.87,13.26 16.64,13.82L19.57,16.75C21.07,15.5 22.27,13.86 23,12C21.27,7.61 17,4.5 12,4.5C10.6,4.5 9.26,4.75 8,5.2L10.17,7.35C10.74,7.13 11.35,7 12,7Z" />
+                  <path v-else
+                    d="M12,9A3,3 0 0,1 15,12A3,3 0 0,1 12,15A3,3 0 0,1 9,12A3,3 0 0,1 12,9M12,4.5C17,4.5 21.27,7.61 23,12C21.27,16.39 17,19.5 12,19.5C7,19.5 2.73,16.39 1,12C2.73,7.61 7,4.5 12,4.5M3.18,12C4.83,15.36 8.24,17.5 12,17.5C15.76,17.5 19.17,15.36 20.82,12C19.17,8.64 15.76,6.5 12,6.5C8.24,6.5 4.83,8.64 3.18,12Z" />
                 </svg>
               </button>
             </div>
-            <p v-if="passwordFieldErrors.currentPassword" class="error-message">{{ passwordFieldErrors.currentPassword }}</p>
+            <p v-if="passwordFieldErrors.currentPassword" class="error-message">{{ passwordFieldErrors.currentPassword
+              }}</p>
           </div>
 
           <!-- Campo Nova Senha -->
           <div class="input-group">
             <label class="input-label">NOVA SENHA</label>
-            <div class="input-wrapper" :class="{ 
-              'valid': validatePassword(editedUser.password) && editedUser.password.length > 0, 
+            <div class="input-wrapper" :class="{
+              'valid': validatePassword(editedUser.password) && editedUser.password.length > 0,
               'invalid': passwordFieldErrors.newPassword || (editedUser.password && !validatePassword(editedUser.password))
             }">
               <svg class="input-icon" viewBox="0 0 24 24">
-                <path d="M12,17A2,2 0 0,0 14,15C14,13.89 13.1,13 12,13A2,2 0 0,0 10,15A2,2 0 0,0 12,17M18,8A2,2 0 0,1 20,10V20A2,2 0 0,1 18,22H6A2,2 0 0,1 4,20V10C4,8.89 4.9,8 6,8H7V6A5,5 0 0,1 12,1A5,5 0 0,1 17,6V8H18M12,3A3,3 0 0,0 9,6V8H15V6A3,3 0 0,0 12,3Z" />
+                <path
+                  d="M12,17A2,2 0 0,0 14,15C14,13.89 13.1,13 12,13A2,2 0 0,0 10,15A2,2 0 0,0 12,17M18,8A2,2 0 0,1 20,10V20A2,2 0 0,1 18,22H6A2,2 0 0,1 4,20V10C4,8.89 4.9,8 6,8H7V6A5,5 0 0,1 12,1A5,5 0 0,1 17,6V8H18M12,3A3,3 0 0,0 9,6V8H15V6A3,3 0 0,0 12,3Z" />
               </svg>
-              <input v-model="editedUser.password" :type="showPassword ? 'text' : 'password'" class="input-field" placeholder="DIGITE A NOVA SENHA">
+              <input v-model="editedUser.password" :type="showPassword ? 'text' : 'password'" class="input-field"
+                placeholder="DIGITE A NOVA SENHA">
               <button @click="showPassword = !showPassword" class="password-toggle">
                 <svg class="password-icon" viewBox="0 0 24 24">
-                  <path v-if="showPassword" d="M11.83,9L15,12.16C15,12.11 15,12.05 15,12A3,3 0 0,0 12,9C11.94,9 11.89,9 11.83,9M7.53,9.8L9.08,11.35C9.03,11.56 9,11.77 9,12A3,3 0 0,0 12,15C12.22,15 12.44,14.97 12.65,14.92L14.2,16.47C13.53,16.8 12.79,17 12,17A5,5 0 0,1 7,12C7,11.21 7.2,10.47 7.53,9.8M2,4.27L4.28,6.55L4.73,7C3.08,8.3 1.78,10 1,12C2.73,16.39 7,19.5 12,19.5C13.55,19.5 15.03,19.2 16.38,18.66L16.81,19.08L19.73,22L21,20.73L3.27,3M12,7A5,5 0 0,1 17,12C17,12.64 16.87,13.26 16.64,13.82L19.57,16.75C21.07,15.5 22.27,13.86 23,12C21.27,7.61 17,4.5 12,4.5C10.6,4.5 9.26,4.75 8,5.2L10.17,7.35C10.74,7.13 11.35,7 12,7Z" />
-                  <path v-else d="M12,9A3,3 0 0,1 15,12A3,3 0 0,1 12,15A3,3 0 0,1 9,12A3,3 0 0,1 12,9M12,4.5C17,4.5 21.27,7.61 23,12C21.27,16.39 17,19.5 12,19.5C7,19.5 2.73,16.39 1,12C2.73,7.61 7,4.5 12,4.5M3.18,12C4.83,15.36 8.24,17.5 12,17.5C15.76,17.5 19.17,15.36 20.82,12C19.17,8.64 15.76,6.5 12,6.5C8.24,6.5 4.83,8.64 3.18,12Z" />
+                  <path v-if="showPassword"
+                    d="M11.83,9L15,12.16C15,12.11 15,12.05 15,12A3,3 0 0,0 12,9C11.94,9 11.89,9 11.83,9M7.53,9.8L9.08,11.35C9.03,11.56 9,11.77 9,12A3,3 0 0,0 12,15C12.22,15 12.44,14.97 12.65,14.92L14.2,16.47C13.53,16.8 12.79,17 12,17A5,5 0 0,1 7,12C7,11.21 7.2,10.47 7.53,9.8M2,4.27L4.28,6.55L4.73,7C3.08,8.3 1.78,10 1,12C2.73,16.39 7,19.5 12,19.5C13.55,19.5 15.03,19.2 16.38,18.66L16.81,19.08L19.73,22L21,20.73L3.27,3M12,7A5,5 0 0,1 17,12C17,12.64 16.87,13.26 16.64,13.82L19.57,16.75C21.07,15.5 22.27,13.86 23,12C21.27,7.61 17,4.5 12,4.5C10.6,4.5 9.26,4.75 8,5.2L10.17,7.35C10.74,7.13 11.35,7 12,7Z" />
+                  <path v-else
+                    d="M12,9A3,3 0 0,1 15,12A3,3 0 0,1 12,15A3,3 0 0,1 9,12A3,3 0 0,1 12,9M12,4.5C17,4.5 21.27,7.61 23,12C21.27,16.39 17,19.5 12,19.5C7,19.5 2.73,16.39 1,12C2.73,7.61 7,4.5 12,4.5M3.18,12C4.83,15.36 8.24,17.5 12,17.5C15.76,17.5 19.17,15.36 20.82,12C19.17,8.64 15.76,6.5 12,6.5C8.24,6.5 4.83,8.64 3.18,12Z" />
                 </svg>
               </button>
             </div>
@@ -142,23 +155,29 @@
           <!-- Campo Confirmar Nova Senha -->
           <div class="input-group">
             <label class="input-label">CONFIRMAR NOVA SENHA</label>
-            <div class="input-wrapper" :class="{ 
-              'valid': editedUser.confirmPassword === editedUser.password && editedUser.confirmPassword.length > 0, 
+            <div class="input-wrapper" :class="{
+              'valid': editedUser.confirmPassword === editedUser.password && editedUser.confirmPassword.length > 0,
               'invalid': passwordFieldErrors.confirmPassword || (editedUser.confirmPassword && editedUser.confirmPassword !== editedUser.password)
             }">
               <svg class="input-icon" viewBox="0 0 24 24">
-                <path d="M12,17A2,2 0 0,0 14,15C14,13.89 13.1,13 12,13A2,2 0 0,0 10,15A2,2 0 0,0 12,17M18,8A2,2 0 0,1 20,10V20A2,2 0 0,1 18,22H6A2,2 0 0,1 4,20V10C4,8.89 4.9,8 6,8H7V6A5,5 0 0,1 12,1A5,5 0 0,1 17,6V8H18M12,3A3,3 0 0,0 9,6V8H15V6A3,3 0 0,0 12,3Z" />
+                <path
+                  d="M12,17A2,2 0 0,0 14,15C14,13.89 13.1,13 12,13A2,2 0 0,0 10,15A2,2 0 0,0 12,17M18,8A2,2 0 0,1 20,10V20A2,2 0 0,1 18,22H6A2,2 0 0,1 4,20V10C4,8.89 4.9,8 6,8H7V6A5,5 0 0,1 12,1A5,5 0 0,1 17,6V8H18M12,3A3,3 0 0,0 9,6V8H15V6A3,3 0 0,0 12,3Z" />
               </svg>
-              <input v-model="editedUser.confirmPassword" :type="showConfirmPassword ? 'text' : 'password'" class="input-field" placeholder="CONFIRME A NOVA SENHA">
+              <input v-model="editedUser.confirmPassword" :type="showConfirmPassword ? 'text' : 'password'"
+                class="input-field" placeholder="CONFIRME A NOVA SENHA">
               <button @click="showConfirmPassword = !showConfirmPassword" class="password-toggle">
                 <svg class="password-icon" viewBox="0 0 24 24">
-                  <path v-if="showConfirmPassword" d="M11.83,9L15,12.16C15,12.11 15,12.05 15,12A3,3 0 0,0 12,9C11.94,9 11.89,9 11.83,9M7.53,9.8L9.08,11.35C9.03,11.56 9,11.77 9,12A3,3 0 0,0 12,15C12.22,15 12.44,14.97 12.65,14.92L14.2,16.47C13.53,16.8 12.79,17 12,17A5,5 0 0,1 7,12C7,11.21 7.2,10.47 7.53,9.8M2,4.27L4.28,6.55L4.73,7C3.08,8.3 1.78,10 1,12C2.73,16.39 7,19.5 12,19.5C13.55,19.5 15.03,19.2 16.38,18.66L16.81,19.08L19.73,22L21,20.73L3.27,3M12,7A5,5 0 0,1 17,12C17,12.64 16.87,13.26 16.64,13.82L19.57,16.75C21.07,15.5 22.27,13.86 23,12C21.27,7.61 17,4.5 12,4.5C10.6,4.5 9.26,4.75 8,5.2L10.17,7.35C10.74,7.13 11.35,7 12,7Z" />
-                  <path v-else d="M12,9A3,3 0 0,1 15,12A3,3 0 0,1 12,15A3,3 0 0,1 9,12A3,3 0 0,1 12,9M12,4.5C17,4.5 21.27,7.61 23,12C21.27,16.39 17,19.5 12,19.5C7,19.5 2.73,16.39 1,12C2.73,7.61 7,4.5 12,4.5M3.18,12C4.83,15.36 8.24,17.5 12,17.5C15.76,17.5 19.17,15.36 20.82,12C19.17,8.64 15.76,6.5 12,6.5C8.24,6.5 4.83,8.64 3.18,12Z" />
+                  <path v-if="showConfirmPassword"
+                    d="M11.83,9L15,12.16C15,12.11 15,12.05 15,12A3,3 0 0,0 12,9C11.94,9 11.89,9 11.83,9M7.53,9.8L9.08,11.35C9.03,11.56 9,11.77 9,12A3,3 0 0,0 12,15C12.22,15 12.44,14.97 12.65,14.92L14.2,16.47C13.53,16.8 12.79,17 12,17A5,5 0 0,1 7,12C7,11.21 7.2,10.47 7.53,9.8M2,4.27L4.28,6.55L4.73,7C3.08,8.3 1.78,10 1,12C2.73,16.39 7,19.5 12,19.5C13.55,19.5 15.03,19.2 16.38,18.66L16.81,19.08L19.73,22L21,20.73L3.27,3M12,7A5,5 0 0,1 17,12C17,12.64 16.87,13.26 16.64,13.82L19.57,16.75C21.07,15.5 22.27,13.86 23,12C21.27,7.61 17,4.5 12,4.5C10.6,4.5 9.26,4.75 8,5.2L10.17,7.35C10.74,7.13 11.35,7 12,7Z" />
+                  <path v-else
+                    d="M12,9A3,3 0 0,1 15,12A3,3 0 0,1 12,15A3,3 0 0,1 9,12A3,3 0 0,1 12,9M12,4.5C17,4.5 21.27,7.61 23,12C21.27,16.39 17,19.5 12,19.5C7,19.5 2.73,16.39 1,12C2.73,7.61 7,4.5 12,4.5M3.18,12C4.83,15.36 8.24,17.5 12,17.5C15.76,17.5 19.17,15.36 20.82,12C19.17,8.64 15.76,6.5 12,6.5C8.24,6.5 4.83,8.64 3.18,12Z" />
                 </svg>
               </button>
             </div>
-            <p v-if="passwordFieldErrors.confirmPassword" class="error-message">{{ passwordFieldErrors.confirmPassword }}</p>
-            <p v-else-if="editedUser.confirmPassword && editedUser.confirmPassword !== editedUser.password" class="error-message">
+            <p v-if="passwordFieldErrors.confirmPassword" class="error-message">{{ passwordFieldErrors.confirmPassword
+              }}</p>
+            <p v-else-if="editedUser.confirmPassword && editedUser.confirmPassword !== editedUser.password"
+              class="error-message">
               As senhas não coincidem
             </p>
           </div>
@@ -197,6 +216,7 @@
           <div class="section-header">
             <h3 class="section-title">CÓDIGOS DE CONTA</h3>
             <p class="section-subtitle">CONFIGURAÇÃO DOS TIPOS DE IMPOSTO</p>
+
             <div class="account-types-header">
               <div class="account-types">
                 <span class="account-type-label">DÉBITO</span>
@@ -208,8 +228,8 @@
           <div class="tax-code-row" v-for="tax in taxTypes" :key="tax.Code">
             <label class="tax-label">
               {{ tax.nome
-              .replace('SIMPLES_NACIONAL', 'SIMPLES NACIONAL')
-              .replace('MULTA_JUROS', 'MULTA E JUROS') }}
+                .replace('SIMPLES_NACIONAL', 'SIMPLES NACIONAL')
+                .replace('MULTA_JUROS', 'MULTA E JUROS') }}
             </label>
             <div class="account-inputs">
               <input :value="taxCodes[tax.Code].debito === '_' ? '' : taxCodes[tax.Code].debito"
@@ -236,7 +256,197 @@
             <button @click="closeModal" class="auth-button secondary">
               CANCELAR
             </button>
+          </div>
+        </div>
+      </div>
 
+      <!-- Corpo do Modal - Buscar Descrições -->
+      <div v-if="activeTab === 'descriptions'" class="modal-body">
+        <div class="description-search-section">
+          <div class="section-header">
+            <h3 class="section-title">BUSCAR DESCRIÇÕES</h3>
+            <p class="section-subtitle">CONSULTE AS DESCRIÇÕES POR CNPJ E CÓDIGO DO BANCO</p>
+          </div>
+
+          <div class="search-inputs">
+            <div class="input-group">
+              <label class="input-label">CNPJ</label>
+              <div class="input-wrapper">
+                <svg class="input-icon" viewBox="0 0 24 24">
+                  <path
+                    d="M12,11.5A2.5,2.5 0 0,1 9.5,9A2.5,2.5 0 0,1 12,6.5A2.5,2.5 0 0,1 14.5,9A2.5,2.5 0 0,1 12,11.5M12,2A7,7 0 0,0 5,9C5,14.25 12,22 12,22C12,22 19,14.25 19,9A7,7 0 0,0 12,2Z" />
+                </svg>
+                <input v-model="searchCnpj" type="text" class="input-field" placeholder="00.000.000/0000-00"
+                  @input="formatCnpj" maxlength="18">
+              </div>
+            </div>
+
+            <div class="input-group">
+              <label class="input-label">CÓDIGO DO BANCO</label>
+              <div class="input-wrapper">
+                <svg class="input-icon" viewBox="0 0 24 24">
+                  <path
+                    d="M5,3H19A2,2 0 0,1 21,5V19A2,2 0 0,1 19,21H5A2,2 0 0,1 3,19V5A2,2 0 0,1 5,3M7,7V9H9V7H7M11,7V9H13V7H11M15,7V9H17V7H15M7,11V13H9V11H7M11,11V13H13V11H11M15,11V13H17V11H15M7,15V17H9V15H7M11,15V17H13V15H11M15,15V17H17V15H15Z" />
+                </svg>
+                <input v-model="searchCodigoBanco" type="number" class="input-field" placeholder="Ex: 001"
+                  @keypress="onlyNumbers">
+              </div>
+            </div>
+
+            <button @click="searchDescriptions" class="auth-button search-button"
+              :disabled="!searchCnpj || isSearching">
+              <span v-if="!isSearching">
+                <svg class="search-icon" viewBox="0 0 24 24">
+                  <path
+                    d="M9.5,3A6.5,6.5 0 0,1 16,9.5C16,11.11 15.41,12.59 14.44,13.73L14.71,14H15.5L20.5,19L19,20.5L14,15.5V14.71L13.73,14.44C12.59,15.41 11.11,16 9.5,16A6.5,6.5 0 0,1 3,9.5A6.5,6.5 0 0,1 9.5,3M9.5,5C7,5 5,7 5,9.5C5,12 7,14 9.5,14C12,14 14,12 14,9.5C14,7 12,5 9.5,5Z" />
+                </svg>
+                BUSCAR DESCRIÇÕES
+              </span>
+              <span v-else class="button-loading">
+                <svg class="spinner" viewBox="0 0 50 50">
+                  <circle class="path" cx="25" cy="25" r="20" fill="none" stroke-width="5"></circle>
+                </svg>
+                BUSCANDO...
+              </span>
+            </button>
+          </div>
+
+          <!-- Barra de pesquisa nas descrições -->
+          <div v-if="searchResults.length > 0" class="description-search-bar">
+            <div class="search-bar-wrapper">
+              <svg class="search-bar-icon" viewBox="0 0 24 24">
+                <path
+                  d="M9.5,3A6.5,6.5 0 0,1 16,9.5C16,11.11 15.41,12.59 14.44,13.73L14.71,14H15.5L20.5,19L19,20.5L14,15.5V14.71L13.73,14.44C12.59,15.41 11.11,16 9.5,16A6.5,6.5 0 0,1 3,9.5A6.5,6.5 0 0,1 9.5,3M9.5,5C7,5 5,7 5,9.5C5,12 7,14 9.5,14C12,14 14,12 14,9.5C14,7 12,5 9.5,5Z" />
+              </svg>
+              <input 
+                v-model="descriptionSearchTerm" 
+                type="text" 
+                class="search-bar-input" 
+                placeholder="Pesquisar nas descrições..."
+                @input="filterDescriptions"
+              >
+              <div class="search-results-count" v-if="descriptionSearchTerm">
+                {{ filteredResults.length }} de {{ searchResults.length }} resultados
+              </div>
+            </div>
+          </div>
+
+          <!-- Resultados da Busca -->
+          <div v-if="searchResults.length > 0" class="search-results">
+            <div class="results-header">
+              <h4 class="results-title">DESCRIÇÕES ENCONTRADAS</h4>
+              <div class="results-count">
+                {{ filteredResults.length }} {{ filteredResults.length === 1 ? "descrição encontrada" : "descrições encontradas" }}
+              </div>
+            </div>
+
+            <!-- Cabeçalho da tabela -->
+            <div class="results-table-header">
+              <div class="result-description-header">DESCRIÇÃO</div>
+              <div class="result-codes-header">
+                <span class="code-label">DÉBITO</span>
+                <span class="code-label">CRÉDITO</span>
+              </div>
+              <div class="result-type-header">TIPO</div>
+            </div>
+
+            <!-- Lista de resultados -->
+            <div class="results-list">
+              <div v-for="(result, index) in filteredResults" :key="result.id" class="result-item"
+                :class="{ 'even': index % 2 === 0 }">
+                <div class="result-description">
+                  <div class="description-text">{{ result.termo }}</div>
+                </div>
+
+                <div class="result-codes">
+                  <!-- Código Débito -->
+                  <div class="code-input-group">
+                    <input v-model="result.codigoDebito" type="text" class="code-input"
+                      :class="{ 'disabled': result.tipoValor }" :disabled="result.tipoValor" placeholder="Débito"
+                      maxlength="5" @keypress="onlyNumbers" @input="handleCodeInput($event, result, 'debito')">
+                    <div class="code-status"
+                      v-if="result.codigoDebito && result.codigoDebito !== getOriginalResult(result.id)?.codigoDebito">
+                      <svg class="modified-icon" viewBox="0 0 24 24">
+                        <path
+                          d="M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22A10,10 0 0,1 2,12A10,10 0 0,1 12,2M12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4Z" />
+                      </svg>
+                    </div>
+                  </div>
+
+                  <!-- Código Crédito -->
+                  <div class="code-input-group">
+                    <input v-model="result.codigoCredito" type="text" class="code-input"
+                      :class="{ 'disabled': !result.tipoValor }" :disabled="!result.tipoValor" placeholder="Crédito"
+                      maxlength="5" @keypress="onlyNumbers" @input="handleCodeInput($event, result, 'credito')">
+                    <div class="code-status"
+                      v-if="result.codigoCredito && result.codigoCredito !== getOriginalResult(result.id)?.codigoCredito">
+                      <svg class="modified-icon" viewBox="0 0 24 24">
+                        <path
+                          d="M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22A10,10 0 0,1 2,12A10,10 0 0,1 12,2M12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4Z" />
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Indicador visual do tipo -->
+                <div class="result-type-indicator"
+                  :title="result.tipoValor ? 'Tipo: Crédito (editar apenas crédito)' : 'Tipo: Débito (editar apenas débito)'">
+                  <span class="type-badge" :class="result.tipoValor ? 'credit' : 'debit'">
+                    {{ result.tipoValor ? 'C' : 'D' }}
+                  </span>
+                  <span class="type-text">{{ result.tipoValor ? 'Crédito' : 'Débito' }}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Ações para salvar as alterações -->
+            <div class="results-actions" v-if="searchResults.length > 0">
+              <div class="changes-indicator" v-if="hasChanges">
+                <svg class="changes-icon" viewBox="0 0 24 24">
+                  <path
+                    d="M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22A10,10 0 0,1 2,12A10,10 0 0,1 12,2M12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4Z" />
+                </svg>
+                <span>Há alterações não salvas</span>
+              </div>
+              <button @click="saveDescriptionChanges" class="auth-button save-changes-button"
+                :disabled="isSavingChanges || !hasChanges" :class="{ 'has-changes': hasChanges }">
+                <span v-if="!isSavingChanges">
+                  <svg class="save-icon" viewBox="0 0 24 24">
+                    <path
+                      d="M15,9H5V5H15M12,19A3,3 0 0,1 9,16A3,3 0 0,1 12,13A3,3 0 0,1 15,16A3,3 0 0,1 12,19M17,3H5C3.89,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V7L17,3Z" />
+                  </svg>
+                  SALVAR ALTERAÇÕES
+                </span>
+                <span v-else class="button-loading">
+                  <svg class="spinner" viewBox="0 0 50 50">
+                    <circle class="path" cx="25" cy="25" r="20" fill="none" stroke-width="5"></circle>
+                  </svg>
+                  SALVANDO...
+                </span>
+              </button>
+            </div>
+          </div>
+
+          <div v-if="searchError" class="error-message search-error">
+            <svg class="error-icon" viewBox="0 0 24 24">
+              <path
+                d="M13,13H11V7H13M13,17H11V15H13M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z" />
+            </svg>
+            {{ searchError }}
+          </div>
+
+          <div v-if="isSearching && searchResults.length === 0" class="loading-overlay">
+            <div class="spinner"></div>
+            <p>Buscando descrições...</p>
+          </div>
+
+          <div v-if="!isSearching && searchResults.length === 0 && searchCnpj" class="no-results">
+            <svg class="no-results-icon" viewBox="0 0 24 24">
+              <path
+                d="M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22A10,10 0 0,1 2,12A10,10 0 0,1 12,2M12,4A8,8 0 0,0 4,12C4,14.09 4.8,16 6.11,17.41L17.41,6.11C16,4.8 14.09,4 12,4M12,20A8,8 0 0,0 20,12C20,9.91 19.2,8 17.89,6.59L6.59,17.89C8,19.2 9.91,20 12,20Z" />
+            </svg>
+            <p>Nenhuma descrição encontrada para o CNPJ informado.</p>
+            <p class="no-results-hint">Verifique se o CNPJ está correto e tente novamente.</p>
           </div>
         </div>
       </div>
@@ -311,7 +521,6 @@
           <button @click="confirmChanges = false" class="auth-button secondary">
             CANCELAR
           </button>
-
         </div>
       </div>
     </div>
@@ -345,7 +554,7 @@ const props = defineProps({
 const emit = defineEmits(['close', 'save-user', 'save-account', 'delete-account'])
 
 // Dados reativos
-const activeTab = ref<'user' | 'account'>('user')
+const activeTab = ref<'user' | 'account' | 'descriptions'>('user')
 const activeUserSection = ref<'name' | 'email' | 'password'>('name')
 const editedUser = ref({
   name: props.userData?.fullName || '',
@@ -384,6 +593,19 @@ const resultModalTitle = ref('')
 const resultModalMessage = ref('')
 const router = useRouter()
 const authStore = useAuthStore()
+
+// Dados para busca de descrições
+const searchCnpj = ref('')
+const searchCodigoBanco = ref('')
+const searchResults = ref<any[]>([])
+const originalResults = ref<any[]>([])
+const isSearching = ref(false)
+const isSavingChanges = ref(false)
+const searchError = ref('')
+
+// Nova funcionalidade: busca nas descrições
+const descriptionSearchTerm = ref('')
+const filteredResults = ref<any[]>([])
 
 // Funções de validação
 const validateEmail = (email: string) => {
@@ -433,11 +655,210 @@ const isUserFormValid = computed(() => {
   }
   if (activeUserSection.value === 'password') {
     return currentPassword.value !== '' &&
-           validatePassword(editedUser.value.password) &&
-           editedUser.value.password === editedUser.value.confirmPassword
+      validatePassword(editedUser.value.password) &&
+      editedUser.value.password === editedUser.value.confirmPassword
   }
   return false
 })
+
+const hasChanges = computed(() => {
+  return searchResults.value.some((result, index) => {
+    const original = originalResults.value[index]
+    return (
+      result.codigoDebito !== original.codigoDebito ||
+      result.codigoCredito !== original.codigoCredito
+    )
+  })
+})
+
+// Funções para busca de descrições
+const formatCnpj = () => {
+  let cnpj = searchCnpj.value.replace(/\D/g, '')
+
+  if (cnpj.length > 14) {
+    cnpj = cnpj.substring(0, 14)
+  }
+
+  if (cnpj.length > 12) {
+    searchCnpj.value = cnpj.replace(
+      /(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/,
+      '$1.$2.$3/$4-$5'
+    )
+  } else if (cnpj.length > 8) {
+    searchCnpj.value = cnpj.replace(
+      /(\d{2})(\d{3})(\d{3})(\d{4})/,
+      '$1.$2.$3/$4'
+    )
+  } else if (cnpj.length > 5) {
+    searchCnpj.value = cnpj.replace(
+      /(\d{2})(\d{3})(\d{3})/,
+      '$1.$2.$3'
+    )
+  } else if (cnpj.length > 2) {
+    searchCnpj.value = cnpj.replace(
+      /(\d{2})(\d{3})/,
+      '$1.$2'
+    )
+  } else {
+    searchCnpj.value = cnpj
+  }
+}
+
+const onlyNumbers = (event: KeyboardEvent) => {
+  const charCode = event.charCode
+  if (charCode < 48 || charCode > 57) {
+    event.preventDefault()
+  }
+}
+
+const searchDescriptions = async () => {
+  if (!searchCnpj.value) {
+    searchError.value = 'CNPJ é obrigatório'
+    return
+  }
+
+  isSearching.value = true
+  searchError.value = ''
+  searchResults.value = []
+  originalResults.value = []
+  descriptionSearchTerm.value = ''
+
+  try {
+    // Remove formatação do CNPJ
+    const cnpjClean = searchCnpj.value.replace(/\D/g, '')
+    const codigoBanco = searchCodigoBanco.value ? parseInt(searchCodigoBanco.value) : undefined
+
+    // Chama o serviço para buscar as descrições
+    const result = await ImpostoService.buscarDescricoes(cnpjClean, codigoBanco)
+
+    if (result.success && result.data) {
+      // Formata os resultados para garantir que temos números
+      const formattedResults = result.data.map((item: any) => ({
+        ...item,
+        codigoDebito: item.codigoDebito?.toString() || '',
+        codigoCredito: item.codigoCredito?.toString() || ''
+      }))
+
+      searchResults.value = formattedResults
+      filteredResults.value = formattedResults
+      originalResults.value = JSON.parse(JSON.stringify(formattedResults))
+    } else {
+      searchError.value = result.message || 'Nenhuma descrição encontrada'
+    }
+  } catch (error) {
+    console.error('Erro ao buscar descrições:', error)
+    searchError.value = 'Erro ao buscar descrições. Tente novamente.'
+  } finally {
+    isSearching.value = false
+  }
+}
+
+// Função para filtrar descrições
+const filterDescriptions = () => {
+  if (!descriptionSearchTerm.value.trim()) {
+    filteredResults.value = [...searchResults.value]
+    return
+  }
+
+  const searchTerm = descriptionSearchTerm.value.toLowerCase().trim()
+  filteredResults.value = searchResults.value.filter(result =>
+    result.termo.toLowerCase().includes(searchTerm)
+  )
+}
+
+// Função para obter resultado original por ID
+const getOriginalResult = (id: string) => {
+  return originalResults.value.find(item => item.id === id)
+}
+
+const handleCodeInput = (event: Event, result: any, type: 'debito' | 'credito') => {
+  const target = event.target as HTMLInputElement
+  const value = target.value.replace(/\D/g, '').slice(0, 5)
+
+  if (type === 'debito') {
+    result.codigoDebito = value
+  } else {
+    result.codigoCredito = value
+  }
+
+  target.value = value
+}
+
+const saveDescriptionChanges = async () => {
+  if (!hasChanges.value) {
+    showResultModal.value = true
+    resultModalTitle.value = 'NENHUMA ALTERAÇÃO'
+    resultModalMessage.value = 'Não há alterações para salvar.'
+    return
+  }
+
+  isSavingChanges.value = true
+
+  try {
+    // Filtra apenas os registros que foram alterados
+    const atualizacoes = searchResults.value
+      .map((result) => {
+        const original = getOriginalResult(result.id)
+
+        // Verifica se houve alteração
+        const debitoAlterado = result.codigoDebito !== original?.codigoDebito
+        const creditoAlterado = result.codigoCredito !== original?.codigoCredito
+
+        if (debitoAlterado || creditoAlterado) {
+          const termoEspecialId = parseInt(result.id) || result.id
+
+          return {
+            TermoEspecialId: termoEspecialId, // ID do registro
+            NovoCodigoDebito: result.codigoDebito ? parseInt(result.codigoDebito) : null,
+            NovoCodigoCredito: result.codigoCredito ? parseInt(result.codigoCredito) : null
+          }
+        }
+        return null
+      })
+      .filter(update => update !== null)
+
+    if (atualizacoes.length === 0) {
+      showResultModal.value = true
+      resultModalTitle.value = 'NENHUMA ALTERAÇÃO'
+      resultModalMessage.value = 'Não há alterações para salvar.'
+      return
+    }
+
+    // Prepara o payload para a API
+    const payload = {
+      CNPJ: searchCnpj.value.replace(/\D/g, ''), // Remove formatação
+      CodigoBanco: searchCodigoBanco.value ? parseInt(searchCodigoBanco.value) : null,
+      Atualizacoes: atualizacoes
+    }
+
+    console.log('Enviando para API:', payload)
+
+    // Chama o serviço para atualizar os registros
+    const result = await ImpostoService.atualizarDescricoes(payload)
+
+    if (result.success) {
+      // Atualiza os originais com os novos valores
+      originalResults.value = JSON.parse(JSON.stringify(searchResults.value))
+
+      showResultModal.value = true
+      resultModalTitle.value = 'ALTERAÇÕES SALVAS'
+      resultModalMessage.value = `As alterações em ${atualizacoes.length} registro(s) foram salvas com sucesso!`
+    } else {
+      throw new Error(result.message || 'Erro ao salvar alterações')
+    }
+
+  } catch (error) {
+    console.error('Erro ao salvar alterações:', error)
+    showResultModal.value = true
+    resultModalTitle.value = 'ERRO AO SALVAR'
+    resultModalMessage.value = 'Ocorreu um erro ao salvar as alterações. Tente novamente.'
+  } finally {
+    isSavingChanges.value = false
+  }
+}
+
+// Restante do código permanece igual...
+// [O restante do código JavaScript permanece exatamente igual]
 
 // Funções para códigos de imposto
 const handleDebitoInput = (event: Event, taxCode: string) => {
@@ -513,22 +934,22 @@ const loadTaxCodes = async () => {
 const changePassword = async () => {
   isSaving.value = true
   passwordFieldErrors.value = { currentPassword: '', newPassword: '', confirmPassword: '' }
-  
+
   try {
     const command = new ChangePasswordCommand(
       currentPassword.value,
       editedUser.value.password,
       editedUser.value.confirmPassword
     )
-    
+
     const result: ChangePasswordResult = await AuthService.changePassword(command)
-    
+
     if (result.success) {
       // Senha alterada com sucesso
       resultModalTitle.value = 'SENHA ALTERADA'
       resultModalMessage.value = 'Sua senha foi alterada com sucesso!'
       showResultModal.value = true
-      
+
       // Limpa os campos
       currentPassword.value = ''
       editedUser.value.password = ''
@@ -542,7 +963,7 @@ const changePassword = async () => {
           confirmPassword: result.fieldErrors.confirmPassword || ''
         }
       }
-      
+
       resultModalTitle.value = 'ERRO AO ALTERAR SENHA'
       resultModalMessage.value = result.message || 'Ocorreu um erro ao tentar alterar sua senha.'
       showResultModal.value = true
@@ -561,20 +982,20 @@ const changePassword = async () => {
 const changeUserName = async () => {
   isSaving.value = true
   nameFieldErrors.value = { newFullName: '' }
-  
+
   try {
     const command = new ChangeUserNameCommand(editedUser.value.name)
     const result: ChangeUserNameResult = await AuthService.changeUserName(command)
-    
+
     if (result.success) {
       // Nome alterado com sucesso
       resultModalTitle.value = 'NOME ALTERADO'
       resultModalMessage.value = 'Seu nome foi alterado com sucesso!'
       showResultModal.value = true
-      
+
       // Atualiza o store de autenticação
       authStore.updateUserInfo({ fullName: editedUser.value.name })
-      
+
       // Emite evento para o componente pai
       emit('save-user', { type: 'name', name: editedUser.value.name })
     } else {
@@ -584,7 +1005,7 @@ const changeUserName = async () => {
           newFullName: result.fieldErrors.newFullName || ''
         }
       }
-      
+
       resultModalTitle.value = 'ERRO AO ALTERAR NOME'
       resultModalMessage.value = result.message || 'Ocorreu um erro ao tentar alterar seu nome.'
       showResultModal.value = true
@@ -634,6 +1055,15 @@ watch(() => activeTab.value, (newVal) => {
   if (newVal === 'account') {
     loadTaxCodes()
   }
+  // Limpa a busca quando muda para outras tabs
+  if (newVal !== 'descriptions') {
+    searchCnpj.value = ''
+    searchCodigoBanco.value = ''
+    searchResults.value = []
+    filteredResults.value = []
+    searchError.value = ''
+    descriptionSearchTerm.value = ''
+  }
 })
 
 // Métodos
@@ -666,7 +1096,7 @@ const saveUserChanges = async () => {
 
   if (activeUserSection.value === 'name') {
     if (!isUserFormValid.value) return
-    
+
     // Verifica se o nome realmente mudou
     if (editedUser.value.name === props.userData?.fullName) {
       resultModalTitle.value = 'NENHUMA ALTERAÇÃO'
@@ -674,7 +1104,7 @@ const saveUserChanges = async () => {
       showResultModal.value = true
       return
     }
-    
+
     await changeUserName()
     return
   }
@@ -705,7 +1135,7 @@ const saveUserChanges = async () => {
       }
       return
     }
-    
+
     requestConfirmation('password')
     return
   }
@@ -828,6 +1258,7 @@ const performUserSave = async (change: 'email') => {
   }
 }
 </script>
+
 <style scoped>
 /* Estilos base */
 .modal-overlay {
@@ -850,7 +1281,7 @@ const performUserSave = async (change: 'email') => {
   background: #1a1a1a;
   border-radius: 8px;
   width: 100%;
-  max-width: 650px;
+  max-width: 800px;
   border: 1px solid #333;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
   overflow: hidden;
@@ -1060,15 +1491,394 @@ const performUserSave = async (change: 'email') => {
   margin-bottom: 1rem;
 }
 
+/* Estilos para a busca de descrições */
+.description-search-section {
+  max-width: 100%;
+}
+
+.search-inputs {
+  display: grid;
+  grid-template-columns: 1fr 1fr ;
+  gap: 1rem;
+  align-items: end;
+  margin-bottom: 1.5rem;
+}
+
+.search-button {
+  height: fit-content;
+  max-width: 180px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  align-self: end;
+}
+
+.search-icon {
+  width: 18px;
+  height: 18px;
+  fill: currentColor;
+}
+
+/* Barra de pesquisa nas descrições */
+.description-search-bar {
+  margin: 1.5rem 0;
+  padding: 1rem;
+  background: rgba(30, 30, 30, 0.7);
+  border: 1px solid #333;
+  border-radius: 4px;
+}
+
+.search-bar-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.search-bar-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  fill: #aaa;
+  width: 20px;
+  height: 20px;
+  z-index: 1;
+}
+
+.search-bar-input {
+  flex: 1;
+  padding: 0.75rem 1rem 0.75rem 40px;
+  background: rgba(20, 20, 20, 0.8);
+  border: 1px solid #444;
+  border-radius: 4px;
+  color: #fff;
+  font-family: 'Montserrat', sans-serif;
+  transition: all 0.15s ease;
+  font-size: 0.9rem;
+}
+
+.search-bar-input:focus {
+  outline: none;
+  border-color: #f9cb28;
+  box-shadow: 0 0 0 2px rgba(249, 203, 40, 0.2);
+}
+
+.search-bar-input:focus + .search-bar-icon {
+  fill: #f9cb28;
+}
+
+.search-results-count {
+  color: #aaa;
+  font-size: 0.8rem;
+  background: rgba(249, 203, 40, 0.1);
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  border: 1px solid rgba(249, 203, 40, 0.3);
+  white-space: nowrap;
+}
+
+.search-results {
+  border-top: 1px solid #333;
+  padding-top: 1rem;
+  margin-top: 1.5rem;
+}
+
+.results-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.results-title {
+  color: #f9cb28;
+  font-size: 1.2rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-family: 'Bebas Neue', sans-serif;
+  margin: 0;
+}
+
+.results-count {
+  color: #aaa;
+  font-size: 0.85rem;
+  background: rgba(249, 203, 40, 0.1);
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  border: 1px solid rgba(249, 203, 40, 0.3);
+}
+
+.results-table-header {
+  display: grid;
+  grid-template-columns: 1fr 200px 80px;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  background: rgba(30, 30, 30, 0.7);
+  border: 1px solid #333;
+  border-radius: 4px;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: #f9cb28;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.result-description-header {
+  display: flex;
+  align-items: center;
+}
+
+.result-codes-header {
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+}
+
+.code-label {
+  width: 80px;
+  text-align: center;
+}
+
+.result-type-header {
+  text-align: center;
+}
+
+.results-list {
+  max-height: 400px;
+  overflow-y: auto;
+  border: 1px solid #333;
+  border-radius: 4px;
+  background: rgba(30, 30, 30, 0.5);
+}
+
+.result-item {
+  display: grid;
+  grid-template-columns: 1fr 200px 80px;
+  gap: 1rem;
+  padding: 1rem;
+  border-bottom: 1px solid rgba(51, 51, 51, 0.5);
+  transition: all 0.2s ease;
+  align-items: center;
+}
+
+.result-item:last-child {
+  border-bottom: none;
+}
+
+.result-item:hover {
+  background: rgba(249, 203, 40, 0.05);
+}
+
+.result-item.even {
+  background: rgba(40, 40, 40, 0.3);
+}
+
+.result-item.even:hover {
+  background: rgba(249, 203, 40, 0.08);
+}
+
+.result-description {
+  display: flex;
+  align-items: center;
+}
+
+.description-text {
+  color: #ddd;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.result-codes {
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+}
+
+.code-input-group {
+  position: relative;
+  width: 80px;
+}
+
+.code-input {
+  width: 100%;
+  padding: 0.65rem 0.5rem;
+  background: rgba(30, 30, 30, 0.7);
+  border: 1px solid #333;
+  border-radius: 4px;
+  color: #fff;
+  font-family: 'Montserrat', sans-serif;
+  transition: all 0.15s ease;
+  text-align: center;
+  font-size: 0.85rem;
+}
+
+.code-input:focus {
+  outline: none;
+  border-color: #f9cb28;
+  box-shadow: 0 0 0 2px rgba(249, 203, 40, 0.2);
+}
+
+.code-input.disabled {
+  background: rgba(30, 30, 30, 0.3);
+  color: #666;
+  cursor: not-allowed;
+}
+
+.code-input::-webkit-inner-spin-button,
+.code-input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.code-status {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  width: 12px;
+  height: 12px;
+}
+
+.modified-icon {
+  width: 12px;
+  height: 12px;
+  fill: #f9cb28;
+}
+
+.result-type-indicator {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.type-badge {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: bold;
+  color: #1a1a1a;
+}
+
+.type-badge.debit {
+  background: #ff4d4d;
+}
+
+.type-badge.credit {
+  background: #4CAF50;
+}
+
+.type-text {
+  font-size: 0.75rem;
+  color: #aaa;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.results-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid #333;
+}
+
+.changes-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #f9cb28;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.changes-icon {
+  width: 16px;
+  height: 16px;
+  fill: #f9cb28;
+}
+
+.save-changes-button {
+  min-width: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  transition: all 0.3s ease;
+}
+
+.save-changes-button:not(.has-changes) {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.save-changes-button.has-changes {
+  background: linear-gradient(to right, #4CAF50, #45a049);
+}
+
+.save-changes-button.has-changes:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(76, 175, 80, 0.3);
+}
+
+.save-icon {
+  width: 18px;
+  height: 18px;
+  fill: currentColor;
+}
+
+.search-error {
+  margin-top: 1rem;
+  text-align: center;
+  padding: 0.75rem;
+  background: rgba(255, 77, 77, 0.1);
+  border: 1px solid rgba(255, 77, 77, 0.3);
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.error-icon {
+  width: 18px;
+  height: 18px;
+  fill: #ff4d4d;
+}
+
+.no-results {
+  text-align: center;
+  padding: 2rem;
+  color: #aaa;
+  font-style: italic;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.no-results-icon {
+  width: 48px;
+  height: 48px;
+  fill: #666;
+}
+
+.no-results-hint {
+  font-size: 0.85rem;
+  color: #777;
+}
+
 .account-types-header {
   display: flex;
   width: 100%;
   margin-bottom: 0.5rem;
-}
-
-.tax-label-spacer {
-  width: 180px;
-  flex-shrink: 0;
 }
 
 .account-types {
@@ -1400,6 +2210,91 @@ const performUserSave = async (change: 'email') => {
   }
 }
 
+/* Tabs */
+.tabs {
+  display: flex;
+  border-bottom: 1px solid #333;
+  padding: 0 1.5rem;
+}
+
+.tab-button {
+  padding: 1rem 1.5rem;
+  background: transparent;
+  border: none;
+  color: #aaa;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+.tab-button:hover {
+  color: #f9cb28;
+}
+
+.tab-button.active {
+  color: #f9cb28;
+}
+
+.tab-button.active::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: #f9cb28;
+}
+
+.user-subtabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.user-subtab-button {
+  padding: 0.5rem 0.75rem;
+  background: transparent;
+  border: 1px solid #333;
+  border-radius: 4px;
+  color: #aaa;
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.user-subtab-button:hover {
+  color: #f9cb28;
+  border-color: #555;
+}
+
+.user-subtab-button.active {
+  color: #f9cb28;
+  border-color: #f9cb28;
+}
+
+/* Loading overlay */
+.loading-overlay {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem;
+  color: #aaa;
+}
+
+.loading-overlay .spinner {
+  width: 40px;
+  height: 40px;
+  margin-bottom: 1rem;
+}
+
+.loading-overlay .spinner .path {
+  stroke: #f9cb28;
+}
+
 /* Responsividade */
 @media (max-width: 768px) {
   .modal-body {
@@ -1438,80 +2333,74 @@ const performUserSave = async (change: 'email') => {
   .account-types {
     display: none;
   }
-}
 
-.user-subtabs {
-  display: flex;
-  gap: 0.5rem;
-  margin-bottom: 1rem;
-}
+  .search-inputs {
+    grid-template-columns: 1fr;
+  }
 
-.user-subtab-button {
-  padding: 0.5rem 0.75rem;
-  background: transparent;
-  border: 1px solid #333;
-  border-radius: 4px;
-  color: #aaa;
-  font-weight: 600;
-  font-size: 0.85rem;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
+  .search-button {
+    min-width: auto;
+    align-self: stretch;
+  }
 
-.user-subtab-button:hover {
-  color: #f9cb28;
-  border-color: #555;
-}
+  .tabs {
+    flex-wrap: wrap;
+  }
 
-.user-subtab-button.active {
-  color: #f9cb28;
-  border-color: #f9cb28;
-}
+  .tab-button {
+    flex: 1;
+    min-width: 120px;
+    text-align: center;
+    padding: 0.75rem 0.5rem;
+    font-size: 0.8rem;
+  }
 
-.tabs {
-  display: flex;
-  border-bottom: 1px solid #333;
-  padding: 0 1.5rem;
-}
+  /* Responsividade para a seção de descrições */
+  .results-table-header {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+    display: none;
+  }
 
-.tab-button {
-  padding: 1rem 1.5rem;
-  background: transparent;
-  border: none;
-  color: #aaa;
-  font-weight: 600;
-  font-size: 0.9rem;
-  cursor: pointer;
-  position: relative;
-  transition: all 0.3s ease;
-}
+  .result-item {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+    padding: 0.75rem;
+  }
 
-.tab-button:hover {
-  color: #f9cb28;
-}
+  .result-codes {
+    justify-content: flex-start;
+    gap: 0.5rem;
+  }
 
-.tab-button.active {
-  color: #f9cb28;
-}
+  .code-input-group {
+    width: 100px;
+  }
 
-.tab-button.active::after {
-  content: '';
-  position: absolute;
-  bottom: -1px;
-  left: 0;
-  right: 0;
-  height: 3px;
-  background: #f9cb28;
-}
+  .result-type-indicator {
+    flex-direction: row;
+    justify-content: flex-start;
+    gap: 0.5rem;
+  }
 
-/* Ajuste para o modal-body com tabs */
-.modal-body {
-  padding: 1.5rem;
-  overflow-y: auto;
-  flex-grow: 1;
-  scrollbar-width: thin;
-  scrollbar-color: #f9cb28 #333;
-  max-height: calc(90vh - 150px);
-  /* Ajuste para acomodar as tabs */
+  .results-actions {
+    flex-direction: column;
+    gap: 1rem;
+    align-items: stretch;
+  }
+
+  .save-changes-button {
+    min-width: auto;
+  }
+
+  .search-bar-wrapper {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+  }
+
+  .search-results-count {
+    align-self: flex-end;
+  }
 }
 </style>

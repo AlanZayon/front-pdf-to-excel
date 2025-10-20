@@ -94,4 +94,87 @@ export class ImpostoService {
       };
     }
   }
+  static async buscarDescricoes(cnpj: string, codigoBanco?: number | null): Promise<{ success: boolean; data: any[] | null; message: string }> {
+    try {
+
+      let url = `/api/configuracao/descricoes?cnpj=${encodeURIComponent(cnpj)}`;
+
+      if (codigoBanco) {
+        url += `&codigoBanco=${codigoBanco}`;
+      }
+
+      const response = await http.get(url, {
+        withCredentials: true,
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+
+      if (response.status < 200 || response.status >= 300) {
+        throw new Error(`Erro na requisição: ${response.status}`);
+      }
+
+      const data = response.data;
+      console.log(data)
+
+      return {
+        success: true,
+        data: data,
+        message: 'Descrições encontradas com sucesso'
+      };
+    } catch (error) {
+      console.error('Erro ao buscar descrições:', error);
+      return {
+        success: false,
+        data: null,
+        message: error instanceof Error ? error.message : 'Erro ao buscar descrições'
+      };
+    }
+  }
+
+  static async atualizarDescricoes(payload: {
+    CNPJ: string;
+    CodigoBanco: number | null;
+    Atualizacoes: Array<{
+      TermoEspecialId : number;
+      NovoCodigoDebito: number | null;
+      NovoCodigoCredito: number | null;
+    }>;
+  }): Promise<{ success: boolean; message?: string; data?: any }> {
+    try {
+
+      const response = await http.put(
+        '/api/configuracao/descricoes',
+        payload,
+        {
+          withCredentials: true,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+
+      if (response.status < 200 || response.status >= 300) {
+        const errorData = response.data;
+        return {
+          success: false,
+          message: errorData?.message || 'Erro ao atualizar descrições'
+        }
+      }
+
+      const data = response.data;
+      return {
+        success: true,
+        data: data
+      }
+
+    } catch (error) {
+      console.error('Erro na requisição:', error)
+      return {
+        success: false,
+        message: 'Erro de conexão. Tente novamente.'
+      }
+    }
+  }
 }

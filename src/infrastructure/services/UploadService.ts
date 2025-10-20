@@ -12,7 +12,9 @@ export class UploadService {
       const response = await http.post('/api/upload/upload', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
-          'CNPJ': command.cnpj || ''
+          'CNPJ': command.cnpj || '',
+          'CodigoBanco':command.bankCode || '',
+
         },
         withCredentials: true,
       })
@@ -49,7 +51,9 @@ export class UploadService {
     TransacoesPendentes: any[],
     cnpj: string
   }): Promise<UploadResult> {
+    console.log('Iniciando o salvamento da classificação...', classificationData)
     try {
+      console.log('Dados de classificação a serem enviados:', classificationData)
       const response = await http.post('/api/upload/finalizar-processamento', classificationData, {
         headers: { 'Content-Type': 'application/json' },
         withCredentials: true,
