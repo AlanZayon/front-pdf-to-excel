@@ -831,7 +831,6 @@ const saveDescriptionChanges = async () => {
       Atualizacoes: atualizacoes
     }
 
-    console.log('Enviando para API:', payload)
 
     // Chama o serviço para atualizar os registros
     const result = await ImpostoService.atualizarDescricoes(payload)

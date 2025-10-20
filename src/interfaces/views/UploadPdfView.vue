@@ -1105,7 +1105,6 @@ const individualClassificationsCount = computed(() => {
   groupedTransactions.value.forEach(group => {
     count += getIndividualCount(group)
   })
-  console.log('Contagem de classificações individuais:', groupedTransactions.value)
   return count
 })
 

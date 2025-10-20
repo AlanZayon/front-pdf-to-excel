@@ -11,7 +11,6 @@ export class UpdateImpostosCommand {
     }[]
   ) {}
   static create(changes: ImpostoDto[]): UpdateImpostosCommand {
-    console.log('Criando comando de atualização de impostos com as mudanças:', changes);
     return new UpdateImpostosCommand(
       changes.map(c => ({
         Id: c.id,

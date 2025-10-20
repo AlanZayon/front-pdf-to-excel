@@ -115,7 +115,6 @@ export class ImpostoService {
       }
 
       const data = response.data;
-      console.log(data)
 
       return {
         success: true,

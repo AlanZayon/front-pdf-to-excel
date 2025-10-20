@@ -12,7 +12,6 @@ export class FileDownloadService {
       const contentDisposition = response.headers['content-disposition']
       let fileName = 'PGTO.csv'
 
-      console.log('Content-Disposition header:', contentDisposition) 
 
       if (contentDisposition) {
 
@@ -28,7 +27,6 @@ export class FileDownloadService {
         }
       }
 
-      console.log('Filename extracted:', fileName)
 
       const url = window.URL.createObjectURL(new Blob([response.data]))
       const link = document.createElement('a')
