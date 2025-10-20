@@ -2035,6 +2035,8 @@ const saveClassification = async () => {
     alert('Erro ao salvar classificação. Tente novamente.')
   } finally {
     isSavingClassification.value = false
+    selectedBankCode.value = ''
+    bankCodeInput.value = ''
   }
 }
 </script>
