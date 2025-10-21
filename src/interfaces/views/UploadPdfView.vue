@@ -117,7 +117,7 @@
           <div class="bank-fields">
             <div class="input-group">
               <label>Código do Banco:</label>
-              <input type="text" v-model="bankCode" v-maska="'####'" placeholder="0001" maxlength="4">
+              <input type="text" v-model="bankCode" v-maska="'####'" placeholder="0000" maxlength="4">
             </div>
 
             <div class="input-group">
@@ -1477,7 +1477,7 @@ const validarCodigoBanco = (codigo: string): boolean => {
 
   const codigoLimpo = codigo.replace(/\D/g, '')
 
-  return (codigoLimpo.length === 3 || codigoLimpo.length === 4) &&
+  return (codigoLimpo.length > 0) &&
     /^\d+$/.test(codigoLimpo) &&
     !/^0+$/.test(codigoLimpo)
 }
