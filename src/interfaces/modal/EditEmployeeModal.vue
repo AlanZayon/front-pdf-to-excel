@@ -329,6 +329,34 @@
                 {{ filteredResults.length }} de {{ searchResults.length }} resultados
               </div>
             </div>
+            
+            <!-- Novo: Filtro por códigos de débito e crédito -->
+            <div class="code-filters">
+              <div class="code-filter-group">
+                <label class="code-filter-label">Filtrar por Código Débito:</label>
+                <input 
+                  v-model="debitoFilter" 
+                  type="text" 
+                  class="code-filter-input" 
+                  placeholder="Ex: 12345"
+                  maxlength="5"
+                  @input="filterDescriptions"
+                  @keypress="onlyNumbers"
+                >
+              </div>
+              <div class="code-filter-group">
+                <label class="code-filter-label">Filtrar por Código Crédito:</label>
+                <input 
+                  v-model="creditoFilter" 
+                  type="text" 
+                  class="code-filter-input" 
+                  placeholder="Ex: 67890"
+                  maxlength="5"
+                  @input="filterDescriptions"
+                  @keypress="onlyNumbers"
+                >
+              </div>
+            </div>
           </div>
 
           <!-- Resultados da Busca -->
@@ -607,6 +635,10 @@ const searchError = ref('')
 const descriptionSearchTerm = ref('')
 const filteredResults = ref<any[]>([])
 
+// Novos filtros para códigos de débito e crédito
+const debitoFilter = ref('')
+const creditoFilter = ref('')
+
 // Funções de validação
 const validateEmail = (email: string) => {
   const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -722,6 +754,8 @@ const searchDescriptions = async () => {
   searchResults.value = []
   originalResults.value = []
   descriptionSearchTerm.value = ''
+  debitoFilter.value = ''
+  creditoFilter.value = ''
 
   try {
     // Remove formatação do CNPJ
@@ -753,17 +787,29 @@ const searchDescriptions = async () => {
   }
 }
 
-// Função para filtrar descrições
+// Função para filtrar descrições - AGORA INCLUINDO FILTRO POR CÓDIGOS
 const filterDescriptions = () => {
-  if (!descriptionSearchTerm.value.trim()) {
+  if (!descriptionSearchTerm.value.trim() && !debitoFilter.value && !creditoFilter.value) {
     filteredResults.value = [...searchResults.value]
     return
   }
 
   const searchTerm = descriptionSearchTerm.value.toLowerCase().trim()
-  filteredResults.value = searchResults.value.filter(result =>
-    result.termo.toLowerCase().includes(searchTerm)
-  )
+  const debitoTerm = debitoFilter.value.trim()
+  const creditoTerm = creditoFilter.value.trim()
+
+  filteredResults.value = searchResults.value.filter(result => {
+    // Filtro por texto na descrição
+    const matchesDescription = !searchTerm || result.termo.toLowerCase().includes(searchTerm)
+    
+    // Filtro por código débito
+    const matchesDebito = !debitoTerm || result.codigoDebito.includes(debitoTerm)
+    
+    // Filtro por código crédito
+    const matchesCredito = !creditoTerm || result.codigoCredito.includes(creditoTerm)
+
+    return matchesDescription && matchesDebito && matchesCredito
+  })
 }
 
 // Função para obter resultado original por ID
@@ -831,7 +877,6 @@ const saveDescriptionChanges = async () => {
       Atualizacoes: atualizacoes
     }
 
-
     // Chama o serviço para atualizar os registros
     const result = await ImpostoService.atualizarDescricoes(payload)
 
@@ -855,9 +900,6 @@ const saveDescriptionChanges = async () => {
     isSavingChanges.value = false
   }
 }
-
-// Restante do código permanece igual...
-// [O restante do código JavaScript permanece exatamente igual]
 
 // Funções para códigos de imposto
 const handleDebitoInput = (event: Event, taxCode: string) => {
@@ -1062,6 +1104,8 @@ watch(() => activeTab.value, (newVal) => {
     filteredResults.value = []
     searchError.value = ''
     descriptionSearchTerm.value = ''
+    debitoFilter.value = ''
+    creditoFilter.value = ''
   }
 })
 
@@ -1257,7 +1301,6 @@ const performUserSave = async (change: 'email') => {
   }
 }
 </script>
-
 <style scoped>
 /* Estilos base */
 .modal-overlay {
@@ -2401,5 +2444,114 @@ const performUserSave = async (change: 'email') => {
   .search-results-count {
     align-self: flex-end;
   }
+}
+.code-filters {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1rem;
+  padding: 1rem;
+  background: rgba(30, 30, 30, 0.8);
+  border-radius: 8px;
+  border: 1px solid #333;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+}
+
+.code-filter-group {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.code-filter-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #fff;
+  margin-bottom: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-family: 'Montserrat', sans-serif;
+}
+
+.code-filter-input {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #444;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  transition: all 0.3s ease;
+  background: rgba(40, 40, 40, 0.8);
+  color: #fff;
+  font-family: 'Montserrat', sans-serif;
+}
+
+.code-filter-input:focus {
+  outline: none;
+  border-color: #f9cb28;
+  box-shadow: 0 0 0 2px rgba(249, 203, 40, 0.3);
+}
+
+.code-filter-input::placeholder {
+  color: #777;
+}
+
+/* Ajustes na barra de pesquisa */
+.description-search-bar {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  background: rgba(30, 30, 30, 0.8);
+  border-radius: 8px;
+  border: 1px solid #333;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+}
+
+.search-bar-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.search-bar-icon {
+  position: absolute;
+  left: 0.75rem;
+  width: 1.25rem;
+  height: 1.25rem;
+  color: #f9cb28;
+  fill: currentColor;
+  filter: drop-shadow(0 0 5px rgba(249, 203, 40, 0.5));
+}
+
+.search-bar-input {
+  width: 100%;
+  padding: 0.75rem 0.75rem 0.75rem 2.5rem;
+  border: 1px solid #444;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  transition: all 0.3s ease;
+  background: rgba(40, 40, 40, 0.8);
+  color: #fff;
+  font-family: 'Montserrat', sans-serif;
+}
+
+.search-bar-input:focus {
+  outline: none;
+  border-color: #f9cb28;
+  box-shadow: 0 0 0 2px rgba(249, 203, 40, 0.3);
+}
+
+.search-bar-input::placeholder {
+  color: #777;
+}
+
+.search-results-count {
+  position: absolute;
+  right: 0.75rem;
+  font-size: 0.75rem;
+  color: #f9cb28;
+  background: rgba(40, 40, 40, 0.9);
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border: 1px solid #f9cb28;
 }
 </style>
