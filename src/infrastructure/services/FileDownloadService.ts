@@ -4,9 +4,14 @@ import { logger } from '../../shared/logging/logger'
 export class FileDownloadService {
   static async execute(): Promise<void> {
     try {
+      const sessionId = this.getSessionId()
+
       const response = await http.get('/api/download/download', {
         responseType: 'blob',
-        withCredentials: true
+        withCredentials: true,
+        headers: {
+          'X-User-Session': sessionId
+        }
       })
 
       const contentDisposition = response.headers['content-disposition']
@@ -16,11 +21,11 @@ export class FileDownloadService {
       if (contentDisposition) {
 
         const fileNameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/i)
-        
+
         if (fileNameMatch && fileNameMatch[1]) {
 
           fileName = fileNameMatch[1].replace(/['"]/g, '')
-          
+
           if (fileName.includes("UTF-8''")) {
             fileName = fileName.split("UTF-8''")[1]
           }
@@ -42,5 +47,22 @@ export class FileDownloadService {
     } catch (error) {
       logger.error('Erro ao realizar download', error)
     }
+  }
+
+  static getSessionId(): string {
+    let sessionId = sessionStorage.getItem('userSessionId')
+    if (!sessionId) {
+      sessionId = this.generateUUID()
+      sessionStorage.setItem('userSessionId', sessionId)
+    }
+    return sessionId
+  }
+
+  static generateUUID(): string {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+      const r = Math.random() * 16 | 0
+      const v = c === 'x' ? r : (r & 0x3 | 0x8)
+      return v.toString(16)
+    })
   }
 }

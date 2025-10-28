@@ -7,6 +7,7 @@ export class UploadService {
   static async execute(command: UploadCommand): Promise<UploadResult> {
     const formData = new FormData()
     formData.append('file', command.file)
+    const sessionId = this.getSessionId()
 
     try {
       const response = await http.post('/api/upload/upload', formData, {
@@ -14,7 +15,7 @@ export class UploadService {
           'Content-Type': 'multipart/form-data',
           'CNPJ': command.cnpj || '',
           'CodigoBanco':command.bankCode || '',
-
+          'X-User-Session': sessionId
         },
         withCredentials: true,
       })
@@ -51,8 +52,11 @@ export class UploadService {
     cnpj: string
   }): Promise<UploadResult> {
     try {
+      const sessionId = this.getSessionId()
       const response = await http.post('/api/upload/finalizar-processamento', classificationData, {
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json',
+          'X-User-Session': sessionId
+         },
         withCredentials: true,
       })
 
@@ -72,5 +76,22 @@ export class UploadService {
         error: error?.response?.data || error.message,
       }
     }
+  }
+
+    static getSessionId(): string {
+    let sessionId = sessionStorage.getItem('userSessionId')
+    if (!sessionId) {
+      sessionId = this.generateUUID()
+      sessionStorage.setItem('userSessionId', sessionId)
+    }
+    return sessionId
+  }
+
+  static generateUUID(): string {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+      const r = Math.random() * 16 | 0
+      const v = c === 'x' ? r : (r & 0x3 | 0x8)
+      return v.toString(16)
+    })
   }
 }
