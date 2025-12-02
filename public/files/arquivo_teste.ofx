@@ -1,0 +1,370 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<?OFX OFXHEADER="200" VERSION="211" SECURITY="NONE" OLDFILEUID="NONE" NEWFILEUID="NONE"?>
+<OFX>
+  <SIGNONMSGSRSV1>
+    <SONRS>
+      <STATUS>
+        <CODE>0</CODE>
+        <SEVERITY>INFO</SEVERITY>
+      </STATUS>
+      <DTSERVER>20231020120000</DTSERVER>
+      <LANGUAGE>POR</LANGUAGE>
+      <FI>
+        <ORG>Banco Exemplo S.A.</ORG>
+        <FID>123456</FID>
+      </FI>
+    </SONRS>
+  </SIGNONMSGSRSV1>
+  
+  <BANKMSGSRSV1>
+    <STMTTRNRS>
+      <TRNUID>1001</TRNUID>
+      <STATUS>
+        <CODE>0</CODE>
+        <SEVERITY>INFO</SEVERITY>
+      </STATUS>
+      <STMTRS>
+        <CURDEF>BRL</CURDEF>
+        <BANKACCTFROM>
+          <BANKID>001</BANKID>
+          <ACCTID>12345-6</ACCTID>
+          <ACCTTYPE>CHECKING</ACCTTYPE>
+        </BANKACCTFROM>
+        <BANKTRANLIST>
+          <DTSTART>20230101000000</DTSTART>
+          <DTEND>20231020000000</DTEND>
+          
+          <!-- Transações de Janeiro 2023 -->
+          <STMTTRN>
+            <TRNTYPE>DEBIT</TRNTYPE>
+            <DTPOSTED>20230102120000</DTPOSTED>
+            <TRNAMT>-350.50</TRNAMT>
+            <FITID>001</FITID>
+            <CHECKNUM>1001</CHECKNUM>
+            <MEMO>Supermercado do Bairro</MEMO>
+          </STMTTRN>
+          
+          <STMTTRN>
+            <TRNTYPE>DEBIT</TRNTYPE>
+            <DTPOSTED>20230103140000</DTPOSTED>
+            <TRNAMT>-89.90</TRNAMT>
+            <FITID>002</FITID>
+            <CHECKNUM>1002</CHECKNUM>
+            <MEMO>Farmácia Saúde</MEMO>
+          </STMTTRN>
+          
+          <STMTTRN>
+            <TRNTYPE>CREDIT</TRNTYPE>
+            <DTPOSTED>20230105100000</DTPOSTED>
+            <TRNAMT>2500.00</TRNAMT>
+            <FITID>003</FITID>
+            <MEMO>SALÁRIO EMPRESA ABC</MEMO>
+          </STMTTRN>
+          
+          <!-- Transações de Fevereiro 2023 -->
+          <STMTTRN>
+            <TRNTYPE>DEBIT</TRNTYPE>
+            <DTPOSTED>20230205150000</DTPOSTED>
+            <TRNAMT>-120.00</TRNAMT>
+            <FITID>004</FITID>
+            <CHECKNUM>1003</CHECKNUM>
+            <MEMO>Posto de Gasolina Estrela</MEMO>
+          </STMTTRN>
+          
+          <STMTTRN>
+            <TRNTYPE>DEBIT</TRNTYPE>
+            <DTPOSTED>20230210110000</DTPOSTED>
+            <TRNAMT>-450.00</TRNAMT>
+            <FITID>005</FITID>
+            <MEMO>Aluguel</MEMO>
+          </STMTTRN>
+          
+          <STMTTRN>
+            <TRNTYPE>DEBIT</TRNTYPE>
+            <DTPOSTED>20230215200000</DTPOSTED>
+            <TRNAMT>-79.90</TRNAMT>
+            <FITID>006</FITID>
+            <MEMO>Restaurante Sabor Caseiro</MEMO>
+          </STMTTRN>
+          
+          <!-- Transações de Março 2023 -->
+          <STMTTRN>
+            <TRNTYPE>CREDIT</TRNTYPE>
+            <DTPOSTED>20230305100000</DTPOSTED>
+            <TRNAMT>2500.00</TRNAMT>
+            <FITID>007</FITID>
+            <MEMO>SALÁRIO EMPRESA ABC</MEMO>
+          </STMTTRN>
+          
+          <STMTTRN>
+            <TRNTYPE>DEBIT</TRNTYPE>
+            <DTPOSTED>20230310140000</DTPOSTED>
+            <TRNAMT>-150.00</TRNAMT>
+            <FITID>008</FITID>
+            <MEMO>Energia Elétrica</MEMO>
+          </STMTTRN>
+          
+          <STMTTRN>
+            <TRNTYPE>DEBIT</TRNTYPE>
+            <DTPOSTED>20230312160000</DTPOSTED>
+            <TRNAMT>-89.00</TRNAMT>
+            <FITID>009</FITID>
+            <MEMO>Água e Esgoto</MEMO>
+          </STMTTRN>
+          
+          <STMTTRN>
+            <TRNTYPE>DEBIT</TRNTYPE>
+            <DTPOSTED>20230318190000</DTPOSTED>
+            <TRNAMT>-299.90</TRNAMT>
+            <FITID>010</FITID>
+            <MEMO>Compra Online - Eletrônicos</MEMO>
+          </STMTTRN>
+          
+          <!-- Transações de Abril 2023 -->
+          <STMTTRN>
+            <TRNTYPE>CREDIT</TRNTYPE>
+            <DTPOSTED>20230405100000</DTPOSTED>
+            <TRNAMT>2500.00</TRNAMT>
+            <FITID>011</FITID>
+            <MEMO>SALÁRIO EMPRESA ABC</MEMO>
+          </STMTTRN>
+          
+          <STMTTRN>
+            <TRNTYPE>DEBIT</TRNTYPE>
+            <DTPOSTED>20230407120000</DTPOSTED>
+            <TRNAMT>-420.75</TRNAMT>
+            <FITID>012</FITID>
+            <MEMO>Supermercado do Bairro</MEMO>
+          </STMTTRN>
+          
+          <STMTTRN>
+            <TRNTYPE>DEBIT</TRNTYPE>
+            <DTPOSTED>20230412150000</DTPOSTED>
+            <TRNAMT>-65.50</TRNAMT>
+            <FITID>013</FITID>
+            <MEMO>Farmácia Saúde</MEMO>
+          </STMTTRN>
+          
+          <STMTTRN>
+            <TRNTYPE>DEBIT</TRNTYPE>
+            <DTPOSTED>20230420100000</DTPOSTED>
+            <TRNAMT>-450.00</TRNAMT>
+            <FITID>014</FITID>
+            <MEMO>Aluguel</MEMO>
+          </STMTTRN>
+          
+          <!-- Transações de Maio 2023 -->
+          <STMTTRN>
+            <TRNTYPE>CREDIT</TRNTYPE>
+            <DTPOSTED>20230505100000</DTPOSTED>
+            <TRNAMT>2500.00</TRNAMT>
+            <FITID>015</FITID>
+            <MEMO>SALÁRIO EMPRESA ABC</MEMO>
+          </STMTTRN>
+          
+          <STMTTRN>
+            <TRNTYPE>DEBIT</TRNTYPE>
+            <DTPOSTED>20230508140000</DTPOSTED>
+            <TRNAMT>-135.20</TRNAMT>
+            <FITID>016</FITID>
+            <MEMO>Internet e Telefone</MEMO>
+          </STMTTRN>
+          
+          <STMTTRN>
+            <TRNTYPE>DEBIT</TRNTYPE>
+            <DTPOSTED>20230515200000</DTPOSTED>
+            <TRNAMT>-1200.00</TRNAMT>
+            <FITID>017</FITID>
+            <MEMO>Curso Online</MEMO>
+          </STMTTRN>
+          
+          <STMTTRN>
+            <TRNTYPE>DEBIT</TRNTYPE>
+            <DTPOSTED>20230522110000</DTPOSTED>
+            <TRNAMT>-89.90</TRNAMT>
+            <FITID>018</FITID>
+            <MEMO>Livraria Cultural</MEMO>
+          </STMTTRN>
+          
+          <!-- Transações de Junho 2023 -->
+          <STMTTRN>
+            <TRNTYPE>CREDIT</TRNTYPE>
+            <DTPOSTED>20230605100000</DTPOSTED>
+            <TRNAMT>2500.00</TRNAMT>
+            <FITID>019</FITID>
+            <MEMO>SALÁRIO EMPRESA ABC</MEMO>
+          </STMTTRN>
+          
+          <STMTTRN>
+            <TRNTYPE>DEBIT</TRNTYPE>
+            <DTPOSTED>20230610150000</DTPOSTED>
+            <TRNAMT>-450.00</TRNAMT>
+            <FITID>020</FITID>
+            <MEMO>Aluguel</MEMO>
+          </STMTTRN>
+          
+          <STMTTRN>
+            <TRNTYPE>DEBIT</TRNTYPE>
+            <DTPOSTED>20230618160000</DTPOSTED>
+            <TRNAMT>-380.50</TRNAMT>
+            <FITID>021</FITID>
+            <MEMO>Supermercado do Bairro</MEMO>
+          </STMTTRN>
+          
+          <!-- Transações de Julho 2023 -->
+          <STMTTRN>
+            <TRNTYPE>CREDIT</TRNTYPE>
+            <DTPOSTED>20230705100000</DTPOSTED>
+            <TRNAMT>2500.00</TRNAMT>
+            <FITID>022</FITID>
+            <MEMO>SALÁRIO EMPRESA ABC</MEMO>
+          </STMTTRN>
+          
+          <STMTTRN>
+            <TRNTYPE>DEBIT</TRNTYPE>
+            <DTPOSTED>20230707120000</DTPOSTED>
+            <TRNAMT>-95.30</TRNAMT>
+            <FITID>023</FITID>
+            <MEMO>Farmácia Saúde</MEMO>
+          </STMTTRN>
+          
+          <STMTTRN>
+            <TRNTYPE>DEBIT</TRNTYPE>
+            <DTPOSTED>20230715180000</DTPOSTED>
+            <TRNAMT>-150.00</TRNAMT>
+            <FITID>024</FITID>
+            <MEMO>Energia Elétrica</MEMO>
+          </STMTTRN>
+          
+          <!-- Transações de Agosto 2023 -->
+          <STMTTRN>
+            <TRNTYPE>CREDIT</TRNTYPE>
+            <DTPOSTED>20230805100000</DTPOSTED>
+            <TRNAMT>2800.00</TRNAMT>
+            <FITID>025</FITID>
+            <MEMO>SALÁRIO EMPRESA ABC + BONUS</MEMO>
+          </STMTTRN>
+          
+          <STMTTRN>
+            <TRNTYPE>DEBIT</TRNTYPE>
+            <DTPOSTED>20230810100000</DTPOSTED>
+            <TRNAMT>-450.00</TRNAMT>
+            <FITID>026</FITID>
+            <MEMO>Aluguel</MEMO>
+          </STMTTRN>
+          
+          <STMTTRN>
+            <TRNTYPE>DEBIT</TRNTYPE>
+            <DTPOSTED>20230820140000</DTPOSTED>
+            <TRNAMT>-1290.00</TRNAMT>
+            <FITID>027</FITID>
+            <MEMO>Notebook - Loja Informática</MEMO>
+          </STMTTRN>
+          
+          <STMTTRN>
+            <TRNTYPE>DEBIT</TRNTYPE>
+            <DTPOSTED>20230825160000</DTPOSTED>
+            <TRNAMT>-210.75</TRNAMT>
+            <FITID>028</FITID>
+            <MEMO>Supermercado do Bairro</MEMO>
+          </STMTTRN>
+          
+          <!-- Transações de Setembro 2023 -->
+          <STMTTRN>
+            <TRNTYPE>CREDIT</TRNTYPE>
+            <DTPOSTED>20230905100000</DTPOSTED>
+            <TRNAMT>2800.00</TRNAMT>
+            <FITID>029</FITID>
+            <MEMO>SALÁRIO EMPRESA ABC</MEMO>
+          </STMTTRN>
+          
+          <STMTTRN>
+            <TRNTYPE>DEBIT</TRNTYPE>
+            <DTPOSTED>20230908120000</DTPOSTED>
+            <TRNAMT>-89.00</TRNAMT>
+            <FITID>030</FITID>
+            <MEMO>Água e Esgoto</MEMO>
+          </STMTTRN>
+          
+          <STMTTRN>
+            <TRNTYPE>DEBIT</TRNTYPE>
+            <DTPOSTED>20230915150000</DTPOSTED>
+            <TRNAMT>-135.20</TRNAMT>
+            <FITID>031</FITID>
+            <MEMO>Internet e Telefone</MEMO>
+          </STMTTRN>
+          
+          <STMTTRN>
+            <TRNTYPE>DEBIT</TRNTYPE>
+            <DTPOSTED>20230922100000</DTPOSTED>
+            <TRNAMT>-450.00</TRNAMT>
+            <FITID>032</FITID>
+            <MEMO>Aluguel</MEMO>
+          </STMTTRN>
+          
+          <!-- Transações de Outubro 2023 -->
+          <STMTTRN>
+            <TRNTYPE>CREDIT</TRNTYPE>
+            <DTPOSTED>20231005100000</DTPOSTED>
+            <TRNAMT>2800.00</TRNAMT>
+            <FITID>033</FITID>
+            <MEMO>SALÁRIO EMPRESA ABC</MEMO>
+          </STMTTRN>
+          
+          <STMTTRN>
+            <TRNTYPE>DEBIT</TRNTYPE>
+            <DTPOSTED>20231007140000</DTPOSTED>
+            <TRNAMT>-320.60</TRNAMT>
+            <FITID>034</FITID>
+            <MEMO>Supermercado do Bairro</MEMO>
+          </STMTTRN>
+          
+          <STMTTRN>
+            <TRNTYPE>DEBIT</TRNTYPE>
+            <DTPOSTED>20231012110000</DTPOSTED>
+            <TRNAMT>-75.90</TRNAMT>
+            <FITID>035</FITID>
+            <MEMO>Farmácia Saúde</MEMO>
+          </STMTTRN>
+          
+          <STMTTRN>
+            <TRNTYPE>DEBIT</TRNTYPE>
+            <DTPOSTED>20231018160000</DTPOSTED>
+            <TRNAMT>-150.00</TRNAMT>
+            <FITID>036</FITID>
+            <MEMO>Energia Elétrica</MEMO>
+          </STMTTRN>
+          
+          <STMTTRN>
+            <TRNTYPE>DEBIT</TRNTYPE>
+            <DTPOSTED>20231019120000</DTPOSTED>
+            <TRNAMT>-45.50</TRNAMT>
+            <FITID>037</FITID>
+            <MEMO>Lan House</MEMO>
+          </STMTTRN>
+          
+          <STMTTRN>
+            <TRNTYPE>CREDIT</TRNTYPE>
+            <DTPOSTED>20231020100000</DTPOSTED>
+            <TRNAMT>150.00</TRNAMT>
+            <FITID>038</FITID>
+            <MEMO>Transferência Recebida - João Silva</MEMO>
+          </STMTTRN>
+          
+        </BANKTRANLIST>
+        
+        <LEDGERBAL>
+          <BALAMT>3850.65</BALAMT>
+          <DTASOF>20231020120000</DTASOF>
+        </LEDGERBAL>
+        
+        <AVAILBAL>
+          <BALAMT>3850.65</BALAMT>
+          <DTASOF>20231020120000</DTASOF>
+        </AVAILBAL>
+        
+      </STMTRS>
+    </STMTTRNRS>
+  </BANKMSGSRSV1>
+  
+</OFX>

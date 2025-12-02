@@ -24,7 +24,7 @@
             <path
               d="M16,17V14H9V10H16V7L21,12L16,17M14,2A2,2 0 0,1 16,4V6H14V4H5V20H14V18H16V20A2,2 0 0,1 14,22H5A2,2 0 0,1 3,20V4A2,2 0 0,1 5,2H14Z" />
           </svg>
-          SAIR
+          SAir
         </button>
       </div>
     </div>
@@ -33,12 +33,23 @@
       <h1 class="title">UPLOAD DE ARQUIVOS</h1>
       <p class="subtitle">UPLOAD PDF E OFX</p>
 
+      <!-- NOVO: Botão para download do arquivo de teste OFX -->
+      <div class="test-file-section">
+        <button @click="downloadTestFile" class="test-file-button">
+          <svg class="download-icon" viewBox="0 0 24 24">
+            <path d="M5,20H19V18H5M19,9H15V3H9V9H5L12,16L19,9Z" />
+          </svg>
+          BAIXAR ARQUIVO OFX DE TESTE
+        </button>
+        <p class="test-file-info">Use este arquivo para testar o sistema de classificação OFX</p>
+      </div>
+
       <form class="upload-form">
         <div class="drop-zone" @dragover.prevent="isDragging = true" @dragleave.prevent="isDragging = false"
           @drop.prevent="onDrop" :class="{ 'dragging': isDragging, 'has-file': file }" @click="triggerFileInput">
           <div class="drop-zone-content">
             <svg class="upload-icon" viewBox="0 0 24 24">
-              <path d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z" />
+              <path d="M19,13H13V19H11V13H5V11H13V5H13V11H19V13Z" />
             </svg>
             <p class="drop-text">ARRASTE E SOLTE SEU ARQUIVO AQUI</p>
             <p class="drop-subtext">ou clique para selecionar (PDF ou OFX)</p>
@@ -721,8 +732,6 @@ const applyDateFilter = () => {
   if (!isDateFilterValid.value) return
 
   dateFilter.value.isActive = true
-
-  // Aqui você pode adicionar lógica adicional se necessário
 }
 
 const clearDateFilter = () => {
@@ -1353,6 +1362,42 @@ const getFileType = (file: File): string => {
     return 'OFX'
   }
   return ''
+}
+
+// NOVA FUNÇÃO: Download do arquivo de teste OFX
+const downloadTestFile = () => {
+  try {
+    // Caminho para o arquivo na pasta public
+    const fileUrl = '/files/arquivo_teste.ofx'
+    
+    // Criar um elemento <a> temporário para download
+    const link = document.createElement('a')
+    link.href = fileUrl
+    link.download = 'arquivo_teste.ofx'
+    link.target = '_blank'
+    
+    // Adicionar ao DOM, clicar e remover
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    
+    // Feedback para o usuário
+    uploadResult.value = {
+      success: true,
+      type: 'ofx',
+      status: 'completed',
+      message: 'Arquivo de teste baixado com sucesso!',
+      outputPath: '',
+      transacoesClassificadas: []
+    }
+    
+  } catch (error) {
+    console.error('Erro ao baixar arquivo de teste:', error)
+    uploadResult.value = {
+      success: false,
+      message: 'Erro ao baixar arquivo de teste. Verifique se o arquivo existe.'
+    }
+  }
 }
 
 const onFileChange = async (event: Event) => {
@@ -1992,16 +2037,13 @@ const saveClassification = async () => {
       return filteredTransactions
     }
 
-
     const transacoesClassificadasFiltradas = filterTransactionsByDateRange(
       ofxResponse.value?.transacoesClassificadas || []
     )
 
-
     const transacoesPendentesFiltradas = filterTransactionsByDateRange(
       ofxResponse.value?.pendingTransactions || []
     )
-
 
     const payload = {
       TransacoesClassificadas: transacoesClassificadasFiltradas,
@@ -2080,6 +2122,49 @@ const saveClassification = async () => {
   animation: gradient 3s ease infinite;
 }
 
+/* NOVO: Estilos para a seção de arquivo de teste */
+.test-file-section {
+  margin-bottom: 2rem;
+  padding: 1.5rem;
+  background: rgba(40, 40, 40, 0.8);
+  border-radius: 8px;
+  border: 1px solid #333;
+  text-align: center;
+}
+
+.test-file-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem 2rem;
+  background: linear-gradient(to right, #4CAF50, #2E7D32);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-weight: 700;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-family: 'Montserrat', sans-serif;
+  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+}
+
+.test-file-button:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 20px rgba(76, 175, 80, 0.5);
+  background: linear-gradient(to right, #45a049, #1b5e20);
+}
+
+.test-file-info {
+  margin-top: 0.75rem;
+  font-size: 0.85rem;
+  color: #aaa;
+  font-style: italic;
+}
+
+/* Estilos existentes permanecem os mesmos */
 input[readonly] {
   background-color: #f5f5f5;
   cursor: not-allowed;

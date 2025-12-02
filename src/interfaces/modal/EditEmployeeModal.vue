@@ -851,7 +851,7 @@ const saveDescriptionChanges = async () => {
         const creditoAlterado = result.codigoCredito !== original?.codigoCredito
 
         if (debitoAlterado || creditoAlterado) {
-          const termoEspecialId = parseInt(result.id) || result.id
+          const termoEspecialId = result.id
 
           return {
             TermoEspecialId: termoEspecialId, // ID do registro
