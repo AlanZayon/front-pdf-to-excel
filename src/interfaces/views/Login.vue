@@ -11,6 +11,21 @@
       <h1 class="auth-title">LOGIN</h1>
       <p class="auth-subtitle">ACESSE SUA CONTA</p>
 
+      <!-- Botão para preencher dados de teste -->
+      <div class="test-credentials-container">
+        <button @click="fillTestCredentials" class="test-credentials-button">
+          <svg viewBox="0 0 24 24" width="18" height="18" style="margin-right: 8px;">
+            <path d="M19 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.11 0 2-.9 2-2V5c0-1.1-.89-2-2-2zm0 16H5V5h14v14zm-5.04-6.71l-2.75 3.54-1.96-2.36L6.5 17h11l-3.54-4.71z" fill="currentColor"/>
+          </svg>
+          USAR DADOS DE TESTE
+        </button>
+        <div class="test-credentials-info">
+          <p><strong>Login:</strong> teste@gmail.com</p>
+          <p><strong>Senha:</strong> SENHA_forte58</p>
+          <p class="test-warning">⚠️ Use estes dados apenas para testar o sistema</p>
+        </div>
+      </div>
+
       <!-- Mensagem de erro geral -->
       <div v-if="authStore.error" class="error-message">
         {{ authStore.error }}
@@ -131,9 +146,12 @@ import { useAuthStore } from '../../stores/authStore'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
-
 const router = useRouter()
 const authStore = useAuthStore()
+
+// Dados de teste
+const TEST_EMAIL = 'teste@gmail.com';
+const TEST_PASSWORD = 'SENHA_forte58';
 
 // Refs para os campos do formulário
 const email = ref('')
@@ -165,6 +183,36 @@ const clearEmailError = () => {
 
 const clearPasswordError = () => {
   passwordError.value = ''
+}
+
+// Função para preencher os campos com dados de teste
+const fillTestCredentials = () => {
+  email.value = TEST_EMAIL
+  password.value = TEST_PASSWORD
+  
+  // Limpa erros
+  clearEmailError()
+  clearPasswordError()
+  authStore.clearErrors()
+  
+  // Feedback visual (opcional)
+  const emailField = document.getElementById('email')
+  const passwordField = document.getElementById('password')
+  
+  if (emailField) {
+    emailField.classList.add('field-highlight')
+    setTimeout(() => emailField.classList.remove('field-highlight'), 1000)
+  }
+  
+  if (passwordField) {
+    passwordField.classList.add('field-highlight')
+    setTimeout(() => passwordField.classList.remove('field-highlight'), 1000)
+  }
+  
+  // Foca no campo de email para facilitar o login
+  setTimeout(() => {
+    if (emailField) emailField.focus()
+  }, 100)
 }
 
 const validateForm = () => {
@@ -329,6 +377,63 @@ const goToRegister = () => {
   100% { background-position: 0% 50%; }
 }
 
+/* Container para dados de teste */
+.test-credentials-container {
+  background: rgba(249, 203, 40, 0.1);
+  border: 1px solid rgba(249, 203, 40, 0.3);
+  border-radius: 4px;
+  padding: 15px;
+  margin-bottom: 1.5rem;
+  text-align: center;
+}
+
+.test-credentials-button {
+  background: linear-gradient(to right, #f9cb28, #ffb347);
+  color: #000;
+  border: none;
+  border-radius: 4px;
+  padding: 12px 20px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 10px;
+  transition: all 0.3s ease;
+  font-family: 'Montserrat', sans-serif;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  width: 100%;
+  max-width: 250px;
+}
+
+.test-credentials-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(249, 203, 40, 0.4);
+}
+
+.test-credentials-info {
+  color: #aaa;
+  font-size: 0.85rem;
+  text-align: center;
+}
+
+.test-credentials-info p {
+  margin: 5px 0;
+}
+
+.test-credentials-info strong {
+  color: #f9cb28;
+}
+
+.test-warning {
+  color: #ffa726;
+  font-size: 0.8rem;
+  margin-top: 8px;
+  font-style: italic;
+}
+
 /* Estilo do botão de voltar */
 .back-button {
   position: absolute;
@@ -377,7 +482,7 @@ const goToRegister = () => {
   color: #aaa;
   text-align: center;
   font-size: 0.95rem;
-  margin-bottom: 2rem;
+  margin-bottom: 1rem;
   font-weight: 400;
   letter-spacing: 1px;
 }
@@ -426,6 +531,13 @@ const goToRegister = () => {
   outline: none;
   border-color: #f9cb28;
   box-shadow: 0 0 0 2px rgba(249, 203, 40, 0.3);
+}
+
+/* Estilo para highlight quando preenche os dados de teste */
+.input-field.field-highlight {
+  border-color: #4CAF50;
+  box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.3);
+  transition: all 0.5s ease;
 }
 
 .input-icon {
@@ -581,6 +693,7 @@ const goToRegister = () => {
   stroke-linecap: round;
   animation: dash 1.5s ease-in-out infinite;
 }
+
 .error-text {
   color: #ff4444;
   font-size: 12px;
@@ -632,6 +745,20 @@ const goToRegister = () => {
   
   .auth-subtitle {
     font-size: 0.9rem;
+  }
+  
+  .test-credentials-container {
+    padding: 12px;
+  }
+  
+  .test-credentials-button {
+    padding: 10px 15px;
+    font-size: 0.85rem;
+    max-width: 100%;
+  }
+  
+  .test-credentials-info {
+    font-size: 0.8rem;
   }
   
   .input-field {
