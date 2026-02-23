@@ -37,30 +37,32 @@
                 </div>
             </div>
 
-            <div class="tax-code-row" v-for="tax in taxTypes" :key="tax.id">
-                <label class="tax-label">
-                    {{ tax.nome
-                        .replace('SIMPLES_NACIONAL', 'SIMPLES NACIONAL')
-                        .replace('MULTA_JUROS', 'MULTA E JUROS') }}
+            <!-- Renderização normal para todos os impostos -->
+            <div class="tax-code-row" v-for="tax in displayedTaxTypes" :key="tax.id">
+                <label class="tax-label" :class="{ 'linked-tax': isLinkedTax(tax.Code) }">
+                    {{ formatTaxName(tax.nome) }}
+                    <span v-if="isLinkedTax(tax.Code)" class="linked-badge">(vinculado ao INSS)</span>
                 </label>
                 <div class="account-inputs">
                     <input
-                        :value="taxCodes[tax.Code].debito === '_' ? '' : taxCodes[tax.Code].debito"
+                        :value="getDebitoValue(tax.Code)"
                         @input="handleDebitoInput($event, tax.Code)"
                         type="text"
                         class="tax-input"
+                        :class="{ 'linked-input': isLinkedTax(tax.Code) }"
                         :placeholder="'Débito'"
-                        :disabled="isSaving"
+                        :disabled="isSaving || (isLinkedTax(tax.Code) && tax.Code === 'IRRF')"
                         maxlength="5"
                         onkeypress="return event.charCode >= 48 && event.charCode <= 57"
                     >
                     <input
-                        :value="taxCodes[tax.Code].credito === '_' ? '' : taxCodes[tax.Code].credito"
+                        :value="getCreditoValue(tax.Code)"
                         @input="handleCreditoInput($event, tax.Code)"
                         type="text"
                         class="tax-input"
+                        :class="{ 'linked-input': isLinkedTax(tax.Code) }"
                         :placeholder="'Crédito'"
-                        :disabled="isSaving"
+                        :disabled="isSaving || (isLinkedTax(tax.Code) && tax.Code === 'IRRF')"
                         maxlength="5"
                         onkeypress="return event.charCode >= 48 && event.charCode <= 57"
                     >
@@ -88,7 +90,7 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { ImpostoService } from '../../infrastructure/services/ImpostoService';
 import { LoadImpostosCommand } from '../../application/commands/LoadImpostosCommand';
@@ -99,6 +101,12 @@ import { useAuthStore } from '../../stores/authStore'
 
 const router = useRouter();
 const authStore = useAuthStore()
+
+// Constantes para impostos vinculados
+const LINKED_TAXES = {
+    INSS: 'INSS',
+    IRRF: 'IRRF'
+};
 
 onMounted(() => {
     authStore.markPageReady()
@@ -111,19 +119,72 @@ const taxTypes = ref<ImpostoDto[]>([]);
 const isSaving = ref(false);
 const isLoading = ref(true);
 
-const cancel = () => {
-    router.push('/');
+// Computed para exibir todos os impostos
+const displayedTaxTypes = computed(() => {
+    return taxTypes.value.filter(imposto => imposto.Code);
+});
+
+// Verifica se é um imposto vinculado (IRRF)
+const isLinkedTax = (code: string): boolean => {
+    return code === LINKED_TAXES.IRRF;
+};
+
+// Formata o nome do imposto para exibição
+const formatTaxName = (name: string): string => {
+    return name
+        .replace('SIMPLES_NACIONAL', 'SIMPLES NACIONAL')
+        .replace('MULTA_JUROS', 'MULTA E JUROS');
+};
+
+// Obtém o valor de débito considerando vinculação
+const getDebitoValue = (code: string): string => {
+    if (code === LINKED_TAXES.IRRF) {
+        // IRRF usa o mesmo código do INSS
+        const inssCode = taxCodes.value[LINKED_TAXES.INSS];
+        return inssCode?.debito === '_' ? '' : inssCode?.debito || '';
+    }
+    
+    const taxCode = taxCodes.value[code];
+    return taxCode?.debito === '_' ? '' : taxCode?.debito || '';
+};
+
+// Obtém o valor de crédito considerando vinculação
+const getCreditoValue = (code: string): string => {
+    if (code === LINKED_TAXES.IRRF) {
+        // IRRF usa o mesmo código do INSS
+        const inssCode = taxCodes.value[LINKED_TAXES.INSS];
+        return inssCode?.credito === '_' ? '' : inssCode?.credito || '';
+    }
+    
+    const taxCode = taxCodes.value[code];
+    return taxCode?.credito === '_' ? '' : taxCode?.credito || '';
 };
 
 const handleDebitoInput = (event: Event, taxCode: string) => {
     const target = event.target as HTMLInputElement;
     const value = target.value.replace(/\D/g, '').slice(0, 5);
     
+    // Se for IRRF, não permite edição direta
+    if (taxCode === LINKED_TAXES.IRRF) {
+        target.value = getDebitoValue(LINKED_TAXES.IRRF);
+        return;
+    }
+    
+    // Atualiza o código de débito
     if (!taxCodes.value[taxCode]) {
         taxCodes.value[taxCode] = { debito: '_', credito: '_' };
     }
     taxCodes.value[taxCode].debito = value || '_';
     
+    // Se for INSS, atualiza também o IRRF
+    if (taxCode === LINKED_TAXES.INSS) {
+        if (!taxCodes.value[LINKED_TAXES.IRRF]) {
+            taxCodes.value[LINKED_TAXES.IRRF] = { debito: '_', credito: '_' };
+        }
+        taxCodes.value[LINKED_TAXES.IRRF].debito = value || '_';
+    }
+    
+    // Atualiza o DTO
     const taxType = taxTypes.value.find(t => t.Code === taxCode);
     if (taxType && taxType.codigoDebito) {
         taxType.codigoDebito.codigo = value || '_';
@@ -136,11 +197,27 @@ const handleCreditoInput = (event: Event, taxCode: string) => {
     const target = event.target as HTMLInputElement;
     const value = target.value.replace(/\D/g, '').slice(0, 5);
     
+    // Se for IRRF, não permite edição direta
+    if (taxCode === LINKED_TAXES.IRRF) {
+        target.value = getCreditoValue(LINKED_TAXES.IRRF);
+        return;
+    }
+    
+    // Atualiza o código de crédito
     if (!taxCodes.value[taxCode]) {
         taxCodes.value[taxCode] = { debito: '_', credito: '_' };
     }
     taxCodes.value[taxCode].credito = value || '_';
     
+    // Se for INSS, atualiza também o IRRF
+    if (taxCode === LINKED_TAXES.INSS) {
+        if (!taxCodes.value[LINKED_TAXES.IRRF]) {
+            taxCodes.value[LINKED_TAXES.IRRF] = { debito: '_', credito: '_' };
+        }
+        taxCodes.value[LINKED_TAXES.IRRF].credito = value || '_';
+    }
+    
+    // Atualiza o DTO
     const taxType = taxTypes.value.find(t => t.Code === taxCode);
     if (taxType && taxType.codigoCredito) {
         taxType.codigoCredito.codigo = value || '_';
@@ -172,6 +249,14 @@ const loadTaxCodes = async () => {
                 }
             });
 
+            // Garante que IRRF tenha o mesmo código que INSS
+            if (codes[LINKED_TAXES.INSS] && codes[LINKED_TAXES.IRRF]) {
+                codes[LINKED_TAXES.IRRF] = {
+                    debito: codes[LINKED_TAXES.INSS].debito,
+                    credito: codes[LINKED_TAXES.INSS].credito
+                };
+            }
+
             taxCodes.value = codes;
             originalTaxCodes.value = JSON.parse(JSON.stringify(codes));
         }
@@ -184,26 +269,67 @@ const loadTaxCodes = async () => {
     }
 };
 
+// Prepara os dados para envio ao backend - ENVIA AMBOS COM MESMO CÓDIGO
+const prepareChangesForSave = () => {
+    const changes: any[] = [];
+    
+    // Primeiro, processa todos os impostos exceto IRRF
+    taxTypes.value.forEach(imposto => {
+        if (!imposto.Code) return;
+        
+        // Pula IRRF por enquanto (vamos adicionar depois com o código do INSS)
+        if (imposto.Code === LINKED_TAXES.IRRF) return;
+        
+        // Para os outros impostos (incluindo INSS), adiciona normalmente
+        changes.push({
+            ...imposto,
+            codigoDebito: { codigo: taxCodes.value[imposto.Code]?.debito || '_' },
+            codigoCredito: { codigo: taxCodes.value[imposto.Code]?.credito || '_' }
+        });
+    });
+    
+    // Agora adiciona o IRRF com o MESMO código do INSS
+    const irrfTax = taxTypes.value.find(t => t.Code === LINKED_TAXES.IRRF);
+    const inssCode = taxCodes.value[LINKED_TAXES.INSS];
+    
+    if (irrfTax && inssCode) {
+        changes.push({
+            ...irrfTax,
+            codigoDebito: { codigo: inssCode.debito },
+            codigoCredito: { codigo: inssCode.credito }
+        });
+    }
+    
+    return changes;
+};
+
 // Salva as alterações no backend
 const saveAccountCodes = async () => {
     isSaving.value = true;
     try {
-        // Filtra apenas os impostos que foram modificados
-        const changes = taxTypes.value.filter(imposto => {
-            const original = originalTaxCodes.value[imposto.Code];
+        const allChanges = prepareChangesForSave();
+        
+        // Filtra apenas os impostos que foram realmente modificados
+        const modifiedChanges = allChanges.filter(change => {
+            const original = originalTaxCodes.value[change.Code];
+            // Se não tinha original, considera como modificado
+            if (!original) return true;
+            
             return (
-                imposto.codigoDebito.codigo !== original?.debito ||
-                imposto.codigoCredito.codigo !== original?.credito
+                change.codigoDebito.codigo !== original.debito ||
+                change.codigoCredito.codigo !== original.credito
             );
         });
 
-        if (changes.length === 0) {
+        if (modifiedChanges.length === 0) {
             alert('Nenhuma alteração para salvar.');
             router.push('/');
             return;
         }
 
-        const command = UpdateImpostosCommand.create(changes);
+        console.log('Enviando alterações:', modifiedChanges); // Para debug
+
+        const command = UpdateImpostosCommand.create(modifiedChanges);
         const result = await ImpostoService.updateImpostos(command);
 
         if (!result.success) {
@@ -211,7 +337,7 @@ const saveAccountCodes = async () => {
         }
 
         // Atualiza os valores originais
-        changes.forEach(change => {
+        modifiedChanges.forEach(change => {
             if (change.Code) {
                 originalTaxCodes.value[change.Code] = {
                     debito: change.codigoDebito.codigo,
@@ -221,6 +347,7 @@ const saveAccountCodes = async () => {
         });
 
         alert('Códigos salvos com sucesso!');
+        router.push('/');
 
     } catch (error) {
         console.error('Erro ao salvar códigos:', error);
@@ -229,11 +356,15 @@ const saveAccountCodes = async () => {
         isSaving.value = false;
     }
 };
+
+const cancel = () => {
+    router.push('/');
+};
+
 onMounted(() => {
     loadTaxCodes();
 });
 </script>
-
 <style scoped>
 /* Estilos base */
 .account-codes-page {

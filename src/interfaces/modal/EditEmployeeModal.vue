@@ -225,19 +225,35 @@
             </div>
           </div>
 
-          <div class="tax-code-row" v-for="tax in taxTypes" :key="tax.Code">
-            <label class="tax-label">
-              {{ tax.nome
-                .replace('SIMPLES_NACIONAL', 'SIMPLES NACIONAL')
-                .replace('MULTA_JUROS', 'MULTA E JUROS') }}
+          <!-- Renderização com vinculação INSS/IRRF -->
+          <div class="tax-code-row" v-for="tax in displayedTaxTypes" :key="tax.Code">
+            <label class="tax-label" :class="{ 'linked-tax': isLinkedTax(tax.Code) }">
+              {{ formatTaxName(tax.nome) }}
+              <span v-if="isLinkedTax(tax.Code)" class="linked-badge">(vinculado ao INSS)</span>
             </label>
             <div class="account-inputs">
-              <input :value="taxCodes[tax.Code].debito === '_' ? '' : taxCodes[tax.Code].debito"
-                @input="handleDebitoInput($event, tax.Code)" type="text" class="tax-input" :placeholder="'Débito'"
-                :disabled="isSaving" maxlength="5" onkeypress="return event.charCode >= 48 && event.charCode <= 57">
-              <input :value="taxCodes[tax.Code].credito === '_' ? '' : taxCodes[tax.Code].credito"
-                @input="handleCreditoInput($event, tax.Code)" type="text" class="tax-input" :placeholder="'Crédito'"
-                :disabled="isSaving" maxlength="5" onkeypress="return event.charCode >= 48 && event.charCode <= 57">
+              <input 
+                :value="getDebitoValue(tax.Code)" 
+                @input="handleDebitoInput($event, tax.Code)" 
+                type="text" 
+                class="tax-input" 
+                :class="{ 'linked-input': isLinkedTax(tax.Code) }"
+                :placeholder="'Débito'" 
+                :disabled="isSaving || (isLinkedTax(tax.Code) && tax.Code === 'IRRF')" 
+                maxlength="5" 
+                onkeypress="return event.charCode >= 48 && event.charCode <= 57"
+              >
+              <input 
+                :value="getCreditoValue(tax.Code)" 
+                @input="handleCreditoInput($event, tax.Code)" 
+                type="text" 
+                class="tax-input" 
+                :class="{ 'linked-input': isLinkedTax(tax.Code) }"
+                :placeholder="'Crédito'" 
+                :disabled="isSaving || (isLinkedTax(tax.Code) && tax.Code === 'IRRF')" 
+                maxlength="5" 
+                onkeypress="return event.charCode >= 48 && event.charCode <= 57"
+              >
             </div>
           </div>
 
@@ -330,7 +346,7 @@
               </div>
             </div>
             
-            <!-- Novo: Filtro por códigos de débito e crédito -->
+            <!-- Filtro por códigos de débito e crédito -->
             <div class="code-filters">
               <div class="code-filter-group">
                 <label class="code-filter-label">Filtrar por Código Débito:</label>
@@ -581,6 +597,12 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'save-user', 'save-account', 'delete-account'])
 
+// Constantes para impostos vinculados
+const LINKED_TAXES = {
+  INSS: 'INSS',
+  IRRF: 'IRRF'
+}
+
 // Dados reativos
 const activeTab = ref<'user' | 'account' | 'descriptions'>('user')
 const activeUserSection = ref<'name' | 'email' | 'password'>('name')
@@ -638,6 +660,45 @@ const filteredResults = ref<any[]>([])
 // Novos filtros para códigos de débito e crédito
 const debitoFilter = ref('')
 const creditoFilter = ref('')
+
+// Computed para exibir todos os impostos
+const displayedTaxTypes = computed(() => {
+  return taxTypes.value.filter(imposto => imposto.Code)
+})
+
+// Verifica se é um imposto vinculado (IRRF)
+const isLinkedTax = (code: string): boolean => {
+  return code === LINKED_TAXES.IRRF
+}
+
+// Formata o nome do imposto para exibição
+const formatTaxName = (name: string): string => {
+  return name
+    .replace('SIMPLES_NACIONAL', 'SIMPLES NACIONAL')
+    .replace('MULTA_JUROS', 'MULTA E JUROS')
+}
+
+// Obtém o valor de débito considerando vinculação
+const getDebitoValue = (code: string): string => {
+  if (code === LINKED_TAXES.IRRF) {
+    const inssCode = taxCodes.value[LINKED_TAXES.INSS]
+    return inssCode?.debito === '_' ? '' : inssCode?.debito || ''
+  }
+  
+  const taxCode = taxCodes.value[code]
+  return taxCode?.debito === '_' ? '' : taxCode?.debito || ''
+}
+
+// Obtém o valor de crédito considerando vinculação
+const getCreditoValue = (code: string): string => {
+  if (code === LINKED_TAXES.IRRF) {
+    const inssCode = taxCodes.value[LINKED_TAXES.INSS]
+    return inssCode?.credito === '_' ? '' : inssCode?.credito || ''
+  }
+  
+  const taxCode = taxCodes.value[code]
+  return taxCode?.credito === '_' ? '' : taxCode?.credito || ''
+}
 
 // Funções de validação
 const validateEmail = (email: string) => {
@@ -758,15 +819,12 @@ const searchDescriptions = async () => {
   creditoFilter.value = ''
 
   try {
-    // Remove formatação do CNPJ
     const cnpjClean = searchCnpj.value.replace(/\D/g, '')
     const codigoBanco = searchCodigoBanco.value ? parseInt(searchCodigoBanco.value) : undefined
 
-    // Chama o serviço para buscar as descrições
     const result = await ImpostoService.buscarDescricoes(cnpjClean, codigoBanco)
 
     if (result.success && result.data) {
-      // Formata os resultados para garantir que temos números
       const formattedResults = result.data.map((item: any) => ({
         ...item,
         codigoDebito: item.codigoDebito?.toString() || '',
@@ -787,7 +845,6 @@ const searchDescriptions = async () => {
   }
 }
 
-// Função para filtrar descrições - AGORA INCLUINDO FILTRO POR CÓDIGOS
 const filterDescriptions = () => {
   if (!descriptionSearchTerm.value.trim() && !debitoFilter.value && !creditoFilter.value) {
     filteredResults.value = [...searchResults.value]
@@ -799,20 +856,14 @@ const filterDescriptions = () => {
   const creditoTerm = creditoFilter.value.trim()
 
   filteredResults.value = searchResults.value.filter(result => {
-    // Filtro por texto na descrição
     const matchesDescription = !searchTerm || result.termo.toLowerCase().includes(searchTerm)
-    
-    // Filtro por código débito
     const matchesDebito = !debitoTerm || result.codigoDebito.includes(debitoTerm)
-    
-    // Filtro por código crédito
     const matchesCredito = !creditoTerm || result.codigoCredito.includes(creditoTerm)
 
     return matchesDescription && matchesDebito && matchesCredito
   })
 }
 
-// Função para obter resultado original por ID
 const getOriginalResult = (id: string) => {
   return originalResults.value.find(item => item.id === id)
 }
@@ -841,20 +892,16 @@ const saveDescriptionChanges = async () => {
   isSavingChanges.value = true
 
   try {
-    // Filtra apenas os registros que foram alterados
     const atualizacoes = searchResults.value
       .map((result) => {
         const original = getOriginalResult(result.id)
 
-        // Verifica se houve alteração
         const debitoAlterado = result.codigoDebito !== original?.codigoDebito
         const creditoAlterado = result.codigoCredito !== original?.codigoCredito
 
         if (debitoAlterado || creditoAlterado) {
-          const termoEspecialId = result.id
-
           return {
-            TermoEspecialId: termoEspecialId, // ID do registro
+            TermoEspecialId: result.id,
             NovoCodigoDebito: result.codigoDebito ? parseInt(result.codigoDebito) : null,
             NovoCodigoCredito: result.codigoCredito ? parseInt(result.codigoCredito) : null
           }
@@ -870,18 +917,15 @@ const saveDescriptionChanges = async () => {
       return
     }
 
-    // Prepara o payload para a API
     const payload = {
-      CNPJ: searchCnpj.value.replace(/\D/g, ''), // Remove formatação
+      CNPJ: searchCnpj.value.replace(/\D/g, ''),
       CodigoBanco: searchCodigoBanco.value ? parseInt(searchCodigoBanco.value) : null,
       Atualizacoes: atualizacoes
     }
 
-    // Chama o serviço para atualizar os registros
     const result = await ImpostoService.atualizarDescricoes(payload)
 
     if (result.success) {
-      // Atualiza os originais com os novos valores
       originalResults.value = JSON.parse(JSON.stringify(searchResults.value))
 
       showResultModal.value = true
@@ -903,37 +947,61 @@ const saveDescriptionChanges = async () => {
 
 // Funções para códigos de imposto
 const handleDebitoInput = (event: Event, taxCode: string) => {
-  const target = event.target as HTMLInputElement;
-  const value = target.value.replace(/\D/g, '').slice(0, 5);
+  const target = event.target as HTMLInputElement
+  const value = target.value.replace(/\D/g, '').slice(0, 5)
+
+  if (taxCode === LINKED_TAXES.IRRF) {
+    target.value = getDebitoValue(LINKED_TAXES.IRRF)
+    return
+  }
 
   if (!taxCodes.value[taxCode]) {
-    taxCodes.value[taxCode] = { debito: '_', credito: '_' };
+    taxCodes.value[taxCode] = { debito: '_', credito: '_' }
   }
-  taxCodes.value[taxCode].debito = value || '_';
+  taxCodes.value[taxCode].debito = value || '_'
 
-  const taxType = taxTypes.value.find(t => t.Code === taxCode);
+  if (taxCode === LINKED_TAXES.INSS) {
+    if (!taxCodes.value[LINKED_TAXES.IRRF]) {
+      taxCodes.value[LINKED_TAXES.IRRF] = { debito: '_', credito: '_' }
+    }
+    taxCodes.value[LINKED_TAXES.IRRF].debito = value || '_'
+  }
+
+  const taxType = taxTypes.value.find(t => t.Code === taxCode)
   if (taxType && taxType.codigoDebito) {
-    taxType.codigoDebito.codigo = value || '_';
+    taxType.codigoDebito.codigo = value || '_'
   }
 
-  target.value = value;
+  target.value = value
 }
 
 const handleCreditoInput = (event: Event, taxCode: string) => {
-  const target = event.target as HTMLInputElement;
-  const value = target.value.replace(/\D/g, '').slice(0, 5);
+  const target = event.target as HTMLInputElement
+  const value = target.value.replace(/\D/g, '').slice(0, 5)
+
+  if (taxCode === LINKED_TAXES.IRRF) {
+    target.value = getCreditoValue(LINKED_TAXES.IRRF)
+    return
+  }
 
   if (!taxCodes.value[taxCode]) {
-    taxCodes.value[taxCode] = { debito: '_', credito: '_' };
+    taxCodes.value[taxCode] = { debito: '_', credito: '_' }
   }
-  taxCodes.value[taxCode].credito = value || '_';
+  taxCodes.value[taxCode].credito = value || '_'
 
-  const taxType = taxTypes.value.find(t => t.Code === taxCode);
+  if (taxCode === LINKED_TAXES.INSS) {
+    if (!taxCodes.value[LINKED_TAXES.IRRF]) {
+      taxCodes.value[LINKED_TAXES.IRRF] = { debito: '_', credito: '_' }
+    }
+    taxCodes.value[LINKED_TAXES.IRRF].credito = value || '_'
+  }
+
+  const taxType = taxTypes.value.find(t => t.Code === taxCode)
   if (taxType && taxType.codigoCredito) {
-    taxType.codigoCredito.codigo = value || '_';
+    taxType.codigoCredito.codigo = value || '_'
   }
 
-  target.value = value;
+  target.value = value
 }
 
 const loadTaxCodes = async () => {
@@ -959,6 +1027,13 @@ const loadTaxCodes = async () => {
         }
       })
 
+      if (codes[LINKED_TAXES.INSS] && codes[LINKED_TAXES.IRRF]) {
+        codes[LINKED_TAXES.IRRF] = {
+          debito: codes[LINKED_TAXES.INSS].debito,
+          credito: codes[LINKED_TAXES.INSS].credito
+        }
+      }
+
       taxCodes.value = codes
       originalTaxCodes.value = JSON.parse(JSON.stringify(codes))
     }
@@ -968,6 +1043,91 @@ const loadTaxCodes = async () => {
     alert(error instanceof Error ? error.message : 'Erro ao carregar os códigos')
   } finally {
     isLoading.value = false
+  }
+}
+
+// Prepara os dados para envio ao backend - ENVIA AMBOS COM MESMO CÓDIGO
+const prepareChangesForSave = () => {
+  const changes: any[] = []
+  
+  taxTypes.value.forEach(imposto => {
+    if (!imposto.Code) return
+    
+    if (imposto.Code === LINKED_TAXES.IRRF) return
+    
+    changes.push({
+      ...imposto,
+      codigoDebito: { codigo: taxCodes.value[imposto.Code]?.debito || '_' },
+      codigoCredito: { codigo: taxCodes.value[imposto.Code]?.credito || '_' }
+    })
+  })
+  
+  const irrfTax = taxTypes.value.find(t => t.Code === LINKED_TAXES.IRRF)
+  const inssCode = taxCodes.value[LINKED_TAXES.INSS]
+  
+  if (irrfTax && inssCode) {
+    changes.push({
+      ...irrfTax,
+      codigoDebito: { codigo: inssCode.debito },
+      codigoCredito: { codigo: inssCode.credito }
+    })
+  }
+  
+  return changes
+}
+
+const saveAccountChanges = async () => {
+  isSaving.value = true
+  try {
+    const allChanges = prepareChangesForSave()
+    
+    const modifiedChanges = allChanges.filter(change => {
+      const original = originalTaxCodes.value[change.Code]
+      if (!original) return true
+      
+      return (
+        change.codigoDebito.codigo !== original.debito ||
+        change.codigoCredito.codigo !== original.credito
+      )
+    })
+
+    if (modifiedChanges.length === 0) {
+      showResultModal.value = true
+      resultModalTitle.value = 'NENHUMA ALTERAÇÃO'
+      resultModalMessage.value = 'Não há alterações para salvar nos códigos.'
+      return
+    }
+
+    const command = UpdateImpostosCommand.create(modifiedChanges)
+    const result = await ImpostoService.updateImpostos(command)
+
+    if (!result.success) {
+      throw new Error(result.message)
+    }
+
+    modifiedChanges.forEach(change => {
+      if (change.Code) {
+        originalTaxCodes.value[change.Code] = {
+          debito: change.codigoDebito.codigo,
+          credito: change.codigoCredito.codigo
+        }
+      }
+    })
+
+    emit('save-account', taxCodes.value)
+    
+    showResultModal.value = true
+    resultModalTitle.value = 'CÓDIGOS SALVOS'
+    resultModalMessage.value = 'Os códigos de conta foram salvos com sucesso!'
+
+  } catch (error) {
+    console.error('Erro ao salvar códigos:', error)
+    
+    showResultModal.value = true
+    resultModalTitle.value = 'ERRO AO SALVAR'
+    resultModalMessage.value = error instanceof Error ? error.message : 'Erro desconhecido ao salvar os códigos.'
+  } finally {
+    isSaving.value = false
   }
 }
 
@@ -986,17 +1146,14 @@ const changePassword = async () => {
     const result: ChangePasswordResult = await AuthService.changePassword(command)
 
     if (result.success) {
-      // Senha alterada com sucesso
       resultModalTitle.value = 'SENHA ALTERADA'
       resultModalMessage.value = 'Sua senha foi alterada com sucesso!'
       showResultModal.value = true
 
-      // Limpa os campos
       currentPassword.value = ''
       editedUser.value.password = ''
       editedUser.value.confirmPassword = ''
     } else {
-      // Trata erros de campo
       if (result.fieldErrors) {
         passwordFieldErrors.value = {
           currentPassword: result.fieldErrors.currentPassword || '',
@@ -1029,18 +1186,13 @@ const changeUserName = async () => {
     const result: ChangeUserNameResult = await AuthService.changeUserName(command)
 
     if (result.success) {
-      // Nome alterado com sucesso
       resultModalTitle.value = 'NOME ALTERADO'
       resultModalMessage.value = 'Seu nome foi alterado com sucesso!'
       showResultModal.value = true
 
-      // Atualiza o store de autenticação
       authStore.updateUserInfo({ fullName: editedUser.value.name })
-
-      // Emite evento para o componente pai
       emit('save-user', { type: 'name', name: editedUser.value.name })
     } else {
-      // Trata erros de campo
       if (result.fieldErrors) {
         nameFieldErrors.value = {
           newFullName: result.fieldErrors.newFullName || ''
@@ -1096,7 +1248,6 @@ watch(() => activeTab.value, (newVal) => {
   if (newVal === 'account') {
     loadTaxCodes()
   }
-  // Limpa a busca quando muda para outras tabs
   if (newVal !== 'descriptions') {
     searchCnpj.value = ''
     searchCodigoBanco.value = ''
@@ -1129,8 +1280,6 @@ const proceedWithChange = () => {
     } else {
       performUserSave(changeType.value as 'email')
     }
-  } else {
-    saveAccountChanges()
   }
 }
 
@@ -1140,7 +1289,6 @@ const saveUserChanges = async () => {
   if (activeUserSection.value === 'name') {
     if (!isUserFormValid.value) return
 
-    // Verifica se o nome realmente mudou
     if (editedUser.value.name === props.userData?.fullName) {
       resultModalTitle.value = 'NENHUMA ALTERAÇÃO'
       resultModalMessage.value = 'O nome não foi alterado.'
@@ -1166,7 +1314,6 @@ const saveUserChanges = async () => {
 
   if (activeUserSection.value === 'password') {
     if (!isUserFormValid.value) {
-      // Mostra mensagens de erro específicas
       if (!currentPassword.value) {
         passwordFieldErrors.value.currentPassword = 'Por favor, insira sua senha atual'
       }
@@ -1184,53 +1331,6 @@ const saveUserChanges = async () => {
   }
 }
 
-const saveAccountChanges = async () => {
-  isSaving.value = true
-  try {
-    // Filtra apenas os impostos que foram modificados
-    const changes = taxTypes.value.filter(imposto => {
-      const original = originalTaxCodes.value[imposto.Code]
-      return (
-        imposto.codigoDebito.codigo !== original?.debito ||
-        imposto.codigoCredito.codigo !== original?.credito
-      )
-    })
-
-    if (changes.length === 0) {
-      alert('Nenhuma alteração para salvar.')
-      closeModal()
-      return
-    }
-
-    const command = UpdateImpostosCommand.create(changes)
-    const result = await ImpostoService.updateImpostos(command)
-
-    if (!result.success) {
-      throw new Error(result.message)
-    }
-
-    // Atualiza os valores originais
-    changes.forEach(change => {
-      if (change.Code) {
-        originalTaxCodes.value[change.Code] = {
-          debito: change.codigoDebito.codigo,
-          credito: change.codigoCredito.codigo
-        }
-      }
-    })
-
-    emit('save-account', taxCodes.value)
-    alert('Códigos salvos com sucesso!')
-    closeModal()
-
-  } catch (error) {
-    console.error('Erro ao salvar códigos:', error)
-    alert(error instanceof Error ? error.message : 'Erro desconhecido ao salvar')
-  } finally {
-    isSaving.value = false
-  }
-}
-
 const requestAccountDeletion = () => {
   showDeleteConfirmation.value = true
 }
@@ -1241,16 +1341,13 @@ const deleteAccount = async () => {
     const result = await AuthService.deleteUser()
 
     if (result.success) {
-      // Logout após exclusão bem-sucedida
       await authStore.logout()
 
-      // Mostra mensagem de sucesso
       resultModalTitle.value = 'CONTA EXCLUÍDA'
       resultModalMessage.value = 'Sua conta foi excluída com sucesso. Todos os seus dados foram removidos do sistema.'
       showDeleteConfirmation.value = false
       showResultModal.value = true
     } else {
-      // Mostra mensagem de erro
       resultModalTitle.value = 'ERRO AO EXCLUIR'
       resultModalMessage.value = result.message || 'Ocorreu um erro ao tentar excluir sua conta.'
       if (result.errors) {
@@ -1273,10 +1370,8 @@ const deleteAccount = async () => {
 const handleResultModalClose = () => {
   showResultModal.value = false
   if (resultModalTitle.value === 'CONTA EXCLUÍDA') {
-    // Redireciona para a página inicial após exclusão bem-sucedida
     router.push('/')
-  } else if (resultModalTitle.value === 'NOME ALTERADO') {
-    // Fecha o modal após alteração bem-sucedida do nome
+  } else if (resultModalTitle.value === 'NOME ALTERADO' || resultModalTitle.value === 'CÓDIGOS SALVOS') {
     closeModal()
   }
 }
@@ -1284,7 +1379,6 @@ const handleResultModalClose = () => {
 const performUserSave = async (change: 'email') => {
   isSaving.value = true
   try {
-    // Simula uma chamada API (substitua pela sua implementação real)
     await new Promise(resolve => setTimeout(resolve, 1000))
 
     const payload: any = { type: change }

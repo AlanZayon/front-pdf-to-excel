@@ -32,7 +32,6 @@ export class ImpostoService {
 
       const impostos = response.data;
 
-
       const processedImpostos = impostos.map((imposto: any) => ({
         ...imposto,
         Code: this.nameToCodeMap[imposto.nome] || ''
@@ -42,11 +41,19 @@ export class ImpostoService {
       processedImpostos.forEach((imposto: any) => {
         if (imposto.Code) {
           taxCodes[imposto.Code] = {
-            debito: imposto.codigoDebito?.codigo ? String(imposto.codigoDebito.codigo) : null,
-            credito: imposto.codigoCredito?.codigo ? String(imposto.codigoCredito.codigo) : null
+            debito: imposto.codigoDebito?.codigo ? String(imposto.codigoDebito.codigo) : '_',
+            credito: imposto.codigoCredito?.codigo ? String(imposto.codigoCredito.codigo) : '_'
           };
         }
       });
+
+      // Garante que IRRF tenha o mesmo código que INSS
+      if (taxCodes['INSS'] && taxCodes['IRRF']) {
+        taxCodes['IRRF'] = {
+          debito: taxCodes['INSS'].debito,
+          credito: taxCodes['INSS'].credito
+        };
+      }
 
       return {
         success: true,
@@ -76,6 +83,7 @@ export class ImpostoService {
         };
       }
 
+      // Envia TODOS os impostos modificados (incluindo INSS e IRRF)
       await http.put('/api/configuracao/impostos', command.changes, {
         withCredentials: true
       });
@@ -94,9 +102,9 @@ export class ImpostoService {
       };
     }
   }
+
   static async buscarDescricoes(cnpj: string, codigoBanco?: number | null): Promise<{ success: boolean; data: any[] | null; message: string }> {
     try {
-
       let url = `/api/configuracao/descricoes?cnpj=${encodeURIComponent(cnpj)}`;
 
       if (codigoBanco) {
@@ -135,13 +143,12 @@ export class ImpostoService {
     CNPJ: string;
     CodigoBanco: number | null;
     Atualizacoes: Array<{
-      TermoEspecialId : number;
+      TermoEspecialId: number;
       NovoCodigoDebito: number | null;
       NovoCodigoCredito: number | null;
     }>;
   }): Promise<{ success: boolean; message?: string; data?: any }> {
     try {
-
       const response = await http.put(
         '/api/configuracao/descricoes',
         payload,
@@ -152,7 +159,6 @@ export class ImpostoService {
           },
         }
       );
-
 
       if (response.status < 200 || response.status >= 300) {
         const errorData = response.data;
