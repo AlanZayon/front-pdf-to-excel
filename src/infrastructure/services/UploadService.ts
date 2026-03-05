@@ -9,18 +9,26 @@ export class UploadService {
     formData.append('file', command.file)
     const sessionId = this.getSessionId()
 
+    const headers: Record<string, string> = {
+      'Content-Type': 'multipart/form-data',
+      'CNPJ': command.cnpj || '',
+      'CodigoBanco': command.bankCode || '',
+      'X-User-Session': sessionId
+    }
+
+    // NOVO: Adicionar headers do pro labore se existir
+    if (command.proLabore) {
+      headers['ProLabore-Ano'] = command.proLabore.ano.toString()
+      if (command.proLabore.valor !== null && command.proLabore.valor !== undefined) {
+        headers['ProLabore-Valor'] = command.proLabore.valor.toString()
+      }
+    }
+
     try {
       const response = await http.post('/api/upload/upload', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-          'CNPJ': command.cnpj || '',
-          'CodigoBanco':command.bankCode || '',
-          'X-User-Session': sessionId
-        },
+        headers,
         withCredentials: true,
       })
-
-
 
       return {
         success: true,
@@ -54,9 +62,10 @@ export class UploadService {
     try {
       const sessionId = this.getSessionId()
       const response = await http.post('/api/upload/finalizar-processamento', classificationData, {
-        headers: { 'Content-Type': 'application/json',
+        headers: {
+          'Content-Type': 'application/json',
           'X-User-Session': sessionId
-         },
+        },
         withCredentials: true,
       })
 
@@ -78,7 +87,7 @@ export class UploadService {
     }
   }
 
-    static getSessionId(): string {
+  static getSessionId(): string {
     let sessionId = sessionStorage.getItem('userSessionId')
     if (!sessionId) {
       sessionId = this.generateUUID()

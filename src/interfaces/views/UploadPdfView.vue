@@ -58,6 +58,36 @@
             class="hidden-input" />
         </div>
 
+        <!-- NOVO: Campo Pro Labore (apenas para DAS/DARF) -->
+        <div class="prolabore-section">
+          <div class="prolabore-toggle">
+            <label class="toggle-label">
+              <input type="checkbox" v-model="proLaboreActive" class="toggle-checkbox">
+              <span class="toggle-switch"></span>
+              <span class="toggle-text">INCLUIR PRO LABORE</span>
+            </label>
+            <p class="prolabore-info" v-if="proLaboreActive">
+              Ano fixo: 2025
+            </p>
+          </div>
+
+          <!-- NOVO: Campo de valor do pro labore (aparece apenas quando toggle está ativo) -->
+          <div v-if="proLaboreActive" class="prolabore-value-field">
+            <div class="input-group">
+              <label for="proLaboreValue">Valor do Pro Labore:</label>
+              <input id="proLaboreValue" type="number" v-model="proLaboreValue" step="0.01" min="0" placeholder="0.00"
+                class="prolabore-input">
+            </div>
+          </div>
+
+          <!-- NOVO: Mensagem de erro se valor inválido -->
+          <div v-if="proLaboreActive && proLaboreValue === null" class="validation-error">
+            Por favor, informe o valor do pro labore
+          </div>
+        </div>
+
+
+
         <div v-if="fileName || ofxFileName" class="file-info">
           <svg class="file-icon" viewBox="0 0 24 24">
             <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z" />
@@ -103,6 +133,8 @@
         </button>
       </form>
     </div>
+
+
 
     <!-- Modal de dados bancários -->
     <div v-if="showBankDataModal" class="modal-overlay" @click.self="closeBankDataModal">
@@ -707,6 +739,10 @@ const user = computed(() => authStore.user)
 // Controles de visibilidade
 const showDateFilter = ref(false)
 const showSearchSection = ref(false)
+// NOVO: Controle do Pro Labore
+const proLaboreActive = ref(false)
+const proLaboreValue = ref<number | null>(null)
+
 
 // Funções para alternar visibilidade
 const toggleDateFilterVisibility = () => {
@@ -1369,18 +1405,18 @@ const downloadTestFile = () => {
   try {
     // Caminho para o arquivo na pasta public
     const fileUrl = '/files/arquivo_teste.ofx'
-    
+
     // Criar um elemento <a> temporário para download
     const link = document.createElement('a')
     link.href = fileUrl
     link.download = 'arquivo_teste.ofx'
     link.target = '_blank'
-    
+
     // Adicionar ao DOM, clicar e remover
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
-    
+
     // Feedback para o usuário
     uploadResult.value = {
       success: true,
@@ -1390,7 +1426,7 @@ const downloadTestFile = () => {
       outputPath: '',
       transacoesClassificadas: []
     }
-    
+
   } catch (error) {
     console.error('Erro ao baixar arquivo de teste:', error)
     uploadResult.value = {
@@ -1458,7 +1494,16 @@ const handleUpload = async () => {
 
   try {
     if (fileType.value === 'PDF') {
-      const command = new UploadCommand(file.value)
+      const command = new UploadCommand(file.value,
+        '', // CNPJ vazio para PDF
+        '', // Código do banco vazio para PDF
+        undefined, // Sem filtro de data para PDF
+        proLaboreActive.value ? {
+          ano: 2025,
+          valor: proLaboreValue.value // Envia o valor sem conversão
+        } : undefined
+
+      )
       const result = await UploadService.execute(command)
       uploadResult.value = result
     } else if (fileType.value === 'OFX') {
@@ -1578,7 +1623,8 @@ const proceedWithOfxProcessing = async (): Promise<void> => {
     file.value,
     cnpj.value.replace(/\D/g, ''),
     bankCode.value.replace(/\D/g, ''),
-    dateFilterData
+    dateFilterData,
+    undefined
   )
 
   try {
@@ -5564,5 +5610,153 @@ input[readonly] {
   align-items: start;
   flex-wrap: wrap;
   gap: 8px;
+}
+
+/* NOVOS ESTILOS - Pro Labore (adaptado do seu estilo existente) */
+.prolabore-section {
+  margin: 20px 0;
+  padding: 15px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  border-left: 4px solid #ff6b35;
+}
+
+.prolabore-toggle {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.toggle-label {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  font-weight: 500;
+  color: #333;
+}
+
+.toggle-checkbox {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 50px;
+  height: 24px;
+  background-color: #ccc;
+  border-radius: 12px;
+  transition: all 0.3s;
+}
+
+.toggle-switch:before {
+  content: '';
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background-color: white;
+  top: 2px;
+  left: 2px;
+  transition: all 0.3s;
+}
+
+.toggle-checkbox:checked+.toggle-switch {
+  background-color: #ff6b35;
+}
+
+.toggle-checkbox:checked+.toggle-switch:before {
+  transform: translateX(26px);
+}
+
+.toggle-text {
+  font-size: 14px;
+  letter-spacing: 0.5px;
+}
+
+.prolabore-info {
+  margin: 5px 0 0 62px;
+  font-size: 12px;
+  color: #666;
+  font-style: italic;
+}
+
+/* NOVOS ESTILOS - Campo de valor do pro labore (seguindo seu padrão) */
+.prolabore-value-field {
+  margin-top: 15px;
+  padding-top: 15px;
+  border-top: 1px solid #e0e0e0;
+}
+
+.prolabore-value-field .input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.prolabore-value-field label {
+  font-size: 13px;
+  font-weight: 500;
+  color: #555;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.prolabore-input {
+  padding: 10px 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+  color: #333;
+  background-color: white;
+  transition: all 0.3s;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.prolabore-input:focus {
+  outline: none;
+  border-color: #ff6b35;
+  box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.1);
+}
+
+.prolabore-input::-webkit-inner-spin-button,
+.prolabore-input::-webkit-outer-spin-button {
+  opacity: 1;
+  height: 20px;
+}
+
+.prolabore-input::placeholder {
+  color: #aaa;
+  font-style: italic;
+}
+
+.validation-error {
+  color: #dc3545;
+  font-size: 12px;
+  margin-top: 8px;
+  font-weight: 500;
+  padding-left: 62px;
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+  .prolabore-value-field .input-group {
+    gap: 5px;
+  }
+
+  .prolabore-input {
+    padding: 8px 10px;
+    font-size: 13px;
+  }
+
+  .validation-error {
+    padding-left: 0;
+    text-align: right;
+  }
 }
 </style>
