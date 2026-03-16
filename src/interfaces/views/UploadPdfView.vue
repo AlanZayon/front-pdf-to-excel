@@ -5685,62 +5685,111 @@ input[readonly] {
   font-style: italic;
 }
 
-/* NOVOS ESTILOS - Campo de valor do pro labore (seguindo seu padrão) */
+/* NOVOS ESTILOS - Campo de valor do pro labore (Black Orange Theme) */
 .prolabore-value-field {
   margin-top: 15px;
   padding-top: 15px;
-  border-top: 1px solid #e0e0e0;
+  border-top: 2px solid #f5921e; /* Laranja vibrante */
+  background: linear-gradient(to bottom, #1a1a1a, #000000); /* Fundo preto gradiente */
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
 }
 
 .prolabore-value-field .input-group {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
 }
 
 .prolabore-value-field label {
-  font-size: 13px;
-  font-weight: 500;
-  color: #555;
+  font-size: 14px;
+  font-weight: 700;
+  color: #f5921e; /* Laranja vibrante */
   text-transform: uppercase;
-  letter-spacing: 0.3px;
+  letter-spacing: 1px;
+  text-shadow: 0 0 5px rgba(245, 146, 30, 0.3); /* Brilho sutil */
 }
 
 .prolabore-input {
-  padding: 10px 12px;
-  border: 1px solid #ddd;
-  border-radius: 6px;
-  font-size: 14px;
-  color: #333;
-  background-color: white;
-  transition: all 0.3s;
+  padding: 12px 15px;
+  border: 2px solid #333333; /* Cinza escuro */
+  border-radius: 8px;
+  font-size: 15px;
+  color: #ffffff; /* Texto branco */
+  background-color: #1a1a1a; /* Preto com tom mais claro */
+  transition: all 0.3s ease;
   width: 100%;
   box-sizing: border-box;
+  font-weight: 500;
 }
 
 .prolabore-input:focus {
   outline: none;
-  border-color: #ff6b35;
-  box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.1);
+  border-color: #f5921e; /* Laranja vibrante no foco */
+  background-color: #222222; /* Preto ligeiramente mais claro */
+  box-shadow: 0 0 0 4px rgba(245, 146, 30, 0.2), 0 0 10px rgba(245, 146, 30, 0.3);
+}
+
+.prolabore-input:hover {
+  border-color: #f5921e; /* Laranja também no hover */
+  background-color: #222222;
 }
 
 .prolabore-input::-webkit-inner-spin-button,
 .prolabore-input::-webkit-outer-spin-button {
   opacity: 1;
-  height: 20px;
+  height: 24px;
+  background-color: #333333;
+  color: #f5921e;
+  border-radius: 4px;
+  margin: 2px;
 }
 
 .prolabore-input::placeholder {
-  color: #aaa;
+  color: #666666; /* Cinza médio para placeholder */
   font-style: italic;
+  font-weight: 300;
 }
 
 .validation-error {
-  color: #dc3545;
-  font-size: 12px;
-  margin-top: 8px;
-  font-weight: 500;
+  color: #f5921e; /* Laranja vibrante para erro */
+  font-size: 13px;
+  margin-top: 10px;
+  font-weight: 600;
   padding-left: 62px;
+  text-shadow: 0 0 3px rgba(245, 146, 30, 0.2);
+  background: rgba(0, 0, 0, 0.3); /* Fundo preto translúcido */
+  padding: 5px 10px;
+  border-radius: 4px;
+  border-left: 3px solid #f5921e;
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+  .prolabore-value-field {
+    padding: 15px;
+    margin-top: 10px;
+  }
+
+  .prolabore-value-field .input-group {
+    gap: 8px;
+  }
+
+  .prolabore-value-field label {
+    font-size: 13px;
+  }
+
+  .prolabore-input {
+    padding: 10px 12px;
+    font-size: 14px;
+  }
+
+  .validation-error {
+    padding-left: 0;
+    text-align: right;
+    font-size: 12px;
+  }
 }
 
 /* Responsividade */
