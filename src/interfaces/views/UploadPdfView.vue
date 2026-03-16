@@ -33,7 +33,7 @@
       <h1 class="title">UPLOAD DE ARQUIVOS</h1>
       <p class="subtitle">UPLOAD PDF E OFX</p>
 
-      <!-- NOVO: Botão para download do arquivo de teste OFX -->
+      <!-- NOVO: Botão para download do arquivo de teste OFX 
       <div class="test-file-section">
         <button @click="downloadTestFile" class="test-file-button">
           <svg class="download-icon" viewBox="0 0 24 24">
@@ -43,6 +43,8 @@
         </button>
         <p class="test-file-info">Use este arquivo para testar o sistema de classificação OFX</p>
       </div>
+
+      -->
 
       <form class="upload-form">
         <div class="drop-zone" @dragover.prevent="isDragging = true" @dragleave.prevent="isDragging = false"
