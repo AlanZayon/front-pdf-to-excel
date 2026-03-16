@@ -1402,42 +1402,6 @@ const getFileType = (file: File): string => {
   return ''
 }
 
-// NOVA FUNÇÃO: Download do arquivo de teste OFX
-const downloadTestFile = () => {
-  try {
-    // Caminho para o arquivo na pasta public
-    const fileUrl = '/files/arquivo_teste.ofx'
-
-    // Criar um elemento <a> temporário para download
-    const link = document.createElement('a')
-    link.href = fileUrl
-    link.download = 'arquivo_teste.ofx'
-    link.target = '_blank'
-
-    // Adicionar ao DOM, clicar e remover
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-
-    // Feedback para o usuário
-    uploadResult.value = {
-      success: true,
-      type: 'ofx',
-      status: 'completed',
-      message: 'Arquivo de teste baixado com sucesso!',
-      outputPath: '',
-      transacoesClassificadas: []
-    }
-
-  } catch (error) {
-    console.error('Erro ao baixar arquivo de teste:', error)
-    uploadResult.value = {
-      success: false,
-      message: 'Erro ao baixar arquivo de teste. Verifique se o arquivo existe.'
-    }
-  }
-}
-
 const onFileChange = async (event: Event) => {
   const target = event.target as HTMLInputElement
   if (target.files && target.files[0]) {
