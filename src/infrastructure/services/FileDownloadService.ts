@@ -65,4 +65,8 @@ export class FileDownloadService {
       return v.toString(16)
     })
   }
+
+  static resetSessionId(): void {
+    sessionStorage.removeItem('userSessionId')
+  }
 }

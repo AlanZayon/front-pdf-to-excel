@@ -3,8 +3,8 @@ import UploadPdfView from '@/interfaces/views/UploadPdfView.vue'
 import { describe, it, expect } from 'vitest'
 
 describe('UploadPdfView', () => {
-  it('renderiza o formulário de upload', () => {
+  it('renderiza o formulario de upload', () => {
     const wrapper = mount(UploadPdfView)
-    expect(wrapper.text()).toContain('Upload de PDF')
+    expect(wrapper.text()).toContain('UPLOAD DE ARQUIVOS')
   })
 })

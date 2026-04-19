@@ -229,7 +229,7 @@
           <div class="tax-code-row" v-for="tax in displayedTaxTypes" :key="tax.Code">
             <label class="tax-label" :class="{ 'linked-tax': isLinkedTax(tax.Code) }">
               {{ formatTaxName(tax.nome) }}
-              <span v-if="isLinkedTax(tax.Code)" class="linked-badge">(vinculado ao INSS)</span>
+              <span v-if="isLinkedTax(tax.Code)" class="linked-badge">(DCTFWEB)</span>
             </label>
             <div class="account-inputs">
               <input 
@@ -674,6 +674,7 @@ const isLinkedTax = (code: string): boolean => {
 // Formata o nome do imposto para exibição
 const formatTaxName = (name: string): string => {
   return name
+    .replace('INSS', 'INSS(DCTFWEB)')
     .replace('SIMPLES_NACIONAL', 'SIMPLES NACIONAL')
     .replace('MULTA_JUROS', 'MULTA E JUROS')
 }

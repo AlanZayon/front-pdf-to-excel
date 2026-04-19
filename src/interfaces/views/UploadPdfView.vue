@@ -77,13 +77,13 @@
           <div v-if="proLaboreActive" class="prolabore-value-field">
             <div class="input-group">
               <label for="proLaboreValue">Valor do Pro Labore:</label>
-              <input id="proLaboreValue" type="number" v-model="proLaboreValue" step="0.01" min="0" placeholder="0.00"
-                class="prolabore-input">
+              <input id="proLaboreValue" type="text" :value="proLaboreValue" @input="onProLaboreInput"
+                inputmode="decimal" placeholder="0,00" class="prolabore-input">
             </div>
           </div>
 
           <!-- NOVO: Mensagem de erro se valor inválido -->
-          <div v-if="proLaboreActive && proLaboreValue === null" class="validation-error">
+          <div v-if="proLaboreActive && !isProLaboreValid" class="validation-error">
             Por favor, informe o valor do pro labore
           </div>
         </div>
@@ -113,6 +113,14 @@
           </span>
         </div>
 
+        <button v-else-if="file" class="upload-button" type="button" :disabled="!canProcessFile"
+          @click="handleUpload">
+          <svg class="download-icon" viewBox="0 0 24 24">
+            <path d="M19,13H13V19H11V13H5V11H13V5H13V11H19V13Z" />
+          </svg>
+          PROCESSAR ARQUIVO
+        </button>
+
         <div v-if="uploadResult" class="result-message"
           :class="{ 'error': uploadResult?.message === 'Erro ao enviar o arquivo' }">
           <svg v-if="uploadResult && uploadResult?.message !== 'Erro ao enviar o arquivo'" class="result-icon"
@@ -127,7 +135,7 @@
         </div>
 
         <button v-if="uploadResult && uploadResult?.message !== 'Erro ao enviar o arquivo'" @click="handleDownload"
-          class="download-button">
+          class="download-button" type="button">
           <svg class="download-icon" viewBox="0 0 24 24">
             <path d="M5,20H19V18H5M19,9H15V3H9V9H5L12,16L19,9Z" />
           </svg>
@@ -743,7 +751,38 @@ const showDateFilter = ref(false)
 const showSearchSection = ref(false)
 // NOVO: Controle do Pro Labore
 const proLaboreActive = ref(false)
-const proLaboreValue = ref<number | null>(null)
+const proLaboreValue = ref('')
+
+const parsePtBrCurrency = (value: string): number | null => {
+  const sanitizedValue = value.replace(/\s/g, '')
+  if (!sanitizedValue) return null
+
+  const normalizedValue = sanitizedValue.replace(/\./g, '').replace(',', '.')
+  const parsedValue = Number(normalizedValue)
+
+  if (!Number.isFinite(parsedValue) || parsedValue <= 0) {
+    return null
+  }
+
+  return parsedValue
+}
+
+const formatPtBrCurrencyInput = (value: string): string => {
+  const digitsOnly = value.replace(/\D/g, '')
+  if (!digitsOnly) return ''
+
+  const numericValue = Number(digitsOnly) / 100
+
+  return numericValue.toLocaleString('pt-BR', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  })
+}
+
+const onProLaboreInput = (event: Event) => {
+  const target = event.target as HTMLInputElement
+  proLaboreValue.value = formatPtBrCurrencyInput(target.value)
+}
 
 
 // Funções para alternar visibilidade
@@ -938,6 +977,9 @@ const uploadResult = ref<UploadResult | null>(null)
 const isLoading = ref(false)
 const fileInput = ref<HTMLInputElement | null>(null)
 const isDragging = ref(false)
+const parsedProLaboreValue = computed(() => parsePtBrCurrency(proLaboreValue.value))
+const isProLaboreValid = computed(() => !proLaboreActive.value || parsedProLaboreValue.value !== null)
+const canProcessFile = computed(() => Boolean(file.value) && !isLoading.value && isProLaboreValid.value)
 
 const showClassificationModal = ref(false)
 const ofxTransactions = ref<any[]>([])
@@ -1402,7 +1444,45 @@ const getFileType = (file: File): string => {
   return ''
 }
 
-const onFileChange = async (event: Event) => {
+const resetWorkflowState = (options?: { preserveProLaboreValue?: boolean }) => {
+  const preserveProLaboreValue = options?.preserveProLaboreValue ?? false
+  isLoading.value = false
+  isProcessingOfx.value = false
+  isSavingClassification.value = false
+  file.value = null
+  fileName.value = null
+  fileType.value = ''
+  uploadResult.value = null
+  if (!preserveProLaboreValue) {
+    proLaboreValue.value = ''
+  }
+  showBankDataModal.value = false
+  showClassificationModal.value = false
+  ofxTransactions.value = []
+  groupedTransactions.value = []
+  ofxResponse.value = null
+  ofxFileName.value = ''
+  cnpj.value = ''
+  bankCode.value = ''
+  cnpjFormatted.value = ''
+  bankCodeInput.value = ''
+  selectedBankCode.value = ''
+  availableBanks.value = []
+  filteredBanks.value = []
+  showBankDropdown.value = false
+  searchByDescription.value = ''
+  searchByValue.value = ''
+  searchResults.value = []
+  valueSearchResults.value = []
+  batchCodesPositive.value = { debito: '', credito: '' }
+  batchCodesNegative.value = { debito: '', credito: '' }
+  individualClassifications.value.clear()
+  currentFilter.value = 'all'
+  currentSearchType.value = 'description'
+  clearDateFilter()
+}
+
+const onFileChange = (event: Event) => {
   const target = event.target as HTMLInputElement
   if (target.files && target.files[0]) {
     const selectedFile = target.files[0]
@@ -1412,14 +1492,14 @@ const onFileChange = async (event: Event) => {
       return
     }
 
+    resetWorkflowState({ preserveProLaboreValue: true })
     file.value = selectedFile
     fileName.value = selectedFile.name
     fileType.value = getFileType(selectedFile)
-    await handleUpload()
   }
 }
 
-const onDrop = async (event: DragEvent) => {
+const onDrop = (event: DragEvent) => {
   isDragging.value = false
   if (event.dataTransfer?.files && event.dataTransfer.files.length > 0) {
     const droppedFile = event.dataTransfer.files[0]
@@ -1429,31 +1509,39 @@ const onDrop = async (event: DragEvent) => {
       return
     }
 
+    resetWorkflowState({ preserveProLaboreValue: true })
     file.value = droppedFile
     fileName.value = droppedFile.name
     fileType.value = getFileType(droppedFile)
-    await handleUpload()
   }
 }
 
 const triggerFileInput = () => {
+  if (fileInput.value) {
+    fileInput.value.value = ''
+  }
   fileInput.value?.click()
 }
 
 const clearFile = () => {
-  file.value = null
-  fileName.value = null
-  ofxFileName.value = ''
-  fileType.value = ''
-  uploadResult.value = null
-  clearDateFilter() // Limpa o filtro também quando limpar arquivo
+  resetWorkflowState()
+  if (fileInput.value) {
+    fileInput.value.value = ''
+  }
+}
+
+const clearFileAfterDownload = () => {
+  resetWorkflowState({ preserveProLaboreValue: true })
   if (fileInput.value) {
     fileInput.value.value = ''
   }
 }
 
 const handleUpload = async () => {
-  if (!file.value) return
+  if (!file.value || !canProcessFile.value) return
+
+  const isProLaboreActiveAtSubmit = proLaboreActive.value
+  const proLaboreValueAtSubmit = parsedProLaboreValue.value
 
   isLoading.value = true
   uploadResult.value = null
@@ -1464,9 +1552,9 @@ const handleUpload = async () => {
         '', // CNPJ vazio para PDF
         '', // Código do banco vazio para PDF
         undefined, // Sem filtro de data para PDF
-        proLaboreActive.value ? {
+        isProLaboreActiveAtSubmit ? {
           ano: 2025,
-          valor: proLaboreValue.value // Envia o valor sem conversão
+          valor: proLaboreValueAtSubmit
         } : undefined
 
       )
@@ -1738,6 +1826,8 @@ const handleDownload = async (event: Event) => {
 
   try {
     await FileDownloadService.execute()
+    FileDownloadService.resetSessionId()
+    clearFileAfterDownload()
   } catch (error) {
     uploadResult.value = { success: false, message: 'DOWNLOAD FAILED - TRY AGAIN' }
   }
@@ -2081,6 +2171,7 @@ const saveClassification = async () => {
         transacoesClassificadas: [],
       }
       showClassificationModal.value = false
+      clearFile()
     } else {
       throw new Error(result.message || 'Erro ao salvar classificação')
     }
@@ -5844,6 +5935,7 @@ input[readonly] {
   .prolabore-value-field .input-group {
     gap: 8px;
   }
+
 
   .prolabore-value-field label {
     font-size: 13px;

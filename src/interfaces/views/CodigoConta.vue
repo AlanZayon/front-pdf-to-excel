@@ -41,7 +41,7 @@
             <div class="tax-code-row" v-for="tax in displayedTaxTypes" :key="tax.id">
                 <label class="tax-label" :class="{ 'linked-tax': isLinkedTax(tax.Code) }">
                     {{ formatTaxName(tax.nome) }}
-                    <span v-if="isLinkedTax(tax.Code)" class="linked-badge">(vinculado ao INSS)</span>
+                    <span v-if="isLinkedTax(tax.Code)" class="linked-badge">(DCTFWEB)</span>
                 </label>
                 <div class="account-inputs">
                     <input
@@ -132,6 +132,7 @@ const isLinkedTax = (code: string): boolean => {
 // Formata o nome do imposto para exibição
 const formatTaxName = (name: string): string => {
     return name
+        .replace('INSS', 'INSS (DCTWEB)')
         .replace('SIMPLES_NACIONAL', 'SIMPLES NACIONAL')
         .replace('MULTA_JUROS', 'MULTA E JUROS');
 };
@@ -368,11 +369,13 @@ onMounted(() => {
 <style scoped>
 /* Estilos base */
 .account-codes-page {
-    margin: 0 auto;
+    margin: 0;
     padding: 2rem;
     background: #1a1a1a;
     position: relative;
     min-height: 100vh;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 /* Botão de Avançar */
@@ -400,10 +403,14 @@ onMounted(() => {
 
 /* Cabeçalho */
 .page-header {
-    margin-bottom: 2rem;
+    max-width: 1040px;
+    margin: 0 auto 2rem;
     text-align: center;
-    padding-bottom: 1rem;
+    padding: 1rem 1rem 1.25rem;
     border-bottom: 1px solid #333;
+    background: linear-gradient(180deg, rgba(249, 203, 40, 0.08), rgba(249, 203, 40, 0.02));
+    border-radius: 16px 16px 0 0;
+    box-sizing: border-box;
 }
 
 .page-header h1 {
@@ -495,54 +502,77 @@ onMounted(() => {
 
 /* Seção de códigos fiscais */
 .tax-codes-section {
-    margin: 2rem 0;
+    max-width: 1040px;
+    margin: 2rem auto 0;
+    background: rgba(24, 24, 24, 0.96);
+    border: 1px solid rgba(249, 203, 40, 0.12);
+    border-radius: 0 0 18px 18px;
+    padding: 1.25rem 1.25rem 0.75rem;
+    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.22);
+    box-sizing: border-box;
+    overflow: hidden;
 }
 
 .section-header {
-    margin-bottom: 1.5rem;
+    margin-bottom: 1rem;
 }
 
 .account-types-header {
-    display: flex;
+    display: grid;
+    grid-template-columns: minmax(150px, 210px) minmax(0, 220px);
+    justify-content: space-between;
     width: 100%;
-    margin-bottom: 0.5rem;
-    padding: 0.5rem 0;
-    border-bottom: 1px solid #333;
+    margin-bottom: 0.35rem;
+    padding: 0 0 0.9rem;
+    border-bottom: 1px solid rgba(249, 203, 40, 0.14);
+    column-gap: 1.25rem;
+    align-items: center;
 }
 
 .tax-label-spacer {
-    width: 180px;
-    flex-shrink: 0;
     color: #aaa;
     font-weight: 600;
-    font-size: 0.9rem;
+    font-size: 0.8rem;
+    letter-spacing: 0.08em;
 }
 
 .account-types {
     display: flex;
-    flex: 1;
-    gap: 1rem;
-    justify-content: flex-end;
-    padding-right: 12px;
+    gap: 0.75rem;
+    justify-content: flex-start;
 }
 
 .account-type-label {
     color: #aaa;
-    font-size: 0.9rem;
-    width: 80px;
-    text-align: start;
+    font-size: 0.8rem;
+    width: 96px;
+    text-align: center;
     display: inline-block;
     font-weight: 600;
+    letter-spacing: 0.08em;
 }
 
 /* Linhas de códigos fiscais */
 .tax-code-row {
-    display: flex;
+    display: grid;
+    grid-template-columns: minmax(150px, 210px) minmax(0, 220px);
+    justify-content: space-between;
     align-items: center;
-    margin-bottom: 1rem;
-    padding: 0.75rem 0;
-    border-bottom: 1px solid rgba(51, 51, 51, 0.5);
+    margin-bottom: 0.65rem;
+    padding: 0.85rem 0.75rem;
+    border: 1px solid rgba(255, 255, 255, 0.04);
+    border-radius: 12px;
+    background: linear-gradient(90deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.01));
     width: 100%;
+    column-gap: 1.25rem;
+    transition: border-color 0.2s ease, transform 0.2s ease, background 0.2s ease;
+    box-sizing: border-box;
+}
+
+.tax-code-row:hover {
+    border-color: rgba(249, 203, 40, 0.18);
+    background: linear-gradient(90deg, rgba(249, 203, 40, 0.06), rgba(255, 255, 255, 0.02));
+    transform: translateY(-1px);
 }
 
 .tax-code-row:last-child {
@@ -553,36 +583,41 @@ onMounted(() => {
     color: #ddd;
     font-weight: 600;
     font-size: 0.9rem;
-    width: 180px;
-    flex-shrink: 0;
     padding-left: 4px;
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    line-height: 1.25;
 }
 
 .account-inputs {
     display: flex;
-    gap: 1rem;
-    justify-content: flex-end;
-    flex: 1;
-    padding-right: 10px;
+    gap: 0.75rem;
+    justify-content: flex-start;
     align-items: center;
+    min-width: 0;
 }
 
 .tax-input {
-    width: 80px;
+    width: 96px;
     padding: 0.65rem 0.5rem;
     background: rgba(30, 30, 30, 0.7);
-    border: 1px solid #333;
-    border-radius: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
     color: #fff;
     font-family: 'Montserrat', sans-serif;
     transition: all 0.15s ease;
     text-align: center;
+    font-weight: 600;
+    box-sizing: border-box;
+    max-width: 100%;
 }
 
 .tax-input:focus {
     outline: none;
     border-color: #f9cb28;
     box-shadow: 0 0 0 2px rgba(249, 203, 40, 0.2);
+    background: rgba(40, 40, 40, 0.95);
 }
 
 .tax-input::-webkit-inner-spin-button,
@@ -595,10 +630,19 @@ onMounted(() => {
 .page-actions {
     display: flex;
     justify-content: center;
-    margin-top: 2rem;
+    max-width: 1040px;
+    margin: 2rem auto 0;
     padding-top: 1.5rem;
-    border-top: 1px solid #333;
+    border-top: 1px solid rgba(249, 203, 40, 0.12);
     gap: 1rem;
+    box-sizing: border-box;
+}
+
+.linked-badge {
+    font-size: 0.75rem;
+    color: #f9cb28;
+    font-weight: 700;
+    letter-spacing: 0.05em;
 }
 
 .cancel-button {
@@ -722,9 +766,10 @@ onMounted(() => {
     }
 
     .tax-code-row {
-        flex-direction: column;
+        grid-template-columns: 1fr;
         align-items: flex-start;
         gap: 0.5rem;
+        padding: 0.85rem;
     }
 
     .tax-label {
@@ -734,12 +779,12 @@ onMounted(() => {
 
     .account-inputs {
         width: 100%;
-        justify-content: space-between;
-        padding-right: 0;
+        justify-content: flex-start;
+        gap: 0.75rem;
     }
 
     .tax-input {
-        width: 48%;
+        width: calc(50% - 0.375rem);
     }
 
     .account-types-header {
