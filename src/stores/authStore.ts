@@ -2,6 +2,8 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { AuthService } from '../infrastructure/services/AuthService'
 import { LoginCommand } from '../application/commands/LoginCommand'
+import { LoadImpostosCommand } from '../application/commands/LoadImpostosCommand'
+import { ImpostoService } from '../infrastructure/services/ImpostoService'
 import { useRouter } from 'vue-router'
 
 // Tipos para os erros de campo
@@ -22,10 +24,12 @@ interface AuthState {
     error: string | null
     isPageReady: boolean
     fieldErrors: FieldErrors
+    authChecked: boolean
 }
 
 export const useAuthStore = defineStore('auth', () => {
     const router = useRouter()
+    let authCheckId = 0
 
     // Estado reativo com tipagem explícita
     const state = ref<AuthState>({
@@ -34,7 +38,8 @@ export const useAuthStore = defineStore('auth', () => {
         isLoading: false,
         error: null,
         isPageReady: false,
-        fieldErrors: {}
+        fieldErrors: {},
+        authChecked: false
     })
 
     const markPageReady = () => {
@@ -55,7 +60,25 @@ export const useAuthStore = defineStore('auth', () => {
         }
     }
 
+    const resolvePostLoginRoute = async (): Promise<string> => {
+        const result = await ImpostoService.loadImpostos(new LoadImpostosCommand())
+        if (!result.success || !result.data?.taxCodes) {
+            return '/codigo'
+        }
+
+        const hasConfiguredCodes = Object.values(result.data.taxCodes).some(
+            (codes) =>
+                (codes.debito ?? '').trim() !== '' &&
+                codes.debito !== '_' &&
+                (codes.credito ?? '').trim() !== '' &&
+                codes.credito !== '_'
+        )
+
+        return hasConfiguredCodes ? '/' : '/codigo'
+    }
+
     const login = async (email: string, password: string) => {
+        authCheckId++
         state.value.isLoading = true
         clearErrors()
 
@@ -66,7 +89,9 @@ export const useAuthStore = defineStore('auth', () => {
             if (result.success && result.user) {
                 state.value.user = result.user
                 state.value.isAuthenticated = true
-                await router.push('/codigo')
+                state.value.authChecked = true
+                const redirectTo = await resolvePostLoginRoute()
+                await router.push(redirectTo)
             } else {
                 state.value.error = result.message || 'Erro ao fazer login'
 
@@ -110,8 +135,18 @@ export const useAuthStore = defineStore('auth', () => {
     }
 
     const checkAuth = async (): Promise<boolean> => {
+        if (state.value.authChecked) {
+            return state.value.isAuthenticated
+        }
+
+        const currentCheckId = ++authCheckId
+
         try {
             const result = await AuthService.checkAuth()
+
+            if (currentCheckId !== authCheckId) {
+                return state.value.isAuthenticated
+            }
 
             if (result.success && result.user) {
                 state.value.user = {
@@ -120,17 +155,27 @@ export const useAuthStore = defineStore('auth', () => {
                     roles: result.user.roles || []
                 }
                 state.value.isAuthenticated = true
+                state.value.authChecked = true
                 return true
             }
 
-            state.value.user = null
-            state.value.isAuthenticated = false
-            return false
+            if (!state.value.isAuthenticated) {
+                state.value.user = null
+            }
+            state.value.authChecked = true
+            return state.value.isAuthenticated
         } catch (err) {
             console.error('Auth check error:', err)
-            state.value.user = null
-            state.value.isAuthenticated = false
-            return false
+
+            if (currentCheckId !== authCheckId) {
+                return state.value.isAuthenticated
+            }
+
+            if (!state.value.isAuthenticated) {
+                state.value.user = null
+            }
+            state.value.authChecked = true
+            return state.value.isAuthenticated
         }
     }
 
@@ -144,6 +189,7 @@ export const useAuthStore = defineStore('auth', () => {
             get: () => state.value.isPageReady,
             set: (val) => state.value.isPageReady = val
         }), fieldErrors: computed(() => state.value.fieldErrors),
+        authChecked: computed(() => state.value.authChecked),
 
         // Ações
         login,

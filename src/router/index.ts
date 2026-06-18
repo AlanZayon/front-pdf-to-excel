@@ -29,6 +29,12 @@ const router = createRouter({
       meta: { requiresAuth: true }
     },
     {
+      path: '/landing',
+      name: 'landing',
+      component: () => import('../interfaces/views/ShowPage.vue'),
+      meta: { requiresGuest: true }
+    },
+    {
       path: '/reset-password',
       name: 'resetPassword',
       component: () => import('../interfaces/views/ResetPassword.vue'),

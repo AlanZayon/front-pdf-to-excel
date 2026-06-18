@@ -121,6 +121,7 @@ import { useRouter } from 'vue-router'
 import { AuthService } from '../../infrastructure/services/AuthService'
 import { RegisterCommand } from '../../application/commands/RegisterCommand'
 import { useAuthStore } from '../../stores/authStore'
+import { notifyError, notifySuccess } from '../../shared/composables/useToast'
 
 
 const router = useRouter()
@@ -305,11 +306,11 @@ function resetErrors() {
 }
 
 function showSuccessNotification(message: string) {
-  alert(message); 
+  notifySuccess(message)
 }
 
 function showErrorNotification(message: string) {
-  alert(message);
+  notifyError(message)
 }
 </script>
 

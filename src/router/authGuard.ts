@@ -8,7 +8,10 @@ export const authGuard = async (
 ) => {
   const authStore = useAuthStore()
 
-  const isAuth = await authStore.checkAuth()
+  let isAuth = authStore.isAuthenticated
+  if (!authStore.authChecked) {
+    isAuth = await authStore.checkAuth()
+  }
 
   if (to.meta.requiresAuth && !isAuth) {
     next('/access')

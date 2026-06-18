@@ -11,19 +11,11 @@
       <h1 class="auth-title">LOGIN</h1>
       <p class="auth-subtitle">ACESSE SUA CONTA</p>
 
-      <!-- Botão para preencher dados de teste -->
-      <div class="test-credentials-container">
-        <button @click="fillTestCredentials" class="test-credentials-button">
-          <svg viewBox="0 0 24 24" width="18" height="18" style="margin-right: 8px;">
-            <path d="M19 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.11 0 2-.9 2-2V5c0-1.1-.89-2-2-2zm0 16H5V5h14v14zm-5.04-6.71l-2.75 3.54-1.96-2.36L6.5 17h11l-3.54-4.71z" fill="currentColor"/>
-          </svg>
-          USAR DADOS DE TESTE
+      <!-- Botão para preencher dados de teste via variáveis de ambiente locais -->
+      <div v-if="isDev && hasDevCredentials" class="test-credentials-container">
+        <button @click="fillTestCredentials" class="test-credentials-button" type="button">
+          USAR CREDENCIAIS DE DEV (.env)
         </button>
-        <div class="test-credentials-info">
-          <p><strong>Login:</strong> teste@gmail.com</p>
-          <p><strong>Senha:</strong> SENHA_forte58</p>
-          <p class="test-warning">⚠️ Use estes dados apenas para testar o sistema</p>
-        </div>
       </div>
 
       <!-- Mensagem de erro geral -->
@@ -143,15 +135,19 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../../stores/authStore'
+import { http, parseApiError } from '../../shared/utils/http'
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+const isDev = import.meta.env.DEV;
+const devEmail = import.meta.env.VITE_DEV_EMAIL ?? ''
+const devPassword = import.meta.env.VITE_DEV_PASSWORD ?? ''
+const hasDevCredentials = Boolean(devEmail && devPassword)
 
 const router = useRouter()
 const authStore = useAuthStore()
 
-// Dados de teste
-const TEST_EMAIL = 'teste@gmail.com';
-const TEST_PASSWORD = 'SENHA_forte58';
+// Dados de teste via .env local (somente desenvolvimento)
+const TEST_EMAIL = devEmail;
+const TEST_PASSWORD = devPassword;
 
 // Refs para os campos do formulário
 const email = ref('')
@@ -290,36 +286,20 @@ const sendRecoveryEmail = async () => {
   isLoadingRecovery.value = true
 
   try {
-    const response = await fetch(`${API_BASE_URL}/api/auth/forgot-password`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        Email: recoveryEmail.value
-      })
+    await http.post('/api/auth/forgot-password', {
+      Email: recoveryEmail.value
     })
 
-    const data = await response.json()
+    recoveryMessage.value = 'E-mail de recuperação enviado com sucesso! Verifique sua caixa de entrada.'
+    recoveryMessageType.value = 'success'
 
-    if (response.ok) {
-      // Sucesso
-      recoveryMessage.value = 'E-mail de recuperação enviado com sucesso! Verifique sua caixa de entrada.'
-      recoveryMessageType.value = 'success'
-      
-      // Fecha o modal após 3 segundos
-      setTimeout(() => {
-        showForgotPassword.value = false
-        recoveryMessage.value = ''
-      }, 3000)
-    } else {
-      // Erro do servidor
-      recoveryMessage.value = data.message || 'Erro ao enviar e-mail de recuperação'
-      recoveryMessageType.value = 'error'
-    }
+    setTimeout(() => {
+      showForgotPassword.value = false
+      recoveryMessage.value = ''
+    }, 3000)
   } catch (error) {
     console.error('Recovery failed:', error)
-    recoveryMessage.value = 'Erro de conexão. Tente novamente.'
+    recoveryMessage.value = parseApiError(error, 'Erro ao enviar e-mail de recuperação')
     recoveryMessageType.value = 'error'
   } finally {
     isLoadingRecovery.value = false

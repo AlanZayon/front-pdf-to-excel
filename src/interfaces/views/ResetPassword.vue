@@ -114,7 +114,7 @@
               REDEFININDO...
             </span>
           </button>
-          <router-link to="/login" class="auth-link">Voltar para o login</router-link>
+          <router-link to="/access" class="auth-link">Voltar para o login</router-link>
         </div>
       </form>
     </div>
@@ -141,8 +141,7 @@
 <script lang="ts" setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+import { http, parseApiError } from '../../shared/utils/http'
 
 
 // Dados reativos
@@ -305,7 +304,6 @@ const handleResetPassword = async () => {
   fieldErrors.value = { newPassword: '', confirmPassword: '' }
   
   try {
-    // Preparar dados para a requisição
     const requestData = {
       email: email.value,
       token: token.value,
@@ -313,25 +311,15 @@ const handleResetPassword = async () => {
       confirmPassword: confirmPassword.value
     }
 
-    // Fazer requisição para o endpoint de redefinição de senha
-    const response = await fetch(`${API_BASE_URL}/api/auth/reset-password`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(requestData)
-    })
-
-    const result = await response.json()
+    const response = await http.post('/api/auth/reset-password', requestData)
+    const result = response.data
 
     if (result.success) {
-      // Sucesso
       resultModalTitle.value = 'SENHA REDEFINIDA'
       resultModalMessage.value = 'Sua senha foi redefinida com sucesso. Você já pode fazer login com sua nova senha.'
       resultModalSuccess.value = true
       showResultModal.value = true
     } else {
-      // Tratar erros
       if (result.errors) {
         if (result.errors.InvalidToken) {
           fieldErrors.value.newPassword = 'Link de redefinição inválido ou expirado'
@@ -342,11 +330,10 @@ const handleResetPassword = async () => {
         } else if (result.errors.WeakPassword) {
           fieldErrors.value.newPassword = 'A senha não atende aos critérios de segurança'
         } else {
-          // Erro genérico
           fieldErrors.value.newPassword = result.message || 'Erro ao redefinir senha'
         }
       }
-      
+
       if (!result.errors) {
         resultModalTitle.value = 'ERRO AO REDEFINIR SENHA'
         resultModalMessage.value = result.message || 'Ocorreu um erro ao tentar redefinir sua senha.'
@@ -357,7 +344,7 @@ const handleResetPassword = async () => {
   } catch (error) {
     console.error('Erro inesperado:', error)
     resultModalTitle.value = 'ERRO INESPERADO'
-    resultModalMessage.value = 'Ocorreu um erro inesperado. Tente novamente mais tarde.'
+    resultModalMessage.value = parseApiError(error, 'Ocorreu um erro inesperado. Tente novamente mais tarde.')
     resultModalSuccess.value = false
     showResultModal.value = true
   } finally {
@@ -368,7 +355,7 @@ const handleResetPassword = async () => {
 const handleResultModalClose = () => {
   showResultModal.value = false
   if (resultModalSuccess.value) {
-    router.push('/login')
+    router.push('/access')
   }
 }
 </script>

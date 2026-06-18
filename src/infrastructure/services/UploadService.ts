@@ -1,106 +1,432 @@
 import { UploadCommand } from '../../application/commands/UploadCommand'
+
 import type { UploadResult } from '../../domain/models/UploadResult'
-import { http } from '../../shared/utils/http'
+
+import { http, parseApiError } from '../../shared/utils/http'
+
+import { getSessionId } from '../../shared/utils/session'
+
 import { logger } from '../../shared/logging/logger'
 
+
+
+export type UploadJobStatus = {
+
+  jobId: string
+
+  state: 'Pending' | 'Processing' | 'Completed' | 'Failed'
+
+  message?: string
+
+  createdAtUtc?: string
+
+  completedAtUtc?: string
+
+  outputFile?: string
+
+  result?: Record<string, unknown>
+
+}
+
+
+
 export class UploadService {
-  static async execute(command: UploadCommand): Promise<UploadResult> {
+
+  static async execute(
+
+    command: UploadCommand
+
+  ): Promise<UploadResult & { jobId?: string; state?: string }> {
+
     const formData = new FormData()
+
     formData.append('file', command.file)
-    const sessionId = this.getSessionId()
+
+    const sessionId = getSessionId()
+
+
 
     const headers: Record<string, string> = {
+
       'Content-Type': 'multipart/form-data',
+
       'CNPJ': command.cnpj || '',
+
       'CodigoBanco': command.bankCode || '',
+
       'X-User-Session': sessionId
+
     }
 
-    // NOVO: Adicionar headers do pro labore se existir
+
+
     if (command.proLabore) {
+
       headers['ProLabore-Ano'] = command.proLabore.ano.toString()
+
       if (command.proLabore.valor !== null && command.proLabore.valor !== undefined) {
+
         headers['ProLabore-Valor'] = command.proLabore.valor.toString()
+
       }
+
     }
+
+
 
     try {
+
       const response = await http.post('/api/upload/upload', formData, {
+
         headers,
+
         withCredentials: true,
+
+        validateStatus: (status) => status === 200 || status === 202,
+
       })
 
-      return {
-        success: true,
-        ...response.data,
-        message: 'Upload concluído com sucesso',
+
+
+      if (response.status === 202) {
+
+        return {
+
+          success: true,
+
+          jobId: response.data.jobId,
+
+          state: response.data.state,
+
+          message: response.data.message || 'Arquivo enfileirado para processamento',
+
+        } as UploadResult & { jobId?: string; state?: string }
+
       }
-    } catch (error: any) {
-      logger.error('Erro no upload', error?.response?.data || error.message)
+
+
 
       return {
-        success: false,
-        message: 'Erro ao enviar o arquivo',
-        error: error?.response?.data || error.message,
+
+        success: true,
+
+        ...response.data,
+
+        message: 'Upload concluído com sucesso',
+
       }
+
+    } catch (error: unknown) {
+
+      logger.error('Erro no upload', error)
+
+
+
+      return {
+
+        success: false,
+
+        message: parseApiError(error, 'Erro ao enviar o arquivo'),
+
+        error,
+
+      }
+
     }
+
   }
+
+
+
+  static async getJobStatus(jobId: string): Promise<UploadJobStatus | null> {
+
+    try {
+
+      const response = await http.get<UploadJobStatus>(`/api/upload/status/${jobId}`, {
+
+        withCredentials: true,
+
+      })
+
+      return response.data
+
+    } catch {
+
+      return null
+
+    }
+
+  }
+
+
+
+  static async pollJobUntilComplete(
+
+    jobId: string,
+
+    maxAttempts = 120,
+
+    intervalMs = 1000
+
+  ): Promise<UploadJobStatus | null> {
+
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+
+      const status = await UploadService.getJobStatus(jobId)
+
+      if (!status) {
+
+        await new Promise((resolve) => setTimeout(resolve, intervalMs))
+
+        continue
+
+      }
+
+
+
+      if (status.state === 'Completed' || status.state === 'Failed') {
+
+        return status
+
+      }
+
+
+
+      await new Promise((resolve) => setTimeout(resolve, intervalMs))
+
+    }
+
+
+
+    return null
+
+  }
+
+
+
+  static buildUploadResultFromJobStatus(status: UploadJobStatus): UploadResult {
+
+    if (status.state === 'Failed') {
+
+      return {
+
+        success: false,
+
+        message: status.message || 'Erro ao processar arquivo',
+
+      }
+
+    }
+
+
+
+    const result = status.result ?? {}
+
+    const type = result.type as string | undefined
+
+
+
+    if (type === 'pdf') {
+
+      return {
+
+        success: true,
+
+        type: 'pdf',
+
+        result: result.result ?? result,
+
+        outputFile: (result.outputFile as string | undefined) ?? status.outputFile ?? 'PGTO.csv',
+
+        message: status.message || 'PDF processado com sucesso',
+
+      }
+
+    }
+
+
+
+    if (type === 'ofx' && result.status === 'pending_classification') {
+
+      return {
+
+        success: true,
+
+        type: 'ofx',
+
+        status: 'pending_classification',
+
+        transacoesClassificadas: (result.transacoesClassificadas as any[]) ?? [],
+
+        pendingTransactions: (result.pendingTransactions as any[]) ?? [],
+
+        filePath: '',
+
+        message: status.message || 'Classificação pendente',
+
+      }
+
+    }
+
+
+
+    if (type === 'ofx') {
+
+      return {
+
+        success: true,
+
+        type: 'ofx',
+
+        status: 'completed',
+
+        outputFile: (result.outputFile as string | undefined) ?? status.outputFile ?? 'EXTRATO.csv',
+
+        transacoesClassificadas: (result.transacoesClassificadas as any[]) ?? [],
+
+        message: status.message || 'OFX processado com sucesso',
+
+      }
+
+    }
+
+
+
+    return {
+
+      success: true,
+
+      type: 'pdf',
+
+      result,
+
+      message: status.message || 'Processamento concluído',
+
+    }
+
+  }
+
 
 
   static async saveClassification(classificationData: {
+
     TransacoesClassificadas: any[]
+
     Classificacoes: Array<{
+
       descricao: string
+
       data: string
+
       valor: number
+
       codigoDebito: string
+
       codigoCredito: string
+
     }>
-    TransacoesPendentes: any[],
+
+    TransacoesPendentes: any[]
+
     cnpj: string
-  }): Promise<UploadResult> {
+
+    dateFilter?: {
+
+      startDate: string
+
+      endDate: string
+
+      isActive: boolean
+
+    }
+
+  }): Promise<UploadResult & { jobId?: string }> {
+
     try {
-      const sessionId = this.getSessionId()
+
+      const sessionId = getSessionId()
+
       const response = await http.post('/api/upload/finalizar-processamento', classificationData, {
+
         headers: {
+
           'Content-Type': 'application/json',
+
           'X-User-Session': sessionId
+
         },
+
         withCredentials: true,
+
+        validateStatus: (status) => status === 200 || status === 202,
+
       })
+
+
+
+      if (response.status === 202) {
+
+        const jobStatus = await UploadService.pollJobUntilComplete(response.data.jobId)
+
+        if (!jobStatus || jobStatus.state === 'Failed') {
+
+          return {
+
+            success: false,
+
+            message: jobStatus?.message || 'Erro ao finalizar classificação',
+
+          }
+
+        }
+
+
+
+        return UploadService.buildUploadResultFromJobStatus(jobStatus)
+
+      }
+
+
 
       logger.info('Classificação salva com sucesso:', response.data)
 
+
+
       return {
+
         success: true,
-        ...response.data,
+
+        type: 'ofx',
+
+        status: 'completed',
+
+        outputFile: response.data.outputFile ?? 'EXTRATO.csv',
+
+        transacoesClassificadas: [],
+
         message: 'Classificação salva com sucesso',
+
       }
-    } catch (error: any) {
-      logger.error('Erro ao salvar classificação', error?.response?.data || error.message)
+
+    } catch (error: unknown) {
+
+      logger.error('Erro ao salvar classificação', error)
+
+
 
       return {
+
         success: false,
-        message: 'Erro ao salvar classificação',
-        error: error?.response?.data || error.message,
+
+        message: parseApiError(error, 'Erro ao salvar classificação'),
+
+        error,
+
       }
+
     }
+
   }
 
-  static getSessionId(): string {
-    let sessionId = sessionStorage.getItem('userSessionId')
-    if (!sessionId) {
-      sessionId = this.generateUUID()
-      sessionStorage.setItem('userSessionId', sessionId)
-    }
-    return sessionId
-  }
-
-  static generateUUID(): string {
-    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
-      const r = Math.random() * 16 | 0
-      const v = c === 'x' ? r : (r & 0x3 | 0x8)
-      return v.toString(16)
-    })
-  }
 }
+

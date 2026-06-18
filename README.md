@@ -1,5 +1,43 @@
-# Vue 3 + TypeScript + Vite
+# FISCAL2CSV — Frontend
 
-This template should help get you started developing with Vue 3 and TypeScript in Vite. The template uses Vue 3 `<script setup>` SFCs, check out the [script setup docs](https://v3.vuejs.org/api/sfc-script-setup.html#sfc-script-setup) to learn more.
+SPA Vue 3 para conversão de documentos fiscais (PDF DARF/DAS e extratos OFX) em CSV compatível com Domínio Contábil.
 
-Learn more about the recommended Project Setup and IDE Support in the [Vue Docs TypeScript Guide](https://vuejs.org/guide/typescript/overview.html#project-setup).
+## Requisitos
+
+- Node.js 20+
+- Backend [ApiPdfCsv](../ApiPdfCsv) em execução
+
+## Setup
+
+```bash
+cp .env.example .env
+npm install
+npm run dev
+```
+
+## Variáveis de ambiente
+
+| Variável | Descrição |
+|----------|-----------|
+| `VITE_API_BASE_URL` | URL da API (ex.: `http://localhost:5243`) |
+
+## Scripts
+
+| Comando | Descrição |
+|---------|-----------|
+| `npm run dev` | Servidor de desenvolvimento |
+| `npm run build` | Build de produção |
+| `npm run typecheck` | Verificação TypeScript |
+| `npm run test` | Testes Vitest |
+
+## Fluxo principal
+
+1. Login em `/access`
+2. Configurar códigos de imposto em `/codigo`
+3. Upload PDF/OFX em `/`
+4. Classificação OFX (quando necessário)
+5. Download CSV
+
+## Deploy
+
+Netlify SPA — configure `VITE_API_BASE_URL` no painel de ambiente.

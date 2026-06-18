@@ -9,6 +9,14 @@ import type { ChangeUserNameResult } from '../../domain/models/ChangeUserNameRes
 import { http } from '../../shared/utils/http'
 import { logger } from '../../shared/logging/logger'
 
+function normalizeAuthUser(data: Record<string, unknown> | null | undefined) {
+  return {
+    email: String(data?.email ?? data?.Email ?? ''),
+    fullName: String(data?.fullName ?? data?.FullName ?? ''),
+    roles: (data?.roles ?? data?.Roles ?? []) as string[],
+  }
+}
+
 export class AuthService {
   static async register(command: RegisterCommand): Promise<RegisterResult> {
     try {
@@ -58,11 +66,7 @@ export class AuthService {
       return {
         success: true,
         message: 'Login realizado com sucesso',
-        user: {
-          email: response.data.data.Email,
-          fullName: response.data.data.FullName,
-          roles: response.data.data.Roles
-        }
+        user: normalizeAuthUser(response.data.data),
       };
     } catch (error: any) {
       logger.error('Erro no login', error);
@@ -218,13 +222,9 @@ export class AuthService {
       return {
         success: true,
         message: 'Usuário autenticado',
-        user: {
-          email: response.data.email,
-          fullName: response.data.fullName,
-          roles: response.data.roles
-        }
+        user: normalizeAuthUser(response.data),
       }
-    } catch (error) {
+    } catch {
       return {
         success: false,
         message: 'Não autenticado'

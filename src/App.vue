@@ -3,6 +3,7 @@ import { RouterView, useRouter } from 'vue-router'
 import { useAuthStore } from './stores/authStore'
 import { computed, onMounted, ref } from 'vue'
 import LoadingScreen from './interfaces/ui/LoadingScreen.vue'
+import ToastContainer from './interfaces/ui/ToastContainer.vue'
 
 const authStore = useAuthStore()
 const router = useRouter()
@@ -36,6 +37,7 @@ router.afterEach(() => {
 
 <template>
   <RouterView />
+  <ToastContainer />
   <transition name="fade">
     <LoadingScreen v-if="showLoading" :visible="true"/>
   </transition>
@@ -61,7 +63,7 @@ html {
   width: 10px;
 }
 
-#appe::-webkit-scrollbar-track {
+#app::-webkit-scrollbar-track {
   background: #2a2a2a;
   border-radius: 5px;
 }
