@@ -160,46 +160,40 @@ export class UploadService {
 
 
 
+  static getPollConfig() {
+    const maxMs = Number(import.meta.env.VITE_JOB_POLL_MAX_MS) || 600_000
+    const intervalMs = 1000
+    return { maxAttempts: Math.ceil(maxMs / intervalMs), intervalMs }
+  }
+
   static async pollJobUntilComplete(
-
     jobId: string,
-
-    maxAttempts = 120,
-
-    intervalMs = 1000
-
+    maxAttempts?: number,
+    intervalMs?: number,
+    onStatus?: (status: UploadJobStatus) => void
   ): Promise<UploadJobStatus | null> {
+    const config = UploadService.getPollConfig()
+    const attempts = maxAttempts ?? config.maxAttempts
+    const interval = intervalMs ?? config.intervalMs
 
-    for (let attempt = 0; attempt < maxAttempts; attempt++) {
-
+    for (let attempt = 0; attempt < attempts; attempt++) {
       const status = await UploadService.getJobStatus(jobId)
 
       if (!status) {
-
-        await new Promise((resolve) => setTimeout(resolve, intervalMs))
-
+        await new Promise((resolve) => setTimeout(resolve, interval))
         continue
-
       }
 
-
+      onStatus?.(status)
 
       if (status.state === 'Completed' || status.state === 'Failed') {
-
         return status
-
       }
 
-
-
-      await new Promise((resolve) => setTimeout(resolve, intervalMs))
-
+      await new Promise((resolve) => setTimeout(resolve, interval))
     }
 
-
-
     return null
-
   }
 
 
@@ -320,9 +314,13 @@ export class UploadService {
 
       valor: number
 
-      codigoDebito: string
+      codigoDebito: number
 
-      codigoCredito: string
+      codigoCredito: number
+
+      codigoBanco?: number
+
+      isClassificacaoIndividual?: boolean
 
     }>
 

@@ -170,7 +170,7 @@ onMounted(() => {
 })
 
 const goToHome = () => {
-  router.push('/')
+  router.push('/landing')
 }
 
 const clearEmailError = () => {

@@ -25,10 +25,14 @@ export function useToast() {
   return { toasts, show, dismiss }
 }
 
-export function notifySuccess(message: string) {
-  show(message, 'success')
+export function notifySuccess(message: string, durationMs = 6000) {
+  show(message, 'success', durationMs)
 }
 
 export function notifyError(message: string) {
   show(message, 'error')
+}
+
+export function notifyInfo(message: string) {
+  show(message, 'info')
 }

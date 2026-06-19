@@ -3,7 +3,7 @@
     <div class="modal-content">
       <!-- Cabeçalho do Modal -->
       <div class="modal-header">
-        <h2>EDITAR USUÁRIO</h2>
+        <h2>{{ descriptionsOnly ? 'DESCRIÇÕES OFX' : 'EDITAR PERFIL' }}</h2>
         <button @click="closeModal" class="close-button" aria-label="Fechar modal">
           <svg viewBox="0 0 24 24" width="24" height="24">
             <path
@@ -12,22 +12,8 @@
         </button>
       </div>
 
-      <!-- Tabs de navegação -->
-      <div class="tabs">
-        <button @click="activeTab = 'user'" :class="{ 'active': activeTab === 'user' }" class="tab-button">
-          Dados do Usuário
-        </button>
-        <button @click="activeTab = 'account'" :class="{ 'active': activeTab === 'account' }" class="tab-button">
-          Códigos de Conta
-        </button>
-        <button @click="activeTab = 'descriptions'" :class="{ 'active': activeTab === 'descriptions' }"
-          class="tab-button">
-          Buscar Descrições
-        </button>
-      </div>
-
       <!-- Corpo do Modal - Dados do Usuário -->
-      <div v-if="activeTab === 'user'" class="modal-body">
+      <div v-if="!descriptionsOnly" class="modal-body">
         <div class="user-subtabs">
           <button @click="activeUserSection = 'name'" :class="{ 'active': activeUserSection === 'name' }"
             class="user-subtab-button">Nome</button>
@@ -204,57 +190,8 @@
         </div>
       </div>
 
-      <!-- Corpo do Modal - Códigos de Conta -->
-      <div v-if="activeTab === 'account'" class="modal-body">
-        <!-- Loading State -->
-        <div v-if="isLoading" class="loading-overlay">
-          <div class="spinner"></div>
-          <p>Carregando códigos de conta...</p>
-        </div>
-
-        <div v-else class="tax-codes-section">
-          <div class="section-header">
-            <h3 class="section-title">CÓDIGOS DE CONTA</h3>
-            <p class="section-subtitle">CONFIGURAÇÃO DOS TIPOS DE IMPOSTO</p>
-
-            <div class="account-types-header">
-              <div class="account-types">
-                <span class="account-type-label">DÉBITO</span>
-                <span class="account-type-label">CRÉDITO</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Renderização com vinculação INSS/IRRF -->
-          <TaxCodeEditor
-            :tax-codes="taxCodes"
-            :tax-types="taxTypes"
-            :disabled="isSaving"
-            :show-header="false"
-            @update:tax-codes="taxCodes = $event"
-          />
-
-          <!-- Ações do Modal -->
-          <div class="modal-actions">
-            <button @click="saveAccountChanges" class="auth-button" :disabled="isSaving"
-              :class="{ 'loading': isSaving }">
-              <span v-if="!isSaving">SALVAR CÓDIGOS</span>
-              <span v-else class="button-loading">
-                <svg class="spinner" viewBox="0 0 50 50">
-                  <circle class="path" cx="25" cy="25" r="20" fill="none" stroke-width="5"></circle>
-                </svg>
-                SALVANDO...
-              </span>
-            </button>
-            <button @click="closeModal" class="auth-button secondary">
-              CANCELAR
-            </button>
-          </div>
-        </div>
-      </div>
-
       <!-- Corpo do Modal - Buscar Descrições -->
-      <div v-if="activeTab === 'descriptions'" class="modal-body">
+      <div v-if="descriptionsOnly" class="modal-body">
         <div class="description-search-section">
           <div class="section-header">
             <h3 class="section-title">BUSCAR DESCRIÇÕES</h3>
@@ -551,19 +488,13 @@
 <script lang="ts" setup>
 import { ref, watch, computed } from 'vue'
 import { ImpostoService } from '../../infrastructure/services/ImpostoService'
-import { LoadImpostosCommand } from '../../application/commands/LoadImpostosCommand'
-import { UpdateImpostosCommand } from '../../application/commands/UpdateImpostosCommand'
 import { AuthService } from '../../infrastructure/services/AuthService'
-import TaxCodeEditor from '../ui/TaxCodeEditor.vue'
 import { ChangePasswordCommand } from '../../application/commands/ChangePasswordCommand'
 import { ChangeUserNameCommand } from '../../application/commands/ChangeUserNameCommand'
 import type { ChangePasswordResult } from '../../domain/models/ChangePasswordResult'
 import type { ChangeUserNameResult } from '../../domain/models/ChangeUserNameResult'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../../stores/authStore'
-import type { TaxCodes } from '../../application/interfaces/TaxCodes'
-import type { ImpostoDto } from '../../application/dtos/ImpostoDto'
-import { notifyError } from '../../shared/composables/useToast'
 
 // Props e Emits
 const props = defineProps({
@@ -571,19 +502,16 @@ const props = defineProps({
   userData: Object as () => {
     fullName?: string;
     email?: string;
-  }
+  },
+  descriptionsOnly: {
+    type: Boolean,
+    default: false,
+  },
 })
 
-const emit = defineEmits(['close', 'save-user', 'save-account', 'delete-account'])
-
-// Constantes para impostos vinculados
-const LINKED_TAXES = {
-  INSS: 'INSS',
-  IRRF: 'IRRF'
-}
+const emit = defineEmits(['close', 'save-user', 'delete-account'])
 
 // Dados reativos
-const activeTab = ref<'user' | 'account' | 'descriptions'>('user')
 const activeUserSection = ref<'name' | 'email' | 'password'>('name')
 const editedUser = ref({
   name: props.userData?.fullName || '',
@@ -592,12 +520,7 @@ const editedUser = ref({
   confirmPassword: ''
 })
 
-// Dados para códigos de imposto
-const taxCodes = ref<TaxCodes>({})
-const originalTaxCodes = ref<TaxCodes>({})
-const taxTypes = ref<ImpostoDto[]>([])
 const isSaving = ref(false)
-const isLoading = ref(false)
 
 // Dados para usuário
 const currentPassword = ref('')
@@ -885,133 +808,6 @@ const saveDescriptionChanges = async () => {
   }
 }
 
-const loadTaxCodes = async () => {
-  try {
-    isLoading.value = true
-    const command = LoadImpostosCommand.create()
-    const result = await ImpostoService.loadImpostos(command)
-
-    if (!result.success) {
-      throw new Error(result.message)
-    }
-
-    if (result.data) {
-      taxTypes.value = result.data.impostos.filter(imposto => imposto.Code)
-
-      const codes: TaxCodes = {}
-      result.data.impostos.forEach(imposto => {
-        if (imposto.Code) {
-          codes[imposto.Code] = {
-            debito: imposto.codigoDebito?.codigo || '_',
-            credito: imposto.codigoCredito?.codigo || '_'
-          }
-        }
-      })
-
-      if (codes[LINKED_TAXES.INSS] && codes[LINKED_TAXES.IRRF]) {
-        codes[LINKED_TAXES.IRRF] = {
-          debito: codes[LINKED_TAXES.INSS].debito,
-          credito: codes[LINKED_TAXES.INSS].credito
-        }
-      }
-
-      taxCodes.value = codes
-      originalTaxCodes.value = JSON.parse(JSON.stringify(codes))
-    }
-
-  } catch (error) {
-    console.error('Erro ao carregar códigos:', error)
-    notifyError(error instanceof Error ? error.message : 'Erro ao carregar os códigos')
-  } finally {
-    isLoading.value = false
-  }
-}
-
-// Prepara os dados para envio ao backend - ENVIA AMBOS COM MESMO CÓDIGO
-const prepareChangesForSave = () => {
-  const changes: any[] = []
-  
-  taxTypes.value.forEach(imposto => {
-    if (!imposto.Code) return
-    
-    if (imposto.Code === LINKED_TAXES.IRRF) return
-    
-    changes.push({
-      ...imposto,
-      codigoDebito: { codigo: taxCodes.value[imposto.Code]?.debito || '_' },
-      codigoCredito: { codigo: taxCodes.value[imposto.Code]?.credito || '_' }
-    })
-  })
-  
-  const irrfTax = taxTypes.value.find(t => t.Code === LINKED_TAXES.IRRF)
-  const inssCode = taxCodes.value[LINKED_TAXES.INSS]
-  
-  if (irrfTax && inssCode) {
-    changes.push({
-      ...irrfTax,
-      codigoDebito: { codigo: inssCode.debito },
-      codigoCredito: { codigo: inssCode.credito }
-    })
-  }
-  
-  return changes
-}
-
-const saveAccountChanges = async () => {
-  isSaving.value = true
-  try {
-    const allChanges = prepareChangesForSave()
-    
-    const modifiedChanges = allChanges.filter(change => {
-      const original = originalTaxCodes.value[change.Code]
-      if (!original) return true
-      
-      return (
-        change.codigoDebito.codigo !== original.debito ||
-        change.codigoCredito.codigo !== original.credito
-      )
-    })
-
-    if (modifiedChanges.length === 0) {
-      showResultModal.value = true
-      resultModalTitle.value = 'NENHUMA ALTERAÇÃO'
-      resultModalMessage.value = 'Não há alterações para salvar nos códigos.'
-      return
-    }
-
-    const command = UpdateImpostosCommand.create(modifiedChanges)
-    const result = await ImpostoService.updateImpostos(command)
-
-    if (!result.success) {
-      throw new Error(result.message)
-    }
-
-    modifiedChanges.forEach(change => {
-      if (change.Code) {
-        originalTaxCodes.value[change.Code] = {
-          debito: change.codigoDebito.codigo,
-          credito: change.codigoCredito.codigo
-        }
-      }
-    })
-
-    emit('save-account', taxCodes.value)
-    
-    showResultModal.value = true
-    resultModalTitle.value = 'CÓDIGOS SALVOS'
-    resultModalMessage.value = 'Os códigos de conta foram salvos com sucesso!'
-
-  } catch (error) {
-    console.error('Erro ao salvar códigos:', error)
-    
-    showResultModal.value = true
-    resultModalTitle.value = 'ERRO AO SALVAR'
-    resultModalMessage.value = error instanceof Error ? error.message : 'Erro desconhecido ao salvar os códigos.'
-  } finally {
-    isSaving.value = false
-  }
-}
-
 // Função para trocar senha
 const changePassword = async () => {
   isSaving.value = true
@@ -1125,11 +921,8 @@ watch(() => editedUser.value.name, () => {
   nameFieldErrors.value.newFullName = ''
 })
 
-watch(() => activeTab.value, (newVal) => {
-  if (newVal === 'account') {
-    loadTaxCodes()
-  }
-  if (newVal !== 'descriptions') {
+watch(() => props.isOpen, (open) => {
+  if (!open) {
     searchCnpj.value = ''
     searchCodigoBanco.value = ''
     searchResults.value = []
@@ -1153,7 +946,7 @@ const requestConfirmation = (type: string) => {
 
 const proceedWithChange = () => {
   confirmChanges.value = false
-  if (activeTab.value === 'user') {
+  if (!props.descriptionsOnly) {
     if (changeType.value === 'password') {
       changePassword()
     } else if (changeType.value === 'name') {

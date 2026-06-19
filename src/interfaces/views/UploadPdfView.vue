@@ -1,16 +1,23 @@
 <template>
   <div class="app-container">
     <div class="user-area">
-      <div class="user-info" @click="toggleUserMenu">
-        <img :src="defaultAvatar" class="user-avatar" alt="User Avatar">
-        <span class="user-name">{{ user?.fullName || 'Rockstar User' }}</span>
+      <button
+        type="button"
+        class="user-info"
+        :aria-expanded="showUserMenu"
+        aria-haspopup="menu"
+        @click="toggleUserMenu"
+      >
+        <img :src="defaultAvatar" class="user-avatar" alt="Avatar do usuário">
+        <span class="user-name">{{ user?.fullName || 'Usuário' }}</span>
+        <span v-if="taxCodesIncomplete" class="menu-badge" title="Códigos de imposto incompletos">!</span>
         <svg class="user-dropdown-icon" viewBox="0 0 24 24" :class="{ rotated: showUserMenu }">
           <path d="M7,10L12,15L17,10H7Z" />
         </svg>
-      </div>
+      </button>
 
-      <div v-if="showUserMenu" class="user-menu">
-        <button class="user-menu-item" type="button" @click="openEditModal">
+      <div v-if="showUserMenu" class="user-menu" role="menu">
+        <button class="user-menu-item" type="button" role="menuitem" @click="openEditModal">
           <svg class="user-menu-icon" viewBox="0 0 24 24">
             <path
               d="M20.71,7.04C21.1,6.65 21.1,6 20.71,5.63L18.37,3.29C18,2.9 17.35,2.9 16.96,3.29L15.12,5.12L18.87,8.87M3,17.25V21H6.75L17.81,9.93L14.06,6.18L3,17.25Z"
@@ -18,13 +25,20 @@
           </svg>
           EDITAR PERFIL
         </button>
-        <EditEmployeeModal
-          v-if="showEditModal"
-          :is-open="showEditModal"
-          :user-data="user ?? undefined"
-          @close="closeEditModal"
-        />
-        <button class="user-menu-item" type="button" @click="handleLogout">
+        <button class="user-menu-item" type="button" role="menuitem" @click="router.push('/codigo'); showUserMenu = false">
+          <svg class="user-menu-icon" viewBox="0 0 24 24">
+            <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z" />
+          </svg>
+          CÓD.IMPOSTO
+          <span v-if="taxCodesIncomplete" class="item-badge">!</span>
+        </button>
+        <button class="user-menu-item" type="button" role="menuitem" @click="router.push('/descricoes'); showUserMenu = false">
+          <svg class="user-menu-icon" viewBox="0 0 24 24">
+            <path d="M9.5,3A6.5,6.5 0 0,1 16,9.5C16,11.11 15.41,12.59 14.44,13.73L14.71,14H15.5L20.5,19L19,20.5L14,15.5V14.71L13.73,14.44C12.59,15.41 11.11,16 9.5,16A6.5,6.5 0 0,1 3,9.5A6.5,6.5 0 0,1 9.5,3M9.5,5C7,5 5,7 5,9.5C5,12 7,14 9.5,14C12,14 14,12 14,9.5C14,7 12,5 9.5,5Z" />
+          </svg>
+          DESCRIÇÕES OFX
+        </button>
+        <button class="user-menu-item" type="button" role="menuitem" @click="handleLogout">
           <svg class="user-menu-icon" viewBox="0 0 24 24">
             <path
               d="M16,17V14H9V10H16V7L21,12L16,17M14,2A2,2 0 0,1 16,4V6H14V4H5V20H14V18H16V20A2,2 0 0,1 14,22H5A2,2 0 0,1 3,20V4A2,2 0 0,1 5,2H14Z"
@@ -39,15 +53,20 @@
       <h1 class="title">UPLOAD DE ARQUIVOS</h1>
       <p class="subtitle">UPLOAD PDF E OFX</p>
 
+      <JourneyStepper :steps="journeySteps" :current-step-id="currentJourneyStep" />
+      <OnboardingBanner />
+
       <form class="upload-form" @submit.prevent>
         <UploadDropzone
           :is-dragging="isDragging"
           :has-file="Boolean(file)"
+          :file-type-hint="fileType"
           @dragover="isDragging = true"
           @dragleave="isDragging = false"
           @drop="onDrop"
           @click="triggerFileInput"
           @change="onFileChange"
+          @validation-error="uploadResult = { success: false, message: $event }"
         />
         <input
           ref="fileInput"
@@ -58,6 +77,7 @@
         >
 
         <ProLaboreFields
+          v-if="fileType === 'PDF' || !file"
           v-model:active="proLaboreActive"
           :value="proLaboreValue"
           :year="proLaboreYear"
@@ -85,9 +105,18 @@
             <svg class="spinner" viewBox="0 0 50 50">
               <circle class="path" cx="25" cy="25" r="20" fill="none" stroke-width="5" />
             </svg>
-            PROCESSANDO...
+            {{ progressLabel }}<template v-if="jobState.elapsedSeconds > 0"> ({{ jobState.elapsedSeconds }}s)</template>
           </span>
         </div>
+
+        <button
+          v-if="classificationPaused && groupedTransactions.length > 0"
+          type="button"
+          class="upload-button secondary-action"
+          @click="resumeClassification"
+        >
+          RETOMAR CLASSIFICAÇÃO
+        </button>
 
         <button
           v-else-if="file"
@@ -115,23 +144,50 @@
               d="M13,13H11V7H13M13,17H11V15H13M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z"
             />
           </svg>
-          <p>{{ uploadResult?.message?.toUpperCase() }}</p>
+          <p>{{ successMessage }}</p>
         </div>
 
-        <button
-          v-if="uploadResult?.success"
-          type="button"
-          class="download-button"
-          :disabled="isProcessingJob"
-          @click="handleDownload"
-        >
-          <svg class="download-icon" viewBox="0 0 24 24">
-            <path d="M5,20H19V18H5M19,9H15V3H9V9H5L12,16L19,9Z" />
-          </svg>
-          BAIXAR ARQUIVO {{ fileType.toUpperCase() }}
-        </button>
+        <div v-if="uploadResult?.success" class="download-actions">
+          <button
+            type="button"
+            class="download-button"
+            :disabled="isProcessingJob"
+            @click="handleDownload($event, previewFileName)"
+          >
+            <svg class="download-icon" viewBox="0 0 24 24">
+              <path d="M5,20H19V18H5M19,9H15V3H9V9H5L12,16L19,9Z" />
+            </svg>
+            {{ downloadLabel }}
+          </button>
+          <button type="button" class="preview-button" @click="showCsvPreview = true">
+            PRÉ-VISUALIZAR
+          </button>
+        </div>
+
+        <section v-if="conversionHistory.length > 0" class="history-section">
+          <h2 class="history-title">Conversões recentes</h2>
+          <ul class="history-list">
+            <li v-for="item in conversionHistory.slice(0, 5)" :key="item.id">
+              <span>{{ item.fileName }}</span>
+              <span class="history-meta">{{ item.outputFile }} · {{ new Date(item.completedAt).toLocaleString('pt-BR') }}</span>
+            </li>
+          </ul>
+        </section>
       </form>
     </div>
+
+    <CsvPreviewModal
+      :visible="showCsvPreview"
+      :file-name="previewFileName"
+      @close="showCsvPreview = false"
+    />
+
+    <EditEmployeeModal
+      v-if="showEditModal"
+      :is-open="showEditModal"
+      :user-data="user ?? undefined"
+      @close="closeEditModal"
+    />
 
     <BankModal
       :visible="showBankDataModal"
@@ -140,6 +196,7 @@
       :cnpj="cnpj"
       :is-processing="isProcessingOfx"
       :is-form-valid="isBankFormValid"
+      :validation-errors="bankValidationErrors"
       :show-date-filter="showDateFilter"
       :date-filter="dateFilter"
       :is-date-filter-valid="isDateFilterValid"
@@ -171,6 +228,10 @@
       :value-search-results="valueSearchResults"
       :classified-count="classifiedCount"
       :pending-count="pendingCount"
+      :total-groups-count="totalGroupsCount"
+      :classification-progress-percent="classificationProgressPercent"
+      :draft-restored="draftRestored"
+      :find-first-pending-group-key="findFirstPendingGroupKey"
       :individual-transactions-count="individualTransactionsCount"
       :individual-classifications-count="individualClassificationsCount"
       :current-filter="currentFilter"
@@ -195,6 +256,7 @@
       :get-status-class="getStatusClass"
       :get-status-text="getStatusText"
       :format-currency="formatCurrency"
+      :build-transaction-payload="buildTransactionPayload"
       @close="closeClassificationModal"
       @save="saveClassification"
       @set-filter="setFilter"
@@ -213,6 +275,7 @@
       @update:batch-codes-positive="batchCodesPositive = $event"
       @update:batch-codes-negative="batchCodesNegative = $event"
       @save-individual-classification="saveIndividualClassification"
+      @remove-individual-classification="removeIndividualClassification"
       @toggle-description="toggleDescription"
       @validate-group-code="validateGroupCode"
       @handle-group-debito-focus="handleGroupDebitoFocus"
@@ -223,14 +286,20 @@
   </div>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 import { ref, computed, onMounted, defineAsyncComponent } from 'vue'
+import { useRouter } from 'vue-router'
 import { UploadCommand } from '../../application/commands/UploadCommand'
 import { UploadService } from '../../infrastructure/services/UploadService'
+import { ImpostoService } from '../../infrastructure/services/ImpostoService'
+import { LoadImpostosCommand } from '../../application/commands/LoadImpostosCommand'
 import ProLaboreFields from './upload/components/ProLaboreFields.vue'
 import UploadDropzone from './upload/components/UploadDropzone.vue'
 import BankModal from './upload/components/BankModal.vue'
 import ClassificationModal from './upload/components/ClassificationModal.vue'
+import JourneyStepper from '../ui/JourneyStepper.vue'
+import OnboardingBanner from '../ui/OnboardingBanner.vue'
+import CsvPreviewModal from '../ui/CsvPreviewModal.vue'
 import { useAuthStore } from '../../stores/authStore'
 import type { UploadResult } from '../../domain/models/UploadResult'
 import { useDateFilter } from './upload/composables/useDateFilter'
@@ -239,9 +308,19 @@ import { useUploadWorkflow } from './upload/composables/useUploadWorkflow'
 import { useClassification } from './upload/composables/useClassification'
 import { useClassificationDraft } from './upload/composables/useClassificationDraft'
 import { validateCnpj, validateBankCode } from './upload/composables/useCnpjValidation'
+import { useUnsavedWorkGuard } from '../../shared/composables/useUnsavedWorkGuard'
+import { useSessionExpiryWarning } from '../../shared/composables/useSessionExpiry'
+import { useConversionHistory } from '../../shared/composables/useConversionHistory'
+import { notifySuccess, notifyInfo } from '../../shared/composables/useToast'
+import { getDownloadButtonLabel, formatSuccessMessage } from '../../shared/utils/downloadLabels'
+import { mapApiErrorToUserMessage } from '../../shared/utils/errorMessages'
 
 const defaultAvatar = '/avatar-default.svg'
 const EditEmployeeModal = defineAsyncComponent(() => import('../modal/EditEmployeeModal.vue'))
+const router = useRouter()
+const { confirmAction } = useUnsavedWorkGuard()
+useSessionExpiryWarning()
+const { history: conversionHistory, addRecord: addConversionRecord } = useConversionHistory()
 
 interface OfxTransaction {
   descricao: string
@@ -280,8 +359,24 @@ interface Bank {
 
 const authStore = useAuthStore()
 
-onMounted(() => {
+const taxCodesIncomplete = ref(false)
+const showCsvPreview = ref(false)
+const draftRestored = ref(false)
+const classificationPaused = ref(false)
+onMounted(async () => {
   authStore.markPageReady()
+  const result = await ImpostoService.loadImpostos(new LoadImpostosCommand())
+  if (!result.success || !result.data?.taxCodes) {
+    taxCodesIncomplete.value = true
+    return
+  }
+  taxCodesIncomplete.value = !Object.values(result.data.taxCodes).some(
+    (codes) =>
+      (codes.debito ?? '').trim() !== '' &&
+      codes.debito !== '_' &&
+      (codes.credito ?? '').trim() !== '' &&
+      codes.credito !== '_'
+  )
 })
 
 const user = computed(() => authStore.user)
@@ -292,6 +387,7 @@ const fileInput = ref<HTMLInputElement | null>(null)
 const isDragging = ref(false)
 
 const openEditModal = () => {
+  showUserMenu.value = false
   showEditModal.value = true
 }
 
@@ -341,6 +437,8 @@ const {
   resetUploadState,
   handleUpload,
   handleDownload,
+  jobState,
+  progressLabel,
 } = useUploadWorkflow({
   active: proLaboreActive,
   year: proLaboreYear,
@@ -381,20 +479,36 @@ const resetWorkflowState = (options?: { preserveProLabore?: boolean }) => {
 }
 
 const onClassificationSaved = (result: UploadResult) => {
+  const outputFile =
+    result.success && 'outputFile' in result && result.outputFile ? result.outputFile : 'EXTRATO.csv'
+
+  showClassificationModal.value = false
+  classificationPaused.value = false
+  clearClassificationDraftFn()
+  resetClassificationStateFn()
+  clearDateFilter()
+  ofxResponse.value = null
+  isProcessingOfx.value = false
+
   uploadResult.value = {
     success: true,
-    message: result.message || 'Classificação salva com sucesso',
     status: 'completed',
     type: 'ofx',
-    outputFile: '',
+    outputFile,
+    message: formatSuccessMessage('Classificação salva com sucesso', outputFile),
     transacoesClassificadas: [],
   }
-  showClassificationModal.value = false
-  clearClassificationDraftFn()
-  resetWorkflowState()
-  if (fileInput.value) {
-    fileInput.value.value = ''
+
+  if (fileName.value) {
+    addConversionRecord({
+      fileName: fileName.value,
+      fileType: 'OFX',
+      outputFile,
+      status: 'completed',
+    })
   }
+
+  notifySuccess('Classificação salva. Baixe o CSV abaixo.')
 }
 
 const {
@@ -419,6 +533,9 @@ const {
   individualTransactions,
   classifiedCount,
   pendingCount,
+  totalGroupsCount,
+  classificationProgressPercent,
+  findFirstPendingGroupKey,
   individualTransactionsCount,
   individualClassificationsCount,
   searchResultsPositive,
@@ -434,6 +551,8 @@ const {
   formatCurrency,
   applyBatchClassification,
   saveIndividualClassification,
+  removeIndividualClassification,
+  buildTransactionPayload,
   toggleDescription,
   handleGroupDebitoFocus,
   handleGroupCreditoFocus,
@@ -466,6 +585,57 @@ clearClassificationDraftFn = clearClassificationDraft
 
 const isBankFormValid = computed(() => validateCnpj(cnpj.value) && validateBankCode(bankCode.value))
 
+const bankValidationErrors = computed(() => {
+  const errors: string[] = []
+  if (cnpj.value && !validateCnpj(cnpj.value)) errors.push('CNPJ deve conter 14 dígitos válidos.')
+  if (bankCode.value && !validateBankCode(bankCode.value)) errors.push('Código do banco deve ter 3 ou 4 dígitos.')
+  return errors
+})
+
+const downloadLabel = computed(() => {
+  const outputFile =
+    uploadResult.value?.success && 'outputFile' in uploadResult.value
+      ? uploadResult.value.outputFile
+      : undefined
+  return getDownloadButtonLabel(outputFile, fileType.value)
+})
+
+const successMessage = computed(() => uploadResult.value?.message ?? '')
+
+const journeySteps = computed(() => {
+  if (fileType.value === 'OFX') {
+    return [
+      { id: 'select', label: 'Selecionar arquivo' },
+      { id: 'bank', label: 'CNPJ e banco' },
+      { id: 'classify', label: 'Classificar' },
+      { id: 'download', label: 'Baixar CSV' },
+    ]
+  }
+  return [
+    { id: 'select', label: 'Selecionar arquivo' },
+    { id: 'process', label: 'Processar' },
+    { id: 'download', label: 'Baixar CSV' },
+  ]
+})
+
+const currentJourneyStep = computed(() => {
+  if (uploadResult.value?.success) return 'download'
+  if (showClassificationModal.value || classificationPaused.value) return 'classify'
+  if (showBankDataModal.value || (fileType.value === 'OFX' && file.value && !uploadResult.value)) return 'bank'
+  if (isLoading.value || isProcessingJob.value || isProcessingOfx.value) {
+    return fileType.value === 'OFX' ? 'bank' : 'process'
+  }
+  if (file.value) return fileType.value === 'OFX' ? 'bank' : 'process'
+  return 'select'
+})
+
+const previewFileName = computed(() => {
+  if (uploadResult.value?.success && 'outputFile' in uploadResult.value) {
+    return uploadResult.value.outputFile
+  }
+  return undefined
+})
+
 const onFileChange = (event: Event) => {
   const target = event.target as HTMLInputElement
   if (!target.files?.[0]) return
@@ -497,7 +667,18 @@ const clearFile = () => {
   }
 }
 
-const closeBankDataModal = () => {
+const closeBankDataModal = async () => {
+  const hasInput = cnpj.value.trim() !== '' || bankCode.value.trim() !== ''
+  if (hasInput || file.value) {
+    const confirmed = await confirmAction({
+      message: 'Deseja descartar o arquivo e as informações bancárias preenchidas?',
+      confirmLabel: 'Descartar tudo',
+    })
+    if (!confirmed) {
+      showBankDataModal.value = false
+      return
+    }
+  }
   showBankDataModal.value = false
   cnpj.value = ''
   bankCode.value = ''
@@ -505,11 +686,30 @@ const closeBankDataModal = () => {
   clearFile()
 }
 
-const closeClassificationModal = () => {
+const closeClassificationModal = async () => {
+  const hasWork = pendingCount.value > 0 || groupedTransactions.value.length > 0
+  if (hasWork) {
+    const confirmed = await confirmAction({
+      message: 'Deseja descartar a classificação em andamento? O rascunho será mantido se você apenas fechar.',
+      confirmLabel: 'Descartar tudo',
+      cancelLabel: 'Continuar depois',
+    })
+    if (!confirmed) {
+      showClassificationModal.value = false
+      classificationPaused.value = true
+      return
+    }
+  }
   showClassificationModal.value = false
+  classificationPaused.value = false
   resetClassificationState()
   clearDateFilter()
   clearFile()
+}
+
+const resumeClassification = () => {
+  classificationPaused.value = false
+  showClassificationModal.value = true
 }
 
 const proceedWithOfxProcessing = async (): Promise<void> => {
@@ -522,9 +722,13 @@ const proceedWithOfxProcessing = async (): Promise<void> => {
   if (restoreDraft()) {
     showBankDataModal.value = false
     showClassificationModal.value = true
+    draftRestored.value = true
+    notifyInfo('Rascunho restaurado — continue de onde parou.')
     isProcessingOfx.value = false
     return
   }
+
+  draftRestored.value = false
 
   const dateFilterData = dateFilter.value.isActive
     ? {
@@ -685,15 +889,26 @@ const proceedWithOfxProcessing = async (): Promise<void> => {
         success: true,
         status: 'completed',
         type: 'ofx',
-        outputFile: 'outputFile' in result && typeof result.outputFile === 'string' ? result.outputFile : '',
-        message: result.message || 'Nenhuma transação encontrada no arquivo OFX',
+        outputFile: 'outputFile' in result && typeof result.outputFile === 'string' ? result.outputFile : 'EXTRATO.csv',
+        message: formatSuccessMessage(
+          result.message || 'OFX processado com sucesso',
+          'outputFile' in result && typeof result.outputFile === 'string' ? result.outputFile : 'EXTRATO.csv'
+        ),
         transacoesClassificadas: [],
+      }
+      if (fileName.value) {
+        addConversionRecord({
+          fileName: fileName.value,
+          fileType: 'OFX',
+          outputFile: uploadResult.value.outputFile,
+          status: 'completed',
+        })
       }
       showBankDataModal.value = false
     }
   } catch (error) {
     console.error('Erro ao processar OFX:', error)
-    uploadResult.value = { success: false, message: 'Erro ao processar arquivo OFX' }
+    uploadResult.value = { success: false, message: mapApiErrorToUserMessage(error, 'Erro ao processar arquivo OFX') }
   } finally {
     isProcessingOfx.value = false
   }
@@ -946,7 +1161,7 @@ const proceedWithOfxProcessing = async (): Promise<void> => {
   border: none;
   border-radius: 4px;
   cursor: pointer;
-  font-size: 1rem;
+  font-size: 0.9rem;
   font-weight: 700;
   transition: all 0.3s ease;
   display: flex;
@@ -956,6 +1171,8 @@ const proceedWithOfxProcessing = async (): Promise<void> => {
   margin-top: 1rem;
   letter-spacing: 1px;
   text-transform: uppercase;
+  line-height: 1.2;
+  box-sizing: border-box;
 }
 
 .download-button:hover:not(:disabled) {
@@ -1067,5 +1284,186 @@ const proceedWithOfxProcessing = async (): Promise<void> => {
   width: 16px;
   height: 16px;
   fill: currentColor;
+}
+
+.menu-badge,
+.item-badge {
+  background: #ff4d4d;
+  color: #fff;
+  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.item-badge {
+  margin-left: auto;
+}
+
+.user-info {
+  border: none;
+  font: inherit;
+  color: inherit;
+}
+
+.secondary-action {
+  background: rgba(255, 255, 255, 0.12) !important;
+  color: #f9cb28 !important;
+}
+
+.download-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.download-actions .download-button,
+.download-actions .preview-button {
+  flex: 1;
+  width: auto;
+  margin-top: 0;
+  padding: 0.85rem 1rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  line-height: 1.2;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 48px;
+  box-sizing: border-box;
+  white-space: nowrap;
+}
+
+.download-actions .preview-button {
+  background: transparent;
+  color: #4caf50;
+  border: 1px solid #4caf50;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.download-actions .preview-button:hover {
+  background: rgba(76, 175, 80, 0.1);
+}
+
+@media (min-width: 640px) {
+  .download-actions {
+    flex-direction: row;
+  }
+}
+
+.preview-button {
+  width: 100%;
+  padding: 0.85rem 1rem;
+  background: transparent;
+  color: #4caf50;
+  border: 1px solid #4caf50;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  line-height: 1.2;
+  min-height: 48px;
+  box-sizing: border-box;
+}
+
+.history-section {
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid #333;
+}
+
+.history-title {
+  font-size: 0.85rem;
+  color: #aaa;
+  margin: 0 0 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.history-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.history-list li {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #222;
+  font-size: 0.85rem;
+  color: #ddd;
+}
+
+.history-meta {
+  color: #888;
+  font-size: 0.75rem;
+}
+
+@media (max-width: 768px) {
+  .app-container {
+    padding: 12px;
+    align-items: flex-start;
+    padding-top: 72px;
+  }
+
+  .user-area {
+    position: fixed;
+    top: 12px;
+    right: 12px;
+    left: 12px;
+  }
+
+  .user-info {
+    width: 100%;
+    justify-content: flex-start;
+    box-sizing: border-box;
+  }
+
+  .upload-container {
+    margin: 0;
+    padding: 1.5rem 1rem;
+    width: 100%;
+    max-width: none;
+  }
+
+  .title {
+    font-size: 1.75rem;
+    letter-spacing: 2px;
+  }
+
+  .upload-button,
+  .download-button,
+  .preview-button {
+    width: 100%;
+  }
+
+  .download-actions .download-button,
+  .download-actions .preview-button {
+    white-space: normal;
+  }
+}
+
+@media (max-width: 480px) {
+  .title {
+    font-size: 1.5rem;
+  }
+
+  .subtitle {
+    font-size: 0.85rem;
+  }
 }
 </style>

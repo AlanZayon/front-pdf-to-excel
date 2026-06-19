@@ -1,7 +1,7 @@
 <template>
     <div class="account-codes-page">
         <!-- Botão de Avançar no topo -->
-        <button @click="router.push('/')" class="advance-button">
+        <button @click="confirmAdvance" class="advance-button">
             AVANÇAR
         </button>
 
@@ -50,6 +50,17 @@
                 </span>
             </button>
         </div>
+
+        <div v-if="showSkipWarning" class="skip-warning-overlay">
+            <div class="skip-warning-dialog" role="dialog" aria-modal="true">
+                <h3>Configuração incompleta</h3>
+                <p>Sem códigos de imposto configurados, a conversão de PDFs pode falhar ou gerar CSV incompleto.</p>
+                <div class="skip-warning-actions">
+                    <button type="button" class="cancel-button" @click="showSkipWarning = false">Voltar e configurar</button>
+                    <button type="button" class="save-button" @click="advanceWithoutSaving">Avançar mesmo assim</button>
+                </div>
+            </div>
+        </div>
     </div>
 </template>
 
@@ -80,6 +91,27 @@ const originalTaxCodes = ref<TaxCodes>({});
 const taxTypes = ref<ImpostoDto[]>([]);
 const isSaving = ref(false);
 const isLoading = ref(true);
+const showSkipWarning = ref(false);
+
+const confirmAdvance = () => {
+    const hasConfiguredCodes = Object.values(taxCodes.value).some(
+        (codes) =>
+            (codes.debito ?? '').trim() !== '' &&
+            codes.debito !== '_' &&
+            (codes.credito ?? '').trim() !== '' &&
+            codes.credito !== '_'
+    );
+    if (!hasConfiguredCodes) {
+        showSkipWarning.value = true;
+        return;
+    }
+    router.push('/');
+};
+
+const advanceWithoutSaving = () => {
+    showSkipWarning.value = false;
+    router.push('/');
+};
 
 const loadTaxCodes = async () => {
     try {
@@ -661,5 +693,37 @@ const cancel = () => {
     .loading-subtext {
         font-size: 0.8rem;
     }
+}
+
+.skip-warning-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 1rem;
+}
+
+.skip-warning-dialog {
+    background: #1a1a1a;
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 1.5rem;
+    max-width: 420px;
+    color: #ddd;
+}
+
+.skip-warning-dialog h3 {
+    margin: 0 0 0.75rem;
+    color: #fff;
+}
+
+.skip-warning-actions {
+    display: flex;
+    gap: 0.75rem;
+    margin-top: 1rem;
+    flex-wrap: wrap;
 }
 </style>

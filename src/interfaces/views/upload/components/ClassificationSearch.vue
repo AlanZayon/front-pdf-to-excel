@@ -54,6 +54,10 @@ defineEmits<{
         </button>
       </div>
 
+      <p v-if="currentSearchType === 'value'" class="search-type-hint">
+        Encontre transações pelo valor exato para personalizar códigos rapidamente.
+      </p>
+
       <div class="search-container">
         <div class="search-header">
           {{ currentSearchType === 'description' ? 'PESQUISAR POR DESCRIÇÃO' : 'PESQUISAR POR VALOR' }}

@@ -1,5 +1,6 @@
 import axios from 'axios'
 import { getSessionId, resetSessionId } from './session'
+import { mapApiErrorToUserMessage } from './errorMessages'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
 
@@ -13,35 +14,7 @@ export const http = axios.create({
 })
 
 export function parseApiError(error: unknown, fallback = 'Ocorreu um erro inesperado'): string {
-  if (!axios.isAxiosError(error)) {
-    return error instanceof Error ? error.message : fallback
-  }
-
-  const data = error.response?.data as Record<string, unknown> | string | undefined
-
-  if (typeof data === 'string' && data.trim()) {
-    return data
-  }
-
-  if (data && typeof data === 'object') {
-    if (typeof data.message === 'string' && data.message.trim()) {
-      return data.message
-    }
-    if (typeof data.title === 'string' && data.title.trim()) {
-      return data.title
-    }
-    if (data.errors && typeof data.errors === 'object') {
-      const firstError = Object.values(data.errors as Record<string, unknown>)[0]
-      if (Array.isArray(firstError) && typeof firstError[0] === 'string') {
-        return firstError[0]
-      }
-      if (typeof firstError === 'string') {
-        return firstError
-      }
-    }
-  }
-
-  return fallback
+  return mapApiErrorToUserMessage(error, fallback)
 }
 
 http.interceptors.request.use((config) => {

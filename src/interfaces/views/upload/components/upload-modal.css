@@ -2703,10 +2703,252 @@ input[readonly] {
   color: white;
   padding: 2px 8px;
   border-radius: 12px;
-  font-size: 11px;
+  font-size: 0.75rem;
+  margin-top: 4px;
   font-weight: 600;
+  display: inline-block;
+}
+
+/* Individual classification card (inline UX) */
+.individual-txn-card {
+  background: rgba(30, 30, 30, 0.9);
+  border: 1px solid #444;
+  border-radius: 8px;
+  padding: 0.75rem;
+  margin-bottom: 0.65rem;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.individual-txn-card:last-child {
+  margin-bottom: 0;
+}
+
+.individual-txn-card.is-individual {
+  border-color: rgba(249, 203, 40, 0.6);
+  border-left: 3px solid #f9cb28;
+  background: rgba(50, 45, 25, 0.35);
+}
+
+.individual-txn-card.is-editing {
+  border-color: #f9cb28;
+  box-shadow: 0 0 0 1px rgba(249, 203, 40, 0.25);
+}
+
+.individual-txn-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+}
+
+.individual-txn-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  min-width: 140px;
+}
+
+.individual-txn-date {
+  font-size: 0.8rem;
+  color: #f9cb28;
+  font-weight: 600;
+  background: rgba(249, 203, 40, 0.1);
+  padding: 0.2rem 0.45rem;
+  border-radius: 4px;
+}
+
+.individual-txn-value {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.05rem;
+  letter-spacing: 0.5px;
+}
+
+.individual-txn-value.positive {
+  color: #4caf50;
+}
+
+.individual-txn-value.negative {
+  color: #ff4d4d;
+}
+
+.individual-txn-status {
+  flex: 1;
+  min-width: 180px;
+}
+
+.status-chip {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  line-height: 1.3;
+}
+
+.status-chip.inherited {
+  background: rgba(255, 255, 255, 0.06);
+  color: #aaa;
+  border: 1px dashed #555;
+}
+
+.status-chip.individual {
+  background: rgba(249, 203, 40, 0.15);
+  color: #f9cb28;
+  border: 1px solid rgba(249, 203, 40, 0.35);
+}
+
+.individual-txn-actions {
+  display: flex;
+  gap: 0.4rem;
+  margin-left: auto;
+}
+
+.individual-action-btn {
+  background: transparent;
+  border: 1px solid #555;
+  color: #ddd;
+  padding: 0.35rem 0.65rem;
+  border-radius: 4px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  transition: all 0.2s ease;
+}
+
+.individual-action-btn:hover {
+  border-color: #f9cb28;
+  color: #f9cb28;
+}
+
+.individual-action-btn.primary {
+  background: rgba(249, 203, 40, 0.12);
+  border-color: #f9cb28;
+  color: #f9cb28;
+}
+
+.individual-action-btn.danger {
+  border-color: #666;
+  color: #aaa;
+}
+
+.individual-action-btn.danger:hover {
+  border-color: #ff4d4d;
+  color: #ff4d4d;
+}
+
+.individual-txn-description {
+  margin: 0.5rem 0 0;
+  font-size: 0.82rem;
+  color: #ccc;
+  font-weight: 600;
+}
+
+.individual-txn-form {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px dashed #444;
+}
+
+.individual-form-hint {
+  margin: 0 0 0.65rem;
+  font-size: 0.78rem;
+  color: #aaa;
+  line-height: 1.4;
+}
+
+.individual-form-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  align-self: end;
+}
+
+.cancel-individual-button {
+  background: transparent;
+  border: 1px solid #555;
+  color: #aaa;
+  padding: 0.4rem 0.75rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.cancel-individual-button:hover {
+  border-color: #888;
+  color: #fff;
+}
+
+.field-hint {
+  font-size: 0.7rem;
+  color: #777;
+  font-style: italic;
+}
+
+.individual-section-header {
+  padding: 0.65rem 1rem 0.35rem;
+  border-bottom: 1px solid #333;
+}
+
+.individual-section-header strong {
+  display: block;
+  color: #f9cb28;
+  font-size: 0.85rem;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  margin-bottom: 0.25rem;
+}
+
+.individual-section-header p {
+  margin: 0;
+  font-size: 0.78rem;
+  color: #aaa;
+  line-height: 1.35;
+}
+
+.expand-hint {
+  font-size: 0.68rem;
+  color: #888;
+  font-style: italic;
+  margin-right: 0.35rem;
+}
+
+.search-type-hint {
+  margin: 0 0 0.75rem;
+  font-size: 0.78rem;
+  color: #aaa;
+  line-height: 1.35;
+}
+
+.no-transactions.individual-empty {
+  text-align: center;
+  padding: 1.5rem 1rem;
+}
+
+.no-transactions.individual-empty .empty-hint {
+  margin-top: 0.5rem;
+  font-size: 0.85rem;
+  color: #888;
+  line-height: 1.45;
+}
+
+@media (max-width: 768px) {
+  .individual-txn-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .individual-txn-actions {
+    margin-left: 0;
+    width: 100%;
+  }
+
+  .individual-action-btn {
+    flex: 1;
+    text-align: center;
+  }
 }
 
 /* Ajustes para grupos com transação única */

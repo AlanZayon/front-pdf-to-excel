@@ -45,6 +45,7 @@ export function groupTransactionsByDescription(
 
         const transKey = createTransactionKey(descricao, data, valor)
         const hasIndividual = individualClassifications.has(transKey)
+        const individualData = individualClassifications.get(transKey)
 
         group.transacoesDetalhadas.push({
           descricao,
@@ -53,8 +54,8 @@ export function groupTransactionsByDescription(
           transactionKey: transKey,
           hasIndividualClassification: hasIndividual,
           isClassificacaoIndividual: hasIndividual,
-          codigoDebito: transaction.codigosDebito?.[index] || '',
-          codigoCredito: transaction.codigosCredito?.[index] || '',
+          codigoDebito: individualData?.codigoDebito || transaction.codigosDebito?.[index] || '',
+          codigoCredito: individualData?.codigoCredito || transaction.codigosCredito?.[index] || '',
           codigoBanco: transaction.codigosBanco?.[0] || '',
           tipo
         })
@@ -69,6 +70,7 @@ export function groupTransactionsByDescription(
 
       const transKey = createTransactionKey(descricao, transaction.data, transaction.valor)
       const hasIndividual = individualClassifications.has(transKey)
+      const individualData = individualClassifications.get(transKey)
 
       group.transacoesDetalhadas.push({
         descricao,
@@ -77,8 +79,8 @@ export function groupTransactionsByDescription(
         transactionKey: transKey,
         hasIndividualClassification: hasIndividual,
         isClassificacaoIndividual: hasIndividual,
-        codigoDebito: transaction.codigoDebito || '',
-        codigoCredito: transaction.codigoCredito || '',
+        codigoDebito: individualData?.codigoDebito || transaction.codigoDebito || '',
+        codigoCredito: individualData?.codigoCredito || transaction.codigoCredito || '',
         codigoBanco: transaction.codigoBanco || '',
         tipo
       })

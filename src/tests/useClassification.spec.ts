@@ -94,4 +94,50 @@ describe('useClassification', () => {
 
     expect(classification.shouldFilterOut(pending)).toBe(false)
   })
+
+  it('saves and removes individual classification', () => {
+    const classification = useClassification({
+      ofxResponse: ref(null),
+      cnpjFormatted: ref('12345678000199'),
+      dateFilter: ref({ startDate: '', endDate: '', isActive: false }),
+      filterTransactionsByDate: (items) => items,
+      onSaved: () => undefined,
+    })
+
+    const group = {
+      descricao: 'PIX',
+      codigoDebito: '1111',
+      codigoCredito: '2222',
+      transacoesDetalhadas: [
+        {
+          data: '01/01/2025',
+          valor: -50,
+          transactionKey: 'PIX|01/01/2025|-50',
+          hasIndividualClassification: false,
+          isClassificacaoIndividual: false,
+        },
+      ],
+    }
+
+    classification.groupedTransactions.value = [group]
+
+    classification.saveIndividualClassification({
+      transactionKey: 'PIX|01/01/2025|-50',
+      descricao: 'PIX',
+      data: '01/01/2025',
+      valor: -50,
+      codigoDebito: '3333',
+      codigoCredito: '4444',
+      groupRef: group,
+    })
+
+    expect(classification.individualClassifications.value.has('PIX|01/01/2025|-50')).toBe(true)
+    expect(group.transacoesDetalhadas[0].hasIndividualClassification).toBe(true)
+    expect((group.transacoesDetalhadas[0] as any).codigoDebito).toBe('3333')
+
+    classification.removeIndividualClassification('PIX|01/01/2025|-50')
+
+    expect(classification.individualClassifications.value.has('PIX|01/01/2025|-50')).toBe(false)
+    expect(group.transacoesDetalhadas[0].hasIndividualClassification).toBe(false)
+  })
 })

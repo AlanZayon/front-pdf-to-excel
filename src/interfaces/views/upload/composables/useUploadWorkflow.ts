@@ -4,6 +4,8 @@ import { UploadService } from '../../../../infrastructure/services/UploadService
 import { FileDownloadService } from '../../../../infrastructure/services/FileDownloadService'
 import type { UploadResult } from '../../../../domain/models/UploadResult'
 import { isValidFileType, getFileTypeLabel } from './useTransactionGroups'
+import { mapJobFailureMessage } from '../../../../shared/utils/errorMessages'
+import { useJobProgress } from '../../../../shared/composables/useJobProgress'
 
 type ProLaboreConfig = {
   active: Ref<boolean>
@@ -15,6 +17,9 @@ type ProLaboreConfig = {
 }
 
 export function useUploadWorkflow(proLabore: ProLaboreConfig) {
+  const { jobState, progressLabel, startTracking, updateFromStatus, stopTracking, reset: resetJobProgress } =
+    useJobProgress()
+
   const file = ref<File | null>(null)
   const fileName = ref<string | null>(null)
   const fileType = ref<string>('')
@@ -37,6 +42,7 @@ export function useUploadWorkflow(proLabore: ProLaboreConfig) {
     isProcessingJob.value = false
     showBankDataModal.value = false
     currentJobId.value = null
+    resetJobProgress()
     if (!options?.preserveProLabore) {
       proLabore.resetProLabore()
     }
@@ -57,8 +63,11 @@ export function useUploadWorkflow(proLabore: ProLaboreConfig) {
 
   const pollJobUntilComplete = async (jobId: string): Promise<boolean> => {
     isProcessingJob.value = true
-    const status = await UploadService.pollJobUntilComplete(jobId)
+    startTracking('Pending')
+
+    const status = await UploadService.pollJobUntilComplete(jobId, undefined, undefined, updateFromStatus)
     isProcessingJob.value = false
+    stopTracking()
 
     if (!status) {
       uploadResult.value = {
@@ -71,7 +80,7 @@ export function useUploadWorkflow(proLabore: ProLaboreConfig) {
     if (status.state === 'Failed') {
       uploadResult.value = {
         success: false,
-        message: status.message || 'Erro ao processar arquivo',
+        message: mapJobFailureMessage(status.message),
       }
       return false
     }
@@ -121,18 +130,24 @@ export function useUploadWorkflow(proLabore: ProLaboreConfig) {
     }
   }
 
-  const handleDownload = async (event?: Event) => {
+  const handleDownload = async (event?: Event, outputFile?: string) => {
     event?.preventDefault()
 
+    const resolvedOutput =
+      outputFile ||
+      (uploadResult.value?.success && 'outputFile' in uploadResult.value
+        ? uploadResult.value.outputFile
+        : undefined)
+
     try {
-      await FileDownloadService.execute()
+      await FileDownloadService.execute(resolvedOutput)
       FileDownloadService.resetSessionId()
       resetUploadState({ preserveProLabore: true })
       return true
     } catch {
       uploadResult.value = {
         success: false,
-        message: 'Erro ao baixar arquivo',
+        message: 'Erro ao baixar CSV. Tente novamente.',
       }
       return false
     }
@@ -153,5 +168,7 @@ export function useUploadWorkflow(proLabore: ProLaboreConfig) {
     handleUpload,
     handleDownload,
     pollJobUntilComplete,
+    jobState,
+    progressLabel,
   }
 }

@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { computed } from 'vue'
+import IndividualClassificationCard from './IndividualClassificationCard.vue'
 
 const props = defineProps<{
   group: any
@@ -13,6 +14,7 @@ const props = defineProps<{
   getStatusClass: (group: any) => string
   getStatusText: (group: any) => string
   formatCurrency: (value: number) => string
+  buildTransactionPayload: (transacao: any, group: any) => any
 }>()
 
 defineEmits<{
@@ -20,7 +22,11 @@ defineEmits<{
   validate: [group: any, type: 'debito' | 'credito']
   debitoFocus: [group: any, event: FocusEvent]
   creditoFocus: [group: any, event: FocusEvent]
+  saveIndividual: [payload: any]
+  removeIndividual: [transactionKey: string]
 }>()
+
+const hasMultipleTransactions = computed(() => props.group.transacoesDetalhadas.length > 1)
 
 const hasSingleIndividualClassification = computed(
   () =>
@@ -77,7 +83,7 @@ const isCreditoReadonly = computed(() => {
       <div class="single-transaction-description">{{ group.descricao }}</div>
       <div class="transaction-count-badge">{{ group.transacoesDetalhadas.length }} transação(ões)</div>
       <div v-if="hasIndividualClassifications(group)" class="individual-count-badge-single">
-        {{ getIndividualClassificationCount(group) }} individual(is)
+        {{ getIndividualClassificationCount(group) }} personalizada(s)
       </div>
     </div>
 
@@ -88,11 +94,12 @@ const isCreditoReadonly = computed(() => {
           {{ group.transacoesDetalhadas.length }} transação(ões)
         </span>
         <span v-if="hasIndividualClassifications(group)" class="individual-count-badge">
-          {{ getIndividualClassificationCount(group) }} individual(is)
+          {{ getIndividualClassificationCount(group) }} personalizada(s)
         </span>
       </div>
       <div class="description-controls">
         <div class="description-status" :class="getStatusClass(group)">{{ getStatusText(group) }}</div>
+        <span v-if="!group.expanded && hasMultipleTransactions" class="expand-hint">Clique para personalizar transações</span>
         <svg class="description-arrow" :class="{ rotated: group.expanded }" viewBox="0 0 24 24">
           <path d="M7,10L12,15L17,10H7Z" />
         </svg>
@@ -129,25 +136,22 @@ const isCreditoReadonly = computed(() => {
       </div>
     </div>
 
-    <div v-if="group.expanded && group.transacoesDetalhadas.length > 1" class="transactions-details">
+    <div v-if="group.expanded && hasMultipleTransactions" class="transactions-details">
+      <div class="individual-section-header">
+        <strong>Personalizar transações</strong>
+        <p>Alguma transação precisa de código diferente? Use <em>Personalizar</em> na linha desejada.</p>
+      </div>
       <div class="transactions-list scrollable">
-        <div
+        <IndividualClassificationCard
           v-for="(transacao, i) in group.transacoesDetalhadas"
-          :key="i"
-          class="transaction-detail"
-          :class="{ 'has-individual-class': transacao.hasIndividualClassification }"
-        >
-          <span class="transaction-date">{{ transacao.data }}</span>
-          <span v-if="transacao.hasIndividualClassification" class="individual-marker">
-            ⚠️ Classificação Individual
-          </span>
-          <span
-            class="transaction-value"
-            :class="{ negative: transacao.valor < 0, positive: transacao.valor >= 0 }"
-          >
-            {{ formatCurrency(transacao.valor) }}
-          </span>
-        </div>
+          :key="transacao.transactionKey || i"
+          :transaction="buildTransactionPayload(transacao, group)"
+          :group="group"
+          :selected-bank-code="selectedBankCode"
+          :format-currency="formatCurrency"
+          @save="$emit('saveIndividual', $event)"
+          @remove="$emit('removeIndividual', $event)"
+        />
       </div>
     </div>
   </div>

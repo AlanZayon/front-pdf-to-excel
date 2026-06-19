@@ -35,6 +35,12 @@ const router = createRouter({
       meta: { requiresGuest: true }
     },
     {
+      path: '/descricoes',
+      name: 'descricoes',
+      component: () => import('../interfaces/views/DescricoesOfx.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
       path: '/reset-password',
       name: 'resetPassword',
       component: () => import('../interfaces/views/ResetPassword.vue'),

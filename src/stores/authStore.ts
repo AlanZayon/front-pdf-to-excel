@@ -5,6 +5,7 @@ import { LoginCommand } from '../application/commands/LoginCommand'
 import { LoadImpostosCommand } from '../application/commands/LoadImpostosCommand'
 import { ImpostoService } from '../infrastructure/services/ImpostoService'
 import { useRouter } from 'vue-router'
+import { setSessionExpiration, clearSessionExpiration } from '../shared/composables/useSessionExpiry'
 
 // Tipos para os erros de campo
 interface FieldErrors {
@@ -90,6 +91,9 @@ export const useAuthStore = defineStore('auth', () => {
                 state.value.user = result.user
                 state.value.isAuthenticated = true
                 state.value.authChecked = true
+                if (result.expiration) {
+                    setSessionExpiration(result.expiration)
+                }
                 const redirectTo = await resolvePostLoginRoute()
                 await router.push(redirectTo)
             } else {
@@ -122,6 +126,7 @@ export const useAuthStore = defineStore('auth', () => {
             if (result.success) {
                 state.value.user = null
                 state.value.isAuthenticated = false
+                clearSessionExpiration()
                 await router.push('/access')
             } else {
                 state.value.error = result.message || 'Erro ao fazer logout'

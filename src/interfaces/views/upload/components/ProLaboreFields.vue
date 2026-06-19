@@ -20,12 +20,13 @@ defineEmits<{
           type="checkbox"
           class="toggle-checkbox"
           :checked="active"
+          :aria-checked="active"
           @change="$emit('update:active', ($event.target as HTMLInputElement).checked)"
         >
         <span class="toggle-switch"></span>
         <span class="toggle-text">INCLUIR PRO LABORE</span>
       </label>
-      <p v-if="active" class="prolabore-info">Ano fixo: {{ year }}</p>
+      <p v-if="active" class="prolabore-info">Ano fixo: {{ year }} · Códigos contábeis: débito 188 / crédito 5</p>
     </div>
 
     <div v-if="active" class="prolabore-value-field">

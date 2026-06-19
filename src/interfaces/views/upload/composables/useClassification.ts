@@ -180,6 +180,20 @@ export function useClassification(options: {
 
   const pendingCount = computed(() => groupedTransactions.value.length - classifiedCount.value)
 
+  const totalGroupsCount = computed(() => groupedTransactions.value.length)
+
+  const classificationProgressPercent = computed(() => {
+    const total = totalGroupsCount.value
+    if (total === 0) return 0
+    return Math.round((classifiedCount.value / total) * 100)
+  })
+
+  const findFirstPendingGroupKey = (): string | null => {
+    const groups = groupedTransactions.value.filter((group) => !isDescriptionClassified(group))
+    if (groups.length === 0) return null
+    return groups[0].descricao
+  }
+
   const individualTransactionsCount = computed(() => {
     let count = 0
     groupedTransactions.value.forEach((group) => {
@@ -368,23 +382,23 @@ export function useClassification(options: {
     )
   }
 
-  const saveIndividualClassification = (result: any) => {
-    if (!result.codigoDebito || !result.codigoCredito) {
-      notifyError('Por favor, preencha ambos os códigos')
-      return
+  const validateIndividualCodes = (codigoDebito: string, codigoCredito: string) => {
+    if (!codigoDebito?.trim() || !codigoCredito?.trim()) {
+      notifyError('Preencha os códigos de débito e crédito.')
+      return false
     }
+    if (!/^\d+$/.test(codigoDebito.trim()) || !/^\d+$/.test(codigoCredito.trim())) {
+      notifyError('Os códigos devem conter apenas números.')
+      return false
+    }
+    return true
+  }
 
-    individualClassifications.value.set(result.transactionKey, {
-      codigoDebito: result.codigoDebito,
-      codigoCredito: result.codigoCredito,
-      descricao: result.descricao,
-      data: result.data,
-      valor: result.valor,
-      isClassificacaoIndividual: true,
-    })
-
+  const syncIndividualToTransaction = (result: any) => {
     result.hasIndividualClassification = true
     result.isClassificacaoIndividual = true
+    result.codigoDebito = result.codigoDebito.trim()
+    result.codigoCredito = result.codigoCredito.trim()
 
     const group = result.groupRef
     if (group?.transacoesDetalhadas) {
@@ -392,11 +406,74 @@ export function useClassification(options: {
       if (transacao) {
         transacao.hasIndividualClassification = true
         transacao.isClassificacaoIndividual = true
+        transacao.codigoDebito = result.codigoDebito
+        transacao.codigoCredito = result.codigoCredito
       }
     }
 
-    notifySuccess('Classificação individual salva com sucesso!')
+    valueSearchResults.value.forEach((searchResult) => {
+      if (searchResult.transactionKey === result.transactionKey) {
+        searchResult.hasIndividualClassification = true
+        searchResult.isClassificacaoIndividual = true
+        searchResult.codigoDebito = result.codigoDebito
+        searchResult.codigoCredito = result.codigoCredito
+      }
+    })
   }
+
+  const saveIndividualClassification = (result: any) => {
+    if (!validateIndividualCodes(result.codigoDebito, result.codigoCredito)) return
+
+    individualClassifications.value.set(result.transactionKey, {
+      codigoDebito: result.codigoDebito.trim(),
+      codigoCredito: result.codigoCredito.trim(),
+      descricao: result.descricao,
+      data: result.data,
+      valor: result.valor,
+      isClassificacaoIndividual: true,
+    })
+
+    syncIndividualToTransaction(result)
+    notifySuccess('Código personalizado aplicado a esta transação.')
+  }
+
+  const removeIndividualClassification = (transactionKey: string) => {
+    individualClassifications.value.delete(transactionKey)
+
+    groupedTransactions.value.forEach((group) => {
+      group.transacoesDetalhadas.forEach((transacao: any) => {
+        if (transacao.transactionKey === transactionKey) {
+          transacao.hasIndividualClassification = false
+          transacao.isClassificacaoIndividual = false
+          transacao.codigoDebito = ''
+          transacao.codigoCredito = ''
+        }
+      })
+    })
+
+    valueSearchResults.value.forEach((searchResult) => {
+      if (searchResult.transactionKey === transactionKey) {
+        searchResult.hasIndividualClassification = false
+        searchResult.isClassificacaoIndividual = false
+        searchResult.codigoDebito = ''
+        searchResult.codigoCredito = ''
+      }
+    })
+
+    notifySuccess('Transação voltou a usar o código do grupo.')
+  }
+
+  const buildTransactionPayload = (transacao: any, group: any) => ({
+    transactionKey: transacao.transactionKey,
+    descricao: group.descricao,
+    data: transacao.data,
+    valor: transacao.valor,
+    codigoDebito: transacao.codigoDebito || '',
+    codigoCredito: transacao.codigoCredito || '',
+    hasIndividualClassification: transacao.hasIndividualClassification,
+    isClassificacaoIndividual: transacao.isClassificacaoIndividual,
+    groupRef: group,
+  })
 
   const applyBankCodeToGroups = () => {
     if (!selectedBankCode.value) return
@@ -416,6 +493,14 @@ export function useClassification(options: {
   const toggleDescription = (group: any) => {
     group.expanded = !group.expanded
   }
+
+  watch(currentFilter, (filter) => {
+    if (filter === 'individual') {
+      groupedTransactions.value.forEach((group) => {
+        if (hasIndividualClassifications(group)) group.expanded = true
+      })
+    }
+  })
 
   const handleGroupDebitoFocus = (group: any, event: FocusEvent) => {
     if (group.debitoLocked || (selectedBankCode.value !== '' && group.total >= 0)) {
@@ -505,13 +590,16 @@ export function useClassification(options: {
       : groupedTransactions.value
 
     visibleGroups.forEach((group) => {
-      const debitoValid = group.debitoTouched ? validateGroupCode(group, 'debito') : true
-      const creditoValid = group.creditoTouched ? validateGroupCode(group, 'credito') : true
+      if (group.transacoesDetalhadas.length === 1 && group.transacoesDetalhadas[0].hasIndividualClassification) {
+        return
+      }
+      const debitoValid = validateGroupCode(group, 'debito')
+      const creditoValid = validateGroupCode(group, 'credito')
       if (!debitoValid || !creditoValid) isValid = false
     })
 
-    if (!isValid) {
-      notifyError('Por favor, corrija os erros antes de salvar.')
+    if (!isValid || !isFormValid.value) {
+      notifyError('Por favor, classifique todas as descrições pendentes antes de salvar.')
       return
     }
 
@@ -521,9 +609,9 @@ export function useClassification(options: {
       descricao: string
       data: string
       valor: number
-      codigoDebito: string
-      codigoCredito: string
-      codigoBanco: string
+      codigoDebito: number
+      codigoCredito: number
+      codigoBanco: number
       isClassificacaoIndividual: boolean
     }> = []
 
@@ -537,9 +625,9 @@ export function useClassification(options: {
           descricao: group.descricao,
           data: transacao.data,
           valor: transacao.valor,
-          codigoDebito: individualClass?.codigoDebito || group.codigoDebito,
-          codigoCredito: individualClass?.codigoCredito || group.codigoCredito,
-          codigoBanco: group.codigosBanco?.[0],
+          codigoDebito: parseInt(individualClass?.codigoDebito || group.codigoDebito, 10) || 0,
+          codigoCredito: parseInt(individualClass?.codigoCredito || group.codigoCredito, 10) || 0,
+          codigoBanco: parseInt(String(group.codigosBanco?.[0] ?? ''), 10) || 0,
           isClassificacaoIndividual: isIndividual,
         })
       })
@@ -716,6 +804,9 @@ export function useClassification(options: {
     individualTransactions,
     classifiedCount,
     pendingCount,
+    totalGroupsCount,
+    classificationProgressPercent,
+    findFirstPendingGroupKey,
     individualTransactionsCount,
     individualClassificationsCount,
     searchResultsPositive,
@@ -731,6 +822,8 @@ export function useClassification(options: {
     formatCurrency,
     applyBatchClassification,
     saveIndividualClassification,
+    removeIndividualClassification,
+    buildTransactionPayload,
     toggleDescription,
     handleGroupDebitoFocus,
     handleGroupCreditoFocus,

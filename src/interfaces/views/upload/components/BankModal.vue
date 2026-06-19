@@ -8,6 +8,7 @@ defineProps<{
   cnpj: string
   isProcessing: boolean
   isFormValid: boolean
+  validationErrors?: string[]
   showDateFilter: boolean
   dateFilter: { startDate: string; endDate: string; isActive: boolean }
   isDateFilterValid: boolean
@@ -29,11 +30,11 @@ defineSlots<{
 </script>
 
 <template>
-  <div v-if="visible" class="modal-overlay" @click.self="$emit('close')">
-    <div class="bank-data-modal">
+  <div v-if="visible" class="modal-overlay" role="presentation" @click.self="$emit('close')">
+    <div class="bank-data-modal" role="dialog" aria-modal="true" aria-labelledby="bank-modal-title">
       <div class="modal-header">
-        <h2>INFORMAÇÕES BANCÁRIAS</h2>
-        <button class="close-button" type="button" @click="$emit('close')">
+        <h2 id="bank-modal-title">INFORMAÇÕES BANCÁRIAS</h2>
+        <button class="close-button" type="button" aria-label="Fechar modal" @click="$emit('close')">
           <svg viewBox="0 0 24 24" width="24" height="24">
             <path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z" />
           </svg>
@@ -72,13 +73,17 @@ defineSlots<{
           </div>
         </div>
 
+        <ul v-if="validationErrors?.length" class="validation-errors" role="alert">
+          <li v-for="(error, index) in validationErrors" :key="index">{{ error }}</li>
+        </ul>
+
         <div class="date-filter-section">
-          <div class="filter-toggle-header" @click="$emit('toggleDateFilter')">
+          <button type="button" class="filter-toggle-header" @click="$emit('toggleDateFilter')">
             <h3>FILTRAR POR PERÍODO</h3>
             <svg class="filter-toggle-icon" :class="{ rotated: showDateFilter }" viewBox="0 0 24 24">
               <path d="M7,10L12,15L17,10H7Z" />
             </svg>
-          </div>
+          </button>
           <div v-if="showDateFilter" class="date-filter-controls">
             <div class="date-input-group">
               <label>Data Inicial:</label>
@@ -277,6 +282,10 @@ defineSlots<{
 
 .filter-toggle-header {
   display: flex;
+  width: 100%;
+  border: none;
+  font: inherit;
+  text-align: left;
   justify-content: space-between;
   align-items: center;
   cursor: pointer;
@@ -286,6 +295,17 @@ defineSlots<{
   border: 1px solid #333;
   margin-bottom: 8px;
   transition: all 0.3s ease;
+}
+
+.validation-errors {
+  list-style: none;
+  margin: 0 0 1rem;
+  padding: 0.75rem;
+  background: rgba(255, 77, 77, 0.1);
+  border: 1px solid rgba(255, 77, 77, 0.4);
+  border-radius: 4px;
+  color: #ff4d4d;
+  font-size: 0.85rem;
 }
 
 .filter-toggle-header:hover {

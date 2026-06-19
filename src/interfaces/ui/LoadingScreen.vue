@@ -3,7 +3,7 @@ defineProps<{ visible: boolean }>()
 </script>
 
 <template>
-  <div v-if="visible" class="loading-container">
+  <div v-if="visible" class="loading-container" aria-busy="true" role="alert" aria-live="assertive">
     <div class="loading-card">
       <div class="loading-content">
         <div class="spinner-container">

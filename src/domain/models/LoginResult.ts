@@ -6,6 +6,7 @@ export interface LoginResult {
     fullName: string;
     roles: string[];
   };
+  expiration?: string;
   errors?: Record<string, string[]>;
   fieldErrors?: {
     email?: string[];

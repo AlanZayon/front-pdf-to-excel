@@ -67,6 +67,7 @@ export class AuthService {
         success: true,
         message: 'Login realizado com sucesso',
         user: normalizeAuthUser(response.data.data),
+        expiration: String(response.data.data?.expiration ?? response.data.data?.Expiration ?? ''),
       };
     } catch (error: any) {
       logger.error('Erro no login', error);
