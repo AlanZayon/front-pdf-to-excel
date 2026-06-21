@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { isValidFileType } from '../composables/useTransactionGroups'
+import { MAX_FILES_PER_UPLOAD } from '../composables/useJobQueue'
 
 const MAX_FILE_SIZE_BYTES = 100 * 1024 * 1024
 
@@ -18,30 +19,40 @@ const emit = defineEmits<{
   validationError: [message: string]
 }>()
 
-function validateAndEmit(event: Event, file: File | undefined) {
-  if (!file) return
+function onChange(event: Event) {
+  const target = event.target as HTMLInputElement
+  const files = target.files ? Array.from(target.files) : []
+  if (files.length === 0) return
 
-  if (!isValidFileType(file)) {
-    emit('validationError', 'Tipo de arquivo inválido. Use PDF ou OFX.')
+  if (files.length > MAX_FILES_PER_UPLOAD) {
+    emit('validationError', `Selecione no máximo ${MAX_FILES_PER_UPLOAD} arquivos por vez (PDF ou OFX).`)
     return
   }
 
-  if (file.size > MAX_FILE_SIZE_BYTES) {
-    emit('validationError', 'Arquivo excede o tamanho máximo permitido (100 MB).')
-    return
+  for (const file of files) {
+    if (!isValidFileType(file)) {
+      emit('validationError', 'Tipo de arquivo inválido. Use PDF ou OFX.')
+      return
+    }
+    if (file.size > MAX_FILE_SIZE_BYTES) {
+      emit('validationError', 'Arquivo excede o tamanho máximo permitido (100 MB).')
+      return
+    }
   }
 
   emit('change', event)
 }
 
-function onChange(event: Event) {
-  const target = event.target as HTMLInputElement
-  validateAndEmit(event, target.files?.[0])
-}
-
 function onDrop(event: DragEvent) {
-  const file = event.dataTransfer?.files?.[0]
-  if (file) {
+  const files = event.dataTransfer?.files ? Array.from(event.dataTransfer.files) : []
+  if (files.length === 0) return
+
+  if (files.length > MAX_FILES_PER_UPLOAD) {
+    emit('validationError', `Selecione no máximo ${MAX_FILES_PER_UPLOAD} arquivos por vez (PDF ou OFX).`)
+    return
+  }
+
+  for (const file of files) {
     if (!isValidFileType(file)) {
       emit('validationError', 'Tipo de arquivo inválido. Use PDF ou OFX.')
       return
@@ -69,7 +80,7 @@ function onDrop(event: DragEvent) {
         <path d="M19,13H13V19H11V13H5V11H13V5H13V11H19V13Z" />
       </svg>
       <p class="drop-text">ARRASTE E SOLTE SEU ARQUIVO AQUI</p>
-      <p class="drop-subtext">ou clique para selecionar (PDF ou OFX, máx. 100 MB)</p>
+      <p class="drop-subtext">ou clique para selecionar arquivos (PDF ou OFX, máx. 100 MB, até {{ MAX_FILES_PER_UPLOAD }} por vez)</p>
       <p v-if="fileTypeHint === 'OFX'" class="drop-hint">
         Para OFX, você precisará informar CNPJ e código do banco.
       </p>
@@ -77,6 +88,7 @@ function onDrop(event: DragEvent) {
     <input
       type="file"
       accept=".pdf,.ofx,application/pdf,application/x-ofx"
+      multiple
       class="hidden-input"
       @change="onChange"
     >

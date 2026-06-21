@@ -9,7 +9,7 @@ import { useJobProgress } from '../../../../shared/composables/useJobProgress'
 
 type ProLaboreConfig = {
   active: Ref<boolean>
-  year: number
+  year: Ref<number>
   parsedValue: Ref<number | null>
   isValid: Ref<boolean>
   resetProLabore: () => void
@@ -89,7 +89,7 @@ export function useUploadWorkflow(proLabore: ProLaboreConfig) {
     return true
   }
 
-  const handleUpload = async (): Promise<'pdf_done' | 'ofx_bank_modal' | 'error'> => {
+  const handleUpload = async (options?: { clienteId?: number | null }): Promise<'pdf_done' | 'ofx_bank_modal' | 'error'> => {
     if (!file.value || !canProcessFile.value) return 'error'
 
     isLoading.value = true
@@ -103,8 +103,9 @@ export function useUploadWorkflow(proLabore: ProLaboreConfig) {
           '',
           undefined,
           proLabore.active.value
-            ? { ano: proLabore.year, valor: proLabore.parsedValue.value }
-            : undefined
+            ? { ano: proLabore.year.value, valor: proLabore.parsedValue.value }
+            : undefined,
+          options?.clienteId ?? null
         )
         const result = await UploadService.execute(command)
 
@@ -130,7 +131,14 @@ export function useUploadWorkflow(proLabore: ProLaboreConfig) {
     }
   }
 
-  const handleDownload = async (event?: Event, outputFile?: string) => {
+  const resolveDownloadJobId = (jobId?: string) =>
+    jobId ??
+    currentJobId.value ??
+    (uploadResult.value?.success && 'jobId' in uploadResult.value
+      ? uploadResult.value.jobId
+      : undefined)
+
+  const handleDownload = async (event?: Event, outputFile?: string, jobId?: string) => {
     event?.preventDefault()
 
     const resolvedOutput =
@@ -138,10 +146,13 @@ export function useUploadWorkflow(proLabore: ProLaboreConfig) {
       (uploadResult.value?.success && 'outputFile' in uploadResult.value
         ? uploadResult.value.outputFile
         : undefined)
+    const resolvedJobId = resolveDownloadJobId(jobId)
 
     try {
-      await FileDownloadService.execute(resolvedOutput)
-      FileDownloadService.resetSessionId()
+      await FileDownloadService.execute(resolvedOutput, resolvedJobId)
+      if (!resolvedJobId) {
+        FileDownloadService.resetSessionId()
+      }
       resetUploadState({ preserveProLabore: true })
       return true
     } catch {

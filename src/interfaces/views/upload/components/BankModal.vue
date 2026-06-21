@@ -1,11 +1,14 @@
 <script lang="ts" setup>
 import { vMaska } from 'maska/vue'
+import type { Cliente } from '../../../../infrastructure/services/ClienteService'
+import ClienteSearchSelect from './ClienteSearchSelect.vue'
 
 defineProps<{
   visible: boolean
   fileName: string
   bankCode: string
   cnpj: string
+  selectedClienteId: number | null
   isProcessing: boolean
   isFormValid: boolean
   validationErrors?: string[]
@@ -19,6 +22,8 @@ defineEmits<{
   confirm: []
   'update:bankCode': [value: string]
   'update:cnpj': [value: string]
+  'update:selectedClienteId': [value: number | null]
+  selectCliente: [cliente: Cliente | null]
   toggleDateFilter: []
   applyDateFilter: []
   clearDateFilter: []
@@ -51,8 +56,19 @@ defineSlots<{
 
         <div class="bank-fields">
           <div class="input-group">
+            <label for="bank-modal-cliente">Cliente cadastrado:</label>
+            <ClienteSearchSelect
+              :model-value="selectedClienteId"
+              input-id="bank-modal-cliente"
+              default-label="Selecionar manualmente"
+              @update:model-value="$emit('update:selectedClienteId', $event)"
+              @select="$emit('selectCliente', $event)"
+            />
+          </div>
+          <div class="input-group">
             <label>Código do Banco:</label>
             <input
+              :key="`bank-code-${selectedClienteId ?? 'manual'}`"
               type="text"
               :value="bankCode"
               v-maska="'####'"
@@ -64,6 +80,7 @@ defineSlots<{
           <div class="input-group">
             <label>CNPJ:</label>
             <input
+              :key="`cnpj-${selectedClienteId ?? 'manual'}`"
               type="text"
               :value="cnpj"
               v-maska="'##.###.###/####-##'"
@@ -266,6 +283,17 @@ defineSlots<{
   outline: none;
   border-color: #f9cb28;
   box-shadow: 0 0 0 2px rgba(249, 203, 40, 0.3);
+}
+
+.input-group select {
+  width: 100%;
+  padding: 0.75rem;
+  border-radius: 4px;
+  border: 1px solid #444;
+  background: rgba(30, 30, 30, 0.8);
+  color: #fff;
+  font-family: 'Montserrat', sans-serif;
+  box-sizing: border-box;
 }
 
 .input-group input::placeholder {

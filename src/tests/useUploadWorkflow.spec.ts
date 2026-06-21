@@ -45,7 +45,7 @@ describe('useUploadWorkflow', () => {
   it('completes PDF uploads via async job polling', async () => {
     const proLabore = {
       active: ref(false),
-      year: 2026,
+      year: ref(2026),
       parsedValue: ref<number | null>(null),
       isValid: ref(true),
       resetProLabore: vi.fn(),
@@ -64,7 +64,7 @@ describe('useUploadWorkflow', () => {
   it('opens bank modal for OFX files', async () => {
     const proLabore = {
       active: ref(false),
-      year: 2026,
+      year: ref(2026),
       parsedValue: ref<number | null>(null),
       isValid: ref(true),
       resetProLabore: vi.fn(),
@@ -83,7 +83,7 @@ describe('useUploadWorkflow', () => {
   it('rejects invalid file types in setFile', () => {
     const proLabore = {
       active: ref(false),
-      year: 2026,
+      year: ref(2026),
       parsedValue: ref<number | null>(null),
       isValid: ref(true),
       resetProLabore: vi.fn(),
@@ -100,7 +100,7 @@ describe('useUploadWorkflow', () => {
     const resetProLabore = vi.fn()
     const proLabore = {
       active: ref(true),
-      year: 2026,
+      year: ref(2026),
       parsedValue: ref<number | null>(100),
       isValid: ref(true),
       resetProLabore,

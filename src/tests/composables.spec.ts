@@ -1,6 +1,24 @@
 import { describe, it, expect } from 'vitest'
 import { validateCnpj, validateBankCode } from '@/interfaces/views/upload/composables/useCnpjValidation'
 import { createTransactionKey, groupTransactionsByDescription } from '@/interfaces/views/upload/composables/useTransactionGroups'
+import { truncateFileName } from '@/shared/utils/fileDisplay'
+import { getUploadBatchLimitMessage, MAX_FILES_PER_UPLOAD } from '@/interfaces/views/upload/composables/useJobQueue'
+
+describe('fileDisplay', () => {
+  it('truncates long file names preserving extension', () => {
+    expect(truncateFileName('relatorio-mensal-janeiro-2025-empresa-x.pdf', 28)).toBe('relatorio-mensal-janeir….pdf')
+  })
+})
+
+describe('useJobQueue batch limits', () => {
+  it('allows batches up to the configured limit', () => {
+    expect(getUploadBatchLimitMessage(MAX_FILES_PER_UPLOAD)).toBeNull()
+  })
+
+  it('blocks batches above the configured limit', () => {
+    expect(getUploadBatchLimitMessage(MAX_FILES_PER_UPLOAD + 1)).toContain(String(MAX_FILES_PER_UPLOAD))
+  })
+})
 
 describe('useCnpjValidation', () => {
   it('validates a correct CNPJ', () => {

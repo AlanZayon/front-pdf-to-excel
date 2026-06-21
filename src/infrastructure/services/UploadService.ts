@@ -58,6 +58,10 @@ export class UploadService {
 
     }
 
+    if (command.clienteId) {
+      headers['ClienteId'] = String(command.clienteId)
+    }
+
 
 
     if (command.proLabore) {
@@ -172,31 +176,73 @@ export class UploadService {
     intervalMs?: number,
     onStatus?: (status: UploadJobStatus) => void
   ): Promise<UploadJobStatus | null> {
+    if (import.meta.env.VITE_USE_SSE_JOB_STATUS === 'true') {
+      return UploadService.pollJobViaSse(jobId, onStatus)
+    }
+
     const config = UploadService.getPollConfig()
     const attempts = maxAttempts ?? config.maxAttempts
     const interval = intervalMs ?? config.intervalMs
 
-    for (let attempt = 0; attempt < attempts; attempt++) {
-      const status = await UploadService.getJobStatus(jobId)
-
-      if (!status) {
-        await new Promise((resolve) => setTimeout(resolve, interval))
-        continue
-      }
-
-      onStatus?.(status)
-
-      if (status.state === 'Completed' || status.state === 'Failed') {
-        return status
-      }
-
-      await new Promise((resolve) => setTimeout(resolve, interval))
-    }
-
-    return null
+    return UploadService.pollWithInterval(jobId, attempts, interval, onStatus)
   }
 
+  static async pollJobViaSse(
+    jobId: string,
+    onStatus?: (status: UploadJobStatus) => void
+  ): Promise<UploadJobStatus | null> {
+    const baseUrl = import.meta.env.VITE_API_BASE_URL || ''
+    const url = `${baseUrl}/api/upload/status/${jobId}/stream`
 
+    return new Promise((resolve) => {
+      const eventSource = new EventSource(url, { withCredentials: true } as EventSourceInit)
+
+      const timeout = window.setTimeout(() => {
+        eventSource.close()
+        resolve(null)
+      }, UploadService.getPollConfig().maxAttempts * 1000)
+
+      eventSource.addEventListener('status', (event) => {
+        try {
+          const data = JSON.parse((event as MessageEvent).data) as UploadJobStatus
+          onStatus?.(data)
+          if (data.state === 'Completed' || data.state === 'Failed') {
+            window.clearTimeout(timeout)
+            eventSource.close()
+            resolve(data)
+          }
+        } catch {
+          // ignore malformed events
+        }
+      })
+
+      eventSource.addEventListener('error', () => {
+        window.clearTimeout(timeout)
+        eventSource.close()
+        const config = UploadService.getPollConfig()
+        UploadService.pollWithInterval(jobId, config.maxAttempts, config.intervalMs, onStatus).then(resolve)
+      })
+    })
+  }
+
+  private static async pollWithInterval(
+    jobId: string,
+    maxAttempts: number,
+    intervalMs: number,
+    onStatus?: (status: UploadJobStatus) => void
+  ): Promise<UploadJobStatus | null> {
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      const status = await UploadService.getJobStatus(jobId)
+      if (!status) {
+        await new Promise((resolve) => setTimeout(resolve, intervalMs))
+        continue
+      }
+      onStatus?.(status)
+      if (status.state === 'Completed' || status.state === 'Failed') return status
+      await new Promise((resolve) => setTimeout(resolve, intervalMs))
+    }
+    return null
+  }
 
   static buildUploadResultFromJobStatus(status: UploadJobStatus): UploadResult {
 
@@ -218,6 +264,8 @@ export class UploadService {
 
     const type = result.type as string | undefined
 
+    const jobId = status.jobId
+
 
 
     if (type === 'pdf') {
@@ -233,6 +281,8 @@ export class UploadService {
         outputFile: (result.outputFile as string | undefined) ?? status.outputFile ?? 'PGTO.csv',
 
         message: status.message || 'PDF processado com sucesso',
+
+        jobId,
 
       }
 
@@ -258,6 +308,8 @@ export class UploadService {
 
         message: status.message || 'Classificação pendente',
 
+        jobId,
+
       }
 
     }
@@ -280,6 +332,8 @@ export class UploadService {
 
         message: status.message || 'OFX processado com sucesso',
 
+        jobId,
+
       }
 
     }
@@ -295,6 +349,8 @@ export class UploadService {
       result,
 
       message: status.message || 'Processamento concluído',
+
+      jobId,
 
     }
 

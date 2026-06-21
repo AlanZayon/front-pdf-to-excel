@@ -87,20 +87,31 @@ const isCreditoReadonly = computed(() => {
       </div>
     </div>
 
-    <div v-else class="description-header" @click="$emit('toggle', group)">
+    <div
+      v-else
+      class="description-header"
+      role="button"
+      tabindex="0"
+      :aria-expanded="group.expanded"
+      @click="$emit('toggle', group)"
+      @keydown.enter.prevent="$emit('toggle', group)"
+      @keydown.space.prevent="$emit('toggle', group)"
+    >
       <div class="description-main">
         <span class="description-text">{{ group.descricao }}</span>
-        <span class="transaction-count-badge-header">
-          {{ group.transacoesDetalhadas.length }} transação(ões)
-        </span>
-        <span v-if="hasIndividualClassifications(group)" class="individual-count-badge">
-          {{ getIndividualClassificationCount(group) }} personalizada(s)
-        </span>
+        <div class="description-meta">
+          <span class="transaction-count-badge-header">
+            {{ group.transacoesDetalhadas.length }} transação(ões)
+          </span>
+          <span v-if="hasIndividualClassifications(group)" class="individual-count-badge">
+            {{ getIndividualClassificationCount(group) }} personalizada(s)
+          </span>
+        </div>
       </div>
       <div class="description-controls">
         <div class="description-status" :class="getStatusClass(group)">{{ getStatusText(group) }}</div>
-        <span v-if="!group.expanded && hasMultipleTransactions" class="expand-hint">Clique para personalizar transações</span>
-        <svg class="description-arrow" :class="{ rotated: group.expanded }" viewBox="0 0 24 24">
+        <span v-if="!group.expanded && hasMultipleTransactions" class="expand-hint">Expandir</span>
+        <svg class="description-arrow" :class="{ rotated: group.expanded }" viewBox="0 0 24 24" aria-hidden="true">
           <path d="M7,10L12,15L17,10H7Z" />
         </svg>
       </div>

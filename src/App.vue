@@ -80,6 +80,31 @@ html {
   background: #ff8a00;
 }
 
+.app-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #f9cb28 #2a2a2a;
+}
+
+.app-scrollbar::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.app-scrollbar::-webkit-scrollbar-track {
+  background: #2a2a2a;
+  border-radius: 4px;
+}
+
+.app-scrollbar::-webkit-scrollbar-thumb {
+  background: #f9cb28;
+  border-radius: 4px;
+  border: 1px solid #2a2a2a;
+}
+
+.app-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #ff8a00;
+}
+
 .fade-enter-active,
 .fade-leave-active {
   transition: opacity 0.3s ease;

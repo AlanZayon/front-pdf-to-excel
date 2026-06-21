@@ -32,6 +32,12 @@
           CÓD.IMPOSTO
           <span v-if="taxCodesIncomplete" class="item-badge">!</span>
         </button>
+        <button class="user-menu-item" type="button" role="menuitem" @click="router.push('/clientes'); showUserMenu = false">
+          <svg class="user-menu-icon" viewBox="0 0 24 24">
+            <path d="M12,4A4,4 0 0,1 16,8A4,4 0 0,1 12,12A4,4 0 0,1 8,8A4,4 0 0,1 12,4M12,14C16.42,14 20,15.79 20,18V20H4V18C4,15.79 7.58,14 12,14Z" />
+          </svg>
+          CLIENTES
+        </button>
         <button class="user-menu-item" type="button" role="menuitem" @click="router.push('/descricoes'); showUserMenu = false">
           <svg class="user-menu-icon" viewBox="0 0 24 24">
             <path d="M9.5,3A6.5,6.5 0 0,1 16,9.5C16,11.11 15.41,12.59 14.44,13.73L14.71,14H15.5L20.5,19L19,20.5L14,15.5V14.71L13.73,14.44C12.59,15.41 11.11,16 9.5,16A6.5,6.5 0 0,1 3,9.5A6.5,6.5 0 0,1 9.5,3M9.5,5C7,5 5,7 5,9.5C5,12 7,14 9.5,14C12,14 14,12 14,9.5C14,7 12,5 9.5,5Z" />
@@ -57,6 +63,16 @@
       <OnboardingBanner />
 
       <form class="upload-form" @submit.prevent>
+        <div class="cliente-select-row">
+          <label for="upload-cliente">Cliente:</label>
+          <ClienteSearchSelect
+            v-model="selectedClienteId"
+            input-id="upload-cliente"
+            @select="applyClienteContext"
+          />
+          <p v-if="selectedClienteHint" class="cliente-queue-hint">{{ selectedClienteHint }}</p>
+        </div>
+
         <UploadDropzone
           :is-dragging="isDragging"
           :has-file="Boolean(file)"
@@ -66,12 +82,13 @@
           @drop="onDrop"
           @click="triggerFileInput"
           @change="onFileChange"
-          @validation-error="uploadResult = { success: false, message: $event }"
+          @validation-error="onUploadValidationError"
         />
         <input
           ref="fileInput"
           type="file"
           accept=".pdf,.ofx,application/pdf,application/x-ofx"
+          multiple
           class="hidden-input"
           @change="onFileChange"
         >
@@ -79,10 +96,19 @@
         <ProLaboreFields
           v-if="fileType === 'PDF' || !file"
           v-model:active="proLaboreActive"
+          v-model:year="proLaboreYear"
           :value="proLaboreValue"
-          :year="proLaboreYear"
           :is-valid="isProLaboreValid"
           @input="onProLaboreInput"
+        />
+
+        <JobQueuePanel
+          :items="queueItems"
+          @preview="onQueuePreview"
+          @download="onQueueDownload"
+          @classify="onQueueClassify"
+          @remove="removeQueueItem"
+          @clear-completed="clearQueueCompleted"
         />
 
         <div v-if="fileName" class="file-info">
@@ -123,7 +149,7 @@
           type="button"
           class="upload-button"
           :disabled="!canProcessFile"
-          @click="handleUpload"
+          @click="handleUpload({ clienteId: selectedClienteId })"
         >
           <svg class="download-icon" viewBox="0 0 24 24">
             <path d="M19,13H13V19H11V13H5V11H13V5H13V11H19V13Z" />
@@ -159,7 +185,7 @@
             </svg>
             {{ downloadLabel }}
           </button>
-          <button type="button" class="preview-button" @click="showCsvPreview = true">
+          <button type="button" class="preview-button" @click="openSingleCsvPreview">
             PRÉ-VISUALIZAR
           </button>
         </div>
@@ -178,8 +204,9 @@
 
     <CsvPreviewModal
       :visible="showCsvPreview"
-      :file-name="previewFileName"
-      @close="showCsvPreview = false"
+      :file-name="csvPreviewFileName"
+      :job-id="csvPreviewJobId"
+      @close="closeCsvPreview"
     />
 
     <EditEmployeeModal
@@ -191,9 +218,10 @@
 
     <BankModal
       :visible="showBankDataModal"
-      :file-name="fileName || ''"
+      :file-name="modalFileName"
       :bank-code="bankCode"
       :cnpj="cnpj"
+      :selected-cliente-id="selectedClienteId"
       :is-processing="isProcessingOfx"
       :is-form-valid="isBankFormValid"
       :validation-errors="bankValidationErrors"
@@ -204,6 +232,8 @@
       @confirm="proceedWithOfxProcessing"
       @update:bank-code="bankCode = $event"
       @update:cnpj="cnpj = $event"
+      @update:selected-cliente-id="onBankClienteSelected"
+      @select-cliente="onBankClienteContext"
       @toggle-date-filter="toggleDateFilterVisibility"
       @apply-date-filter="applyDateFilter"
       @clear-date-filter="clearDateFilter"
@@ -215,7 +245,7 @@
 
     <ClassificationModal
       v-if="showClassificationModal"
-      :file-name="fileName || ''"
+      :file-name="modalFileName"
       :date-filter="dateFilter"
       :show-date-filter="showDateFilter"
       :is-date-filter-valid="isDateFilterValid"
@@ -287,7 +317,7 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, computed, onMounted, defineAsyncComponent } from 'vue'
+import { ref, computed, onMounted, watch, defineAsyncComponent } from 'vue'
 import { useRouter } from 'vue-router'
 import { UploadCommand } from '../../application/commands/UploadCommand'
 import { UploadService } from '../../infrastructure/services/UploadService'
@@ -296,6 +326,8 @@ import { LoadImpostosCommand } from '../../application/commands/LoadImpostosComm
 import ProLaboreFields from './upload/components/ProLaboreFields.vue'
 import UploadDropzone from './upload/components/UploadDropzone.vue'
 import BankModal from './upload/components/BankModal.vue'
+import JobQueuePanel from './upload/components/JobQueuePanel.vue'
+import ClienteSearchSelect from './upload/components/ClienteSearchSelect.vue'
 import ClassificationModal from './upload/components/ClassificationModal.vue'
 import JourneyStepper from '../ui/JourneyStepper.vue'
 import OnboardingBanner from '../ui/OnboardingBanner.vue'
@@ -311,9 +343,20 @@ import { validateCnpj, validateBankCode } from './upload/composables/useCnpjVali
 import { useUnsavedWorkGuard } from '../../shared/composables/useUnsavedWorkGuard'
 import { useSessionExpiryWarning } from '../../shared/composables/useSessionExpiry'
 import { useConversionHistory } from '../../shared/composables/useConversionHistory'
-import { notifySuccess, notifyInfo } from '../../shared/composables/useToast'
+import { notifySuccess, notifyInfo, notifyError } from '../../shared/composables/useToast'
 import { getDownloadButtonLabel, formatSuccessMessage } from '../../shared/utils/downloadLabels'
 import { mapApiErrorToUserMessage } from '../../shared/utils/errorMessages'
+import { ClienteService, type Cliente } from '../../infrastructure/services/ClienteService'
+import { HistoryService } from '../../infrastructure/services/HistoryService'
+import {
+  useJobQueue,
+  type QueueItem,
+  getUploadBatchLimitMessage,
+  getQueueOutputFileName,
+  getOfxBatchClienteRequiredMessage,
+  queueItemNeedsBankData,
+  queueItemNeedsClassification,
+} from './upload/composables/useJobQueue'
 
 const defaultAvatar = '/avatar-default.svg'
 const EditEmployeeModal = defineAsyncComponent(() => import('../modal/EditEmployeeModal.vue'))
@@ -348,6 +391,7 @@ interface OfxResult {
   status?: string
   outputFile?: string
   message?: string
+  jobId?: string
   transacoesClassificadas?: OfxTransaction[]
   pendingTransactions?: OfxTransaction[]
 }
@@ -361,16 +405,30 @@ const authStore = useAuthStore()
 
 const taxCodesIncomplete = ref(false)
 const showCsvPreview = ref(false)
+const csvPreviewFileName = ref<string | undefined>()
+const csvPreviewJobId = ref<string | undefined>()
 const draftRestored = ref(false)
 const classificationPaused = ref(false)
+const selectedClienteId = ref<number | null>(null)
+const activeQueueItemId = ref<string | null>(null)
+const {
+  items: queueItems,
+  enqueueFiles,
+  updateOfxContext,
+  completeQueueItem,
+  applyClienteToWaitingOfxItems,
+  removeItem: removeQueueItem,
+  clearCompleted: clearQueueCompleted,
+} = useJobQueue()
+
 onMounted(async () => {
   authStore.markPageReady()
-  const result = await ImpostoService.loadImpostos(new LoadImpostosCommand())
-  if (!result.success || !result.data?.taxCodes) {
+  const impostosResult = await ImpostoService.loadImpostos(new LoadImpostosCommand())
+  if (!impostosResult.success || !impostosResult.data?.taxCodes) {
     taxCodesIncomplete.value = true
     return
   }
-  taxCodesIncomplete.value = !Object.values(result.data.taxCodes).some(
+  taxCodesIncomplete.value = !Object.values(impostosResult.data.taxCodes).some(
     (codes) =>
       (codes.debito ?? '').trim() !== '' &&
       codes.debito !== '_' &&
@@ -437,6 +495,7 @@ const {
   resetUploadState,
   handleUpload,
   handleDownload,
+  currentJobId,
   jobState,
   progressLabel,
 } = useUploadWorkflow({
@@ -454,12 +513,60 @@ const isProcessingOfx = ref(false)
 const cnpj = ref('')
 const bankCode = ref('')
 
+function applyClienteContext(cliente: Cliente | null) {
+  if (!cliente) return
+
+  cnpj.value = ClienteService.formatCnpj(cliente.cnpj)
+  bankCode.value = cliente.codigoBancoPadrao
+    ? String(cliente.codigoBancoPadrao).padStart(4, '0')
+    : ''
+
+  if (!cliente.cnpj || !cliente.codigoBancoPadrao) return
+
+  applyClienteToWaitingOfxItems(
+    cliente.id,
+    cliente.cnpj,
+    String(cliente.codigoBancoPadrao).padStart(4, '0')
+  )
+}
+
+async function applyClienteById(clienteId: number | null) {
+  if (!clienteId) return
+  const cliente = await ClienteService.getById(clienteId)
+  if (cliente) applyClienteContext(cliente)
+}
+
+watch(showBankDataModal, (visible) => {
+  if (visible && selectedClienteId.value) {
+    void applyClienteById(selectedClienteId.value)
+  }
+})
+
+const selectedClienteHint = computed(() => {
+  if (queueItems.value.some(queueItemNeedsBankData)) {
+    return 'Há OFX na fila aguardando CNPJ e banco — selecione um cliente cadastrado para preencher automaticamente.'
+  }
+  if (selectedClienteId.value) {
+    return 'Cliente selecionado — será usado nos próximos uploads e nos OFX pendentes na fila.'
+  }
+  return 'Para enviar vários OFX de uma vez, selecione um cliente cadastrado (não use "Padrão do escritório / manual").'
+})
+
 const cnpjFormatted = computed(() => cnpj.value.replace(/\D/g, ''))
+
+const activeQueueItem = computed(() =>
+  activeQueueItemId.value
+    ? queueItems.value.find((item) => item.id === activeQueueItemId.value) ?? null
+    : null
+)
+
+const modalFileName = computed(() => activeQueueItem.value?.fileName ?? fileName.value ?? '')
 
 const classificationStorageKey = computed(() => {
   const bank = bankCode.value.replace(/\D/g, '')
-  const fileKey = file.value
-    ? `${file.value.name}:${file.value.size}:${file.value.lastModified}`
+  const sourceFile = activeQueueItem.value?.file ?? file.value
+  const fileKey = sourceFile
+    ? `${sourceFile.name}:${sourceFile.size}:${sourceFile.lastModified}`
     : ''
   return `${cnpjFormatted.value}:${bank}:${fileKey}`
 })
@@ -467,20 +574,45 @@ const classificationStorageKey = computed(() => {
 let resetClassificationStateFn = () => {}
 let clearClassificationDraftFn = () => {}
 
-const resetWorkflowState = (options?: { preserveProLabore?: boolean }) => {
+const resetWorkflowState = (options?: { preserveProLabore?: boolean; preserveCliente?: boolean }) => {
   resetUploadState(options)
   resetClassificationStateFn()
   showClassificationModal.value = false
   ofxResponse.value = null
   isProcessingOfx.value = false
-  cnpj.value = ''
-  bankCode.value = ''
+  if (!options?.preserveCliente) {
+    cnpj.value = ''
+    bankCode.value = ''
+  }
   clearDateFilter()
 }
 
-const onClassificationSaved = (result: UploadResult) => {
+const onClassificationSaved = (result: UploadResult & { jobId?: string }) => {
   const outputFile =
     result.success && 'outputFile' in result && result.outputFile ? result.outputFile : 'EXTRATO.csv'
+
+  if (activeQueueItemId.value) {
+    completeQueueItem(activeQueueItemId.value, {
+      success: true,
+      status: 'completed',
+      type: 'ofx',
+      outputFile,
+      message: formatSuccessMessage('Classificação salva com sucesso', outputFile),
+      transacoesClassificadas: [],
+      jobId: result.jobId,
+    }, result.jobId)
+    const savedName = activeQueueItem.value?.fileName ?? modalFileName.value
+    activeQueueItemId.value = null
+    showClassificationModal.value = false
+    classificationPaused.value = false
+    clearClassificationDraftFn()
+    resetClassificationStateFn()
+    clearDateFilter()
+    ofxResponse.value = null
+    isProcessingOfx.value = false
+    notifySuccess(`Classificação salva: ${savedName}`)
+    return
+  }
 
   showClassificationModal.value = false
   classificationPaused.value = false
@@ -636,21 +768,298 @@ const previewFileName = computed(() => {
   return undefined
 })
 
+const onBankClienteSelected = (id: number | null) => {
+  selectedClienteId.value = id
+}
+
+const onBankClienteContext = (cliente: Cliente | null) => {
+  selectedClienteId.value = cliente?.id ?? null
+  if (cliente) {
+    applyClienteContext(cliente)
+  }
+}
+
+function prepareClassificationGroupsFromOfxResult(result: OfxResult) {
+  if (!result.success || result.type !== 'ofx' || result.status !== 'pending_classification') return
+
+  let allTransactions: OfxTransaction[] = [
+    ...(result.transacoesClassificadas || []).map((transaction: OfxTransaction) => {
+      const firstValue = transaction.valores?.[0] || 0
+      const isPositive = firstValue > 0
+
+      return {
+        ...transaction,
+        classificada: true,
+        codigoDebito: transaction.codigosDebito?.[0]?.toString() || transaction.codigoDebito || '',
+        codigoCredito: transaction.codigosCredito?.[0]?.toString() || transaction.codigoCredito || '',
+        debitoError: '',
+        creditoError: '',
+        debitoLocked: isPositive,
+        creditoLocked: !isPositive,
+      }
+    }),
+  ]
+
+  const descricoesComValoresMistos = new Set<string>()
+  const analiseDescricoes = new Map<string, { temPositivo: boolean; temNegativo: boolean }>()
+
+  result.pendingTransactions?.forEach((transaction: OfxTransaction) => {
+    const descricao = transaction.descricao
+
+    if (!analiseDescricoes.has(descricao)) {
+      analiseDescricoes.set(descricao, {
+        temPositivo: false,
+        temNegativo: false,
+      })
+    }
+
+    const analise = analiseDescricoes.get(descricao)!
+
+    transaction.valores.forEach((valor: number) => {
+      if (valor >= 0) analise.temPositivo = true
+      if (valor < 0) analise.temNegativo = true
+    })
+
+    if (analise.temPositivo && analise.temNegativo) {
+      descricoesComValoresMistos.add(descricao)
+    }
+  })
+
+  const pendingTransactionsProcessed: OfxTransaction[] = (result.pendingTransactions || []).flatMap(
+    (transaction: OfxTransaction) => {
+      const descricao = transaction.descricao
+      const deveDividir = descricoesComValoresMistos.has(descricao)
+
+      if (!deveDividir) {
+        const valorPositivo = transaction.valores[0] >= 0
+        return [
+          {
+            ...transaction,
+            classificada: false,
+            codigoDebito: valorPositivo ? transaction.codigosBanco?.[0]?.toString() || '' : '',
+            codigoCredito: !valorPositivo ? transaction.codigosBanco?.[0]?.toString() || '' : '',
+            debitoError: '',
+            creditoError: '',
+            debitoLocked: false,
+            creditoLocked: false,
+          },
+        ]
+      }
+
+      const transacoesDivididas: OfxTransaction[] = []
+
+      transaction.datas.forEach((data: string, index: number) => {
+        const valor = transaction.valores[index]
+        const tipo = valor >= 0 ? 'POSITIVO' : 'NEGATIVO'
+
+        transacoesDivididas.push({
+          ...transaction,
+          descricao: transaction.descricao,
+          data,
+          valor,
+          datas: [data],
+          valores: [valor],
+          codigosDebito: transaction.codigosDebito ? [transaction.codigosDebito[index]] : [],
+          codigosCredito: transaction.codigosCredito ? [transaction.codigosCredito[index]] : [],
+          codigosBanco: transaction.codigosBanco ? [transaction.codigosBanco[0]] : [],
+          classificada: false,
+          codigoDebito: valor >= 0 ? transaction.codigosBanco?.[0]?.toString() || '' : '',
+          codigoCredito: valor < 0 ? transaction.codigosBanco?.[0]?.toString() || '' : '',
+          debitoError: '',
+          creditoError: '',
+          debitoLocked: false,
+          creditoLocked: false,
+          dividida: true,
+          tipo,
+        })
+      })
+
+      return transacoesDivididas
+    }
+  )
+
+  allTransactions = [...allTransactions, ...pendingTransactionsProcessed]
+  setGroupsFromTransactions(allTransactions)
+
+  availableBanks.value = allTransactions
+    .flatMap((t: OfxTransaction) => t.codigosBanco || [])
+    .filter((code: string | number, index: number, self: (string | number)[]) => code != null && self.indexOf(code) === index)
+    .sort((a: string | number, b: string | number) => Number(a) - Number(b))
+    .map((code: string | number): Bank => ({ code, name: `Banco ${code}` }))
+}
+
+const onQueueDownload = async (item: QueueItem) => {
+  const output = getQueueOutputFileName(item) ?? item.fileName.replace(/\.[^.]+$/, '.csv')
+  if (item.jobId) {
+    try {
+      await HistoryService.downloadByJobId(item.jobId, output)
+      return
+    } catch {
+      notifyError('Erro ao baixar o CSV.')
+      return
+    }
+  }
+  if (item.uploadResult?.success && 'outputFile' in item.uploadResult) {
+    await handleDownload(undefined, item.uploadResult.outputFile, item.jobId ?? item.uploadResult.jobId)
+  }
+}
+
+const onQueuePreview = (item: QueueItem) => {
+  const output = getQueueOutputFileName(item)
+  if (!output) return
+
+  csvPreviewFileName.value = output
+  csvPreviewJobId.value =
+    item.jobId ??
+    (item.uploadResult?.success && 'jobId' in item.uploadResult
+      ? item.uploadResult.jobId
+      : undefined)
+  showCsvPreview.value = true
+}
+
+function openSingleCsvPreview() {
+  csvPreviewFileName.value = previewFileName.value
+  csvPreviewJobId.value =
+    currentJobId.value ??
+    (uploadResult.value?.success && 'jobId' in uploadResult.value
+      ? uploadResult.value.jobId
+      : undefined)
+  showCsvPreview.value = true
+}
+
+function closeCsvPreview() {
+  showCsvPreview.value = false
+  csvPreviewJobId.value = undefined
+  csvPreviewFileName.value = undefined
+}
+
+const openQueueBankModal = (item: QueueItem) => {
+  activeQueueItemId.value = item.id
+  selectedClienteId.value = item.clienteId ?? null
+  if (item.clienteId) {
+    void applyClienteById(item.clienteId)
+  } else {
+    cnpj.value = item.cnpj ? ClienteService.formatCnpj(item.cnpj) : ''
+    bankCode.value = item.bankCode ?? ''
+  }
+  showBankDataModal.value = true
+}
+
+const openQueueClassificationModal = (item: QueueItem) => {
+  if (!queueItemNeedsClassification(item) || !item.uploadResult?.success || item.uploadResult.type !== 'ofx') return
+
+  activeQueueItemId.value = item.id
+  setFile(item.file)
+  cnpj.value = item.cnpj ? ClienteService.formatCnpj(item.cnpj) : ''
+  bankCode.value = item.bankCode ?? ''
+  selectedClienteId.value = item.clienteId ?? null
+  resetClassificationState()
+  ofxResponse.value = item.uploadResult
+  prepareClassificationGroupsFromOfxResult(item.uploadResult as OfxResult)
+
+  if (restoreDraft()) {
+    draftRestored.value = true
+    notifyInfo('Rascunho restaurado — continue de onde parou.')
+  } else {
+    draftRestored.value = false
+  }
+
+  showClassificationModal.value = true
+}
+
+const onQueueClassify = (item: QueueItem) => {
+  if (queueItemNeedsBankData(item)) {
+    openQueueBankModal(item)
+    return
+  }
+  if (queueItemNeedsClassification(item)) {
+    openQueueClassificationModal(item)
+  }
+}
+
+const enqueueSelectedFiles = (files: File[]) => {
+  const limitMessage = getUploadBatchLimitMessage(files.length)
+  if (limitMessage) {
+    notifyError(limitMessage)
+    return
+  }
+
+  const clienteRequiredMessage = getOfxBatchClienteRequiredMessage(files, selectedClienteId.value)
+  if (clienteRequiredMessage) {
+    notifyError(clienteRequiredMessage)
+    return
+  }
+
+  void enqueueSelectedFilesWithCliente(files)
+}
+
+async function enqueueSelectedFilesWithCliente(files: File[]) {
+  let cliente: Cliente | null = null
+  if (selectedClienteId.value) {
+    cliente = await ClienteService.getById(selectedClienteId.value)
+  }
+
+  const message = enqueueFiles(files, {
+    clienteId: selectedClienteId.value,
+    cnpj: cliente?.cnpj,
+    bankCode: cliente?.codigoBancoPadrao
+      ? String(cliente.codigoBancoPadrao).padStart(4, '0')
+      : undefined,
+    proLabore: {
+      active: proLaboreActive.value,
+      ano: proLaboreYear.value,
+      valor: parsedProLaboreValue.value,
+    },
+  })
+  if (message) {
+    notifyError(message)
+    return
+  }
+
+  if (cliente) {
+    applyClienteContext(cliente)
+  }
+}
+
+function onUploadValidationError(message: string) {
+  uploadResult.value = { success: false, message }
+  notifyError(message)
+}
+
 const onFileChange = (event: Event) => {
   const target = event.target as HTMLInputElement
-  if (!target.files?.[0]) return
+  const files = target.files ? Array.from(target.files) : []
+  if (files.length === 0) return
 
-  resetWorkflowState({ preserveProLabore: true })
-  setFile(target.files[0])
+  if (files.length > 1) {
+    enqueueSelectedFiles(files)
+    if (fileInput.value) fileInput.value.value = ''
+    return
+  }
+
+  resetWorkflowState({ preserveProLabore: true, preserveCliente: true })
+  setFile(files[0])
+  if (selectedClienteId.value) {
+    void applyClienteById(selectedClienteId.value)
+  }
 }
 
 const onDrop = (event: DragEvent) => {
   isDragging.value = false
-  const droppedFile = event.dataTransfer?.files?.[0]
-  if (!droppedFile) return
+  const files = event.dataTransfer?.files ? Array.from(event.dataTransfer.files) : []
+  if (files.length === 0) return
 
-  resetWorkflowState({ preserveProLabore: true })
-  setFile(droppedFile)
+  if (files.length > 1) {
+    enqueueSelectedFiles(files)
+    if (fileInput.value) fileInput.value.value = ''
+    return
+  }
+
+  resetWorkflowState({ preserveProLabore: true, preserveCliente: true })
+  setFile(files[0])
+  if (selectedClienteId.value) {
+    void applyClienteById(selectedClienteId.value)
+  }
 }
 
 const triggerFileInput = () => {
@@ -668,6 +1077,12 @@ const clearFile = () => {
 }
 
 const closeBankDataModal = async () => {
+  if (activeQueueItemId.value) {
+    showBankDataModal.value = false
+    activeQueueItemId.value = null
+    return
+  }
+
   const hasInput = cnpj.value.trim() !== '' || bankCode.value.trim() !== ''
   if (hasInput || file.value) {
     const confirmed = await confirmAction({
@@ -675,7 +1090,6 @@ const closeBankDataModal = async () => {
       confirmLabel: 'Descartar tudo',
     })
     if (!confirmed) {
-      showBankDataModal.value = false
       return
     }
   }
@@ -702,6 +1116,7 @@ const closeClassificationModal = async () => {
   }
   showClassificationModal.value = false
   classificationPaused.value = false
+  activeQueueItemId.value = null
   resetClassificationState()
   clearDateFilter()
   clearFile()
@@ -713,7 +1128,22 @@ const resumeClassification = () => {
 }
 
 const proceedWithOfxProcessing = async (): Promise<void> => {
-  if (!file.value || !isBankFormValid.value) return
+  if (!isBankFormValid.value) return
+
+  if (activeQueueItemId.value) {
+    updateOfxContext(
+      activeQueueItemId.value,
+      cnpjFormatted.value,
+      bankCode.value.replace(/\D/g, ''),
+      selectedClienteId.value
+    )
+    showBankDataModal.value = false
+    activeQueueItemId.value = null
+    notifySuccess('Informações bancárias salvas. O OFX entrou na fila de processamento.')
+    return
+  }
+
+  if (!file.value) return
 
   isProcessingOfx.value = true
   resetClassificationState()
@@ -742,7 +1172,8 @@ const proceedWithOfxProcessing = async (): Promise<void> => {
     cnpjFormatted.value,
     bankCode.value.replace(/\D/g, ''),
     dateFilterData,
-    undefined
+    undefined,
+    selectedClienteId.value
   )
 
   try {
@@ -772,139 +1203,45 @@ const proceedWithOfxProcessing = async (): Promise<void> => {
     }
 
     if (result.success && result.type === 'ofx') {
-      ofxResponse.value = result
-
-      let allTransactions: OfxTransaction[] = [
-          ...(result.transacoesClassificadas || []).map((transaction: OfxTransaction) => {
-            const firstValue = transaction.valores?.[0] || 0
-            const isPositive = firstValue > 0
-
-            return {
-              ...transaction,
-              classificada: true,
-              codigoDebito: transaction.codigosDebito?.[0]?.toString() || transaction.codigoDebito || '',
-              codigoCredito: transaction.codigosCredito?.[0]?.toString() || transaction.codigoCredito || '',
-              debitoError: '',
-              creditoError: '',
-              debitoLocked: isPositive,
-              creditoLocked: !isPositive,
-            }
-          }),
-        ]
-
-        if (result.status === 'pending_classification') {
-          const descricoesComValoresMistos = new Set<string>()
-          const analiseDescricoes = new Map<string, { temPositivo: boolean; temNegativo: boolean }>()
-
-          result.pendingTransactions?.forEach((transaction: OfxTransaction) => {
-            const descricao = transaction.descricao
-
-            if (!analiseDescricoes.has(descricao)) {
-              analiseDescricoes.set(descricao, {
-                temPositivo: false,
-                temNegativo: false,
-              })
-            }
-
-            const analise = analiseDescricoes.get(descricao)!
-
-            transaction.valores.forEach((valor: number) => {
-              if (valor >= 0) analise.temPositivo = true
-              if (valor < 0) analise.temNegativo = true
-            })
-
-            if (analise.temPositivo && analise.temNegativo) {
-              descricoesComValoresMistos.add(descricao)
-            }
-          })
-
-          const pendingTransactionsProcessed: OfxTransaction[] = (result.pendingTransactions || []).flatMap(
-            (transaction: OfxTransaction) => {
-              const descricao = transaction.descricao
-              const deveDividir = descricoesComValoresMistos.has(descricao)
-
-              if (!deveDividir) {
-                const valorPositivo = transaction.valores[0] >= 0
-                return [
-                  {
-                    ...transaction,
-                    classificada: false,
-                    codigoDebito: valorPositivo ? transaction.codigosBanco?.[0]?.toString() || '' : '',
-                    codigoCredito: !valorPositivo ? transaction.codigosBanco?.[0]?.toString() || '' : '',
-                    debitoError: '',
-                    creditoError: '',
-                    debitoLocked: false,
-                    creditoLocked: false,
-                  },
-                ]
-              }
-
-              const transacoesDivididas: OfxTransaction[] = []
-
-              transaction.datas.forEach((data: string, index: number) => {
-                const valor = transaction.valores[index]
-                const tipo = valor >= 0 ? 'POSITIVO' : 'NEGATIVO'
-
-                transacoesDivididas.push({
-                  ...transaction,
-                  descricao: transaction.descricao,
-                  data,
-                  valor,
-                  datas: [data],
-                  valores: [valor],
-                  codigosDebito: transaction.codigosDebito ? [transaction.codigosDebito[index]] : [],
-                  codigosCredito: transaction.codigosCredito ? [transaction.codigosCredito[index]] : [],
-                  codigosBanco: transaction.codigosBanco ? [transaction.codigosBanco[0]] : [],
-                  classificada: false,
-                  codigoDebito: valor >= 0 ? transaction.codigosBanco?.[0]?.toString() || '' : '',
-                  codigoCredito: valor < 0 ? transaction.codigosBanco?.[0]?.toString() || '' : '',
-                  debitoError: '',
-                  creditoError: '',
-                  debitoLocked: false,
-                  creditoLocked: false,
-                  dividida: true,
-                  tipo,
-                })
-              })
-
-              return transacoesDivididas
-            }
-          )
-
-          allTransactions = [...allTransactions, ...pendingTransactionsProcessed]
+      if (result.status === 'pending_classification') {
+        ofxResponse.value = result
+        prepareClassificationGroupsFromOfxResult(result)
+        if (restoreDraft()) {
+          draftRestored.value = true
+          notifyInfo('Rascunho restaurado — continue de onde parou.')
+        } else {
+          draftRestored.value = false
         }
-
-        setGroupsFromTransactions(allTransactions)
-
-        availableBanks.value = allTransactions
-          .flatMap((t: OfxTransaction) => t.codigosBanco || [])
-          .filter((code: string | number, index: number, self: (string | number)[]) => code != null && self.indexOf(code) === index)
-          .sort((a: string | number, b: string | number) => Number(a) - Number(b))
-          .map((code: string | number): Bank => ({ code, name: `Banco ${code}` }))
-
-      showBankDataModal.value = false
-      showClassificationModal.value = true
+        showBankDataModal.value = false
+        showClassificationModal.value = true
+      } else {
+        uploadResult.value = {
+          success: true,
+          status: 'completed',
+          type: 'ofx',
+          outputFile: 'outputFile' in result && typeof result.outputFile === 'string' ? result.outputFile : 'EXTRATO.csv',
+          message: formatSuccessMessage(
+            result.message || 'OFX processado com sucesso',
+            'outputFile' in result && typeof result.outputFile === 'string' ? result.outputFile : 'EXTRATO.csv'
+          ),
+          transacoesClassificadas: [],
+          jobId: result.jobId,
+        }
+        if (fileName.value) {
+          addConversionRecord({
+            fileName: fileName.value,
+            fileType: 'OFX',
+            outputFile: uploadResult.value.outputFile,
+            status: 'completed',
+          })
+        }
+        showBankDataModal.value = false
+      }
     } else {
       uploadResult.value = {
-        success: true,
-        status: 'completed',
-        type: 'ofx',
-        outputFile: 'outputFile' in result && typeof result.outputFile === 'string' ? result.outputFile : 'EXTRATO.csv',
-        message: formatSuccessMessage(
-          result.message || 'OFX processado com sucesso',
-          'outputFile' in result && typeof result.outputFile === 'string' ? result.outputFile : 'EXTRATO.csv'
-        ),
-        transacoesClassificadas: [],
+        success: false,
+        message: result.message || 'Erro ao processar arquivo OFX',
       }
-      if (fileName.value) {
-        addConversionRecord({
-          fileName: fileName.value,
-          fileType: 'OFX',
-          outputFile: uploadResult.value.outputFile,
-          status: 'completed',
-        })
-      }
-      showBankDataModal.value = false
     }
   } catch (error) {
     console.error('Erro ao processar OFX:', error)
@@ -927,6 +1264,34 @@ const proceedWithOfxProcessing = async (): Promise<void> => {
   padding: 20px;
   box-sizing: border-box;
   position: relative;
+}
+
+.cliente-select-row {
+  margin: 1rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.cliente-select-row label {
+  color: #f9cb28;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+}
+
+.cliente-select-row select {
+  padding: 0.65rem;
+  border-radius: 4px;
+  border: 1px solid #444;
+  background: #111;
+  color: #fff;
+}
+
+.cliente-queue-hint {
+  margin: 0;
+  font-size: 0.78rem;
+  color: #aaa;
+  line-height: 1.4;
 }
 
 .upload-container {

@@ -1,30 +1,41 @@
 import { ref, computed, watch, type Ref } from 'vue'
 import { http } from '../utils/http'
 import { getSessionId } from '../utils/session'
+import { HistoryService } from '../../infrastructure/services/HistoryService'
 import {
   parseDominioCsv,
   summarizeCsvRows,
   filterCsvRows,
   paginateRows,
   getTotalPages,
+  rowsToCsvText,
+  applyRawTextToRows,
+  syncCsvPreviewRow,
+  parseValorInput,
+  normalizeDominioDataInput,
   type CsvPreviewRow,
   type CsvPreviewSummary,
   type CsvPreviewViewMode,
+  type EditableCsvField,
 } from '../utils/csvPreview'
 
-const DEFAULT_PAGE_SIZE = 25
-const RAW_DISPLAY_LIMIT = 300
+const DEFAULT_PAGE_SIZE = 100
 
 export function useCsvPreview(options: {
   visible: Ref<boolean>
   fileName: Ref<string | undefined>
+  jobId?: Ref<string | undefined>
 }) {
   const rawText = ref('')
   const rows = ref<CsvPreviewRow[]>([])
+  const baselineExportText = ref('')
+  const rawEditText = ref('')
+  const rawEditError = ref('')
   const loading = ref(false)
   const error = ref('')
   const searchQuery = ref('')
   const viewMode = ref<CsvPreviewViewMode>('table')
+  const isEditing = ref(false)
   const page = ref(1)
   const pageSize = ref(DEFAULT_PAGE_SIZE)
 
@@ -34,28 +45,22 @@ export function useCsvPreview(options: {
   const totalPages = computed(() => getTotalPages(filteredRows.value.length, pageSize.value))
   const paginatedRows = computed(() => paginateRows(filteredRows.value, page.value, pageSize.value))
 
-  const rawLineCount = computed(() => rawText.value.split(/\r?\n/).filter(Boolean).length)
+  const exportText = computed(() => rowsToCsvText(rows.value))
 
-  const rawPreviewLines = computed(() => {
-    const allLines = rawText.value.split(/\r?\n/).filter(Boolean)
-    let lines = allLines
-
-    if (searchQuery.value.trim()) {
-      const term = searchQuery.value.trim().toLowerCase()
-      lines = allLines.filter((line) => line.toLowerCase().includes(term))
-      return lines
+  const isDirty = computed(() => {
+    if (!isEditing.value) return exportText.value !== baselineExportText.value
+    if (viewMode.value === 'raw') {
+      return rawEditText.value.trim() !== baselineExportText.value.trim()
     }
-
-    if (lines.length > RAW_DISPLAY_LIMIT) {
-      return lines.slice(0, RAW_DISPLAY_LIMIT)
-    }
-
-    return lines
+    return exportText.value !== baselineExportText.value
   })
 
-  const rawTruncated = computed(
-    () => !searchQuery.value.trim() && rawLineCount.value > RAW_DISPLAY_LIMIT
-  )
+  const rawDisplayText = computed(() => {
+    const lines = rowsToCsvText(rows.value).split('\n').filter(Boolean)
+    const term = searchQuery.value.trim().toLowerCase()
+    if (!term) return lines.join('\n')
+    return lines.filter((line) => line.toLowerCase().includes(term)).join('\n')
+  })
 
   const displayRangeLabel = computed(() => {
     const total = filteredRows.value.length
@@ -65,26 +70,41 @@ export function useCsvPreview(options: {
     return `${start}–${end} de ${total}`
   })
 
+  function syncBaseline() {
+    baselineExportText.value = rowsToCsvText(rows.value)
+    rawEditText.value = baselineExportText.value
+  }
+
   async function loadPreview() {
     if (!options.visible.value) return
 
     loading.value = true
     error.value = ''
+    rawEditError.value = ''
     rawText.value = ''
     rows.value = []
     page.value = 1
+    viewMode.value = 'table'
+    isEditing.value = false
 
     try {
-      const sessionId = getSessionId()
-      const response = await http.get('/api/download/download', {
-        responseType: 'text',
-        params: options.fileName.value ? { file: options.fileName.value } : undefined,
-        headers: { 'X-User-Session': sessionId },
-      })
+      let text = ''
 
-      const text = typeof response.data === 'string' ? response.data : ''
+      if (options.jobId?.value) {
+        text = await HistoryService.fetchCsvTextByJobId(options.jobId.value)
+      } else {
+        const sessionId = getSessionId()
+        const response = await http.get('/api/download/download', {
+          responseType: 'text',
+          params: options.fileName.value ? { file: options.fileName.value } : undefined,
+          headers: { 'X-User-Session': sessionId },
+        })
+        text = typeof response.data === 'string' ? response.data : ''
+      }
+
       rawText.value = text
       rows.value = parseDominioCsv(text)
+      syncBaseline()
 
       if (rows.value.length === 0 && text.trim()) {
         error.value = 'O arquivo não contém linhas válidas no formato Domínio.'
@@ -96,8 +116,69 @@ export function useCsvPreview(options: {
     }
   }
 
-  function setViewMode(mode: CsvPreviewViewMode) {
+  function updateRowField(lineNumber: number, field: EditableCsvField, value: string) {
+    const index = rows.value.findIndex((row) => row.lineNumber === lineNumber)
+    if (index === -1) return
+
+    let patch: Partial<Pick<CsvPreviewRow, EditableCsvField>> = {}
+
+    if (field === 'valor') {
+      const parsed = parseValorInput(value)
+      if (parsed === null) return
+      patch = { valor: parsed }
+    } else if (field === 'data') {
+      patch = { data: normalizeDominioDataInput(value) }
+    } else {
+      patch = { [field]: value.trim() }
+    }
+
+    const updated = syncCsvPreviewRow(rows.value[index], patch)
+    rows.value = rows.value.map((row, rowIndex) =>
+      rowIndex === index ? { ...updated, lineNumber: row.lineNumber } : row
+    )
+  }
+
+  function commitRawEdits(): boolean {
+    const result = applyRawTextToRows(rawEditText.value)
+    if (!result.ok) {
+      rawEditError.value = result.message
+      return false
+    }
+
+    rawEditError.value = ''
+    rows.value = result.rows
+    return true
+  }
+
+  function setViewMode(mode: CsvPreviewViewMode): boolean {
+    if (mode === viewMode.value) return true
+
+    if (isEditing.value && mode === 'table' && viewMode.value === 'raw') {
+      if (!commitRawEdits()) return false
+    }
+
+    if (mode === 'raw') {
+      rawEditText.value = rowsToCsvText(rows.value)
+      rawEditError.value = ''
+    }
+
     viewMode.value = mode
+    return true
+  }
+
+  function enterEditMode() {
+    rawEditText.value = rowsToCsvText(rows.value)
+    rawEditError.value = ''
+    isEditing.value = true
+  }
+
+  function exitEditMode(): boolean {
+    if (isEditing.value && viewMode.value === 'raw') {
+      if (!commitRawEdits()) return false
+    }
+    isEditing.value = false
+    rawEditError.value = ''
+    return true
   }
 
   function setPage(next: number) {
@@ -107,6 +188,32 @@ export function useCsvPreview(options: {
   function setPageSize(size: number) {
     pageSize.value = size
     page.value = 1
+  }
+
+  function discardEdits() {
+    const result = applyRawTextToRows(baselineExportText.value)
+    if (!result.ok) return
+    rows.value = result.rows
+    rawEditText.value = baselineExportText.value
+    rawEditError.value = ''
+    error.value = ''
+    isEditing.value = false
+  }
+
+  function getDownloadText(): string | null {
+    if (isEditing.value && viewMode.value === 'raw') {
+      const result = applyRawTextToRows(rawEditText.value)
+      if (!result.ok) {
+        rawEditError.value = result.message
+        return null
+      }
+      rawEditError.value = ''
+      rows.value = result.rows
+      rawEditText.value = rowsToCsvText(rows.value)
+      return rawEditText.value
+    }
+
+    return rowsToCsvText(rows.value)
   }
 
   watch(options.visible, (visible) => {
@@ -121,9 +228,17 @@ export function useCsvPreview(options: {
     if (options.visible.value) loadPreview()
   })
 
+  if (options.jobId) {
+    watch(options.jobId, () => {
+      if (options.visible.value) loadPreview()
+    })
+  }
+
   return {
     rawText,
     rows,
+    rawEditText,
+    rawEditError,
     loading,
     error,
     searchQuery,
@@ -135,13 +250,18 @@ export function useCsvPreview(options: {
     filteredSummary,
     totalPages,
     paginatedRows,
-    rawPreviewLines,
-    rawTruncated,
-    rawLineCount,
     displayRangeLabel,
+    isDirty,
+    isEditing,
+    rawDisplayText,
     loadPreview,
+    updateRowField,
     setViewMode,
+    enterEditMode,
+    exitEditMode,
     setPage,
     setPageSize,
+    discardEdits,
+    getDownloadText,
   }
 }

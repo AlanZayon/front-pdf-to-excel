@@ -22,6 +22,8 @@ export type CsvPreviewSummary = {
 
 export type CsvPreviewViewMode = 'table' | 'raw'
 
+export type EditableCsvField = 'tipo' | 'data' | 'debito' | 'credito' | 'valor' | 'descricao'
+
 const DOMINIO_COLUMNS = ['Tipo', 'Data', 'Débito', 'Crédito', 'Valor', '', 'Histórico'] as const
 
 export function getDominioColumnLabels(): readonly string[] {
@@ -76,6 +78,91 @@ export function parseDominioDate(raw: string): Date | null {
 
 export function formatCurrencyBrl(value: number): string {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)
+}
+
+export function formatValorForInput(value: number): string {
+  return value.toFixed(2).replace('.', ',')
+}
+
+export function parseValorInput(input: string): number | null {
+  const normalized = input.trim().replace(/\./g, '').replace(',', '.')
+  if (!normalized) return null
+  const value = Number.parseFloat(normalized)
+  return Number.isFinite(value) ? value : null
+}
+
+export function normalizeDominioDataInput(input: string): string {
+  const digits = input.replace(/\D/g, '')
+  if (digits.length === 8) return digits
+  return digits.slice(0, 8)
+}
+
+export function serializeDominioRow(
+  row: Pick<CsvPreviewRow, 'tipo' | 'data' | 'debito' | 'credito' | 'valor' | 'descricao'>
+): string {
+  const descricao = row.descricao ?? ''
+  const descricaoField =
+    descricao.includes(',') || descricao.includes('"') || descricao.includes('\n')
+      ? `"${descricao.replace(/"/g, '""')}"`
+      : descricao
+
+  return `${row.tipo},${row.data},${row.debito},${row.credito},${formatValorForInput(row.valor)},,${descricaoField}`
+}
+
+export function syncCsvPreviewRow(
+  row: CsvPreviewRow,
+  patch: Partial<Pick<CsvPreviewRow, EditableCsvField>>
+): CsvPreviewRow {
+  const merged = { ...row, ...patch }
+  const data = normalizeDominioDataInput(merged.data)
+  const valor = typeof merged.valor === 'number' && Number.isFinite(merged.valor) ? merged.valor : 0
+  const updated: CsvPreviewRow = {
+    ...merged,
+    data,
+    dataFormatted: formatDominioDate(data) || data,
+    valor,
+    valorFormatted: formatCurrencyBrl(valor),
+  }
+
+  return {
+    ...updated,
+    rawLine: serializeDominioRow(updated),
+  }
+}
+
+export function rowsToCsvText(rows: CsvPreviewRow[]): string {
+  return rows.map((row) => row.rawLine).join('\n')
+}
+
+export function applyRawTextToRows(
+  text: string
+): { ok: true; rows: CsvPreviewRow[] } | { ok: false; message: string } {
+  const trimmed = text.trim()
+  if (!trimmed) {
+    return { ok: false, message: 'O CSV não pode ficar vazio.' }
+  }
+
+  const parsed = parseDominioCsv(trimmed)
+  if (parsed.length === 0) {
+    return { ok: false, message: 'Nenhuma linha válida no formato Domínio. Verifique o texto bruto.' }
+  }
+
+  return {
+    ok: true,
+    rows: parsed.map((row, index) => ({ ...row, lineNumber: index + 1 })),
+  }
+}
+
+export function downloadTextAsCsv(content: string, fileName: string): void {
+  const blob = new Blob([content], { type: 'text/csv;charset=utf-8' })
+  const url = window.URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = fileName.endsWith('.csv') ? fileName : `${fileName}.csv`
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  window.URL.revokeObjectURL(url)
 }
 
 export function parseDominioCsv(text: string): CsvPreviewRow[] {

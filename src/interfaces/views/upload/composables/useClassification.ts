@@ -1,5 +1,6 @@
 import { ref, computed, watch, type Ref } from 'vue'
 import { UploadService } from '../../../../infrastructure/services/UploadService'
+import { ImpostoService } from '../../../../infrastructure/services/ImpostoService'
 import type { UploadResult } from '../../../../domain/models/UploadResult'
 import { notifyError, notifySuccess } from '../../../../shared/composables/useToast'
 import { useDebouncedRef } from '../../../../shared/composables/useDebouncedRef'
@@ -285,9 +286,10 @@ export function useClassification(options: {
       return
     }
 
-    const searchLower = searchByDescription.value.toLowerCase()
-    const exactMatchRegex = new RegExp(`\\b${searchLower.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i')
-    searchResults.value = groupedTransactions.value.filter((group) => exactMatchRegex.test(group.descricao))
+    const searchLower = debouncedSearchDescription.value.toLowerCase()
+    searchResults.value = groupedTransactions.value.filter((group) =>
+      group.descricao.toLowerCase().includes(searchLower)
+    )
   }
 
   const searchByValueFunction = () => {
@@ -380,6 +382,31 @@ export function useClassification(options: {
     notifySuccess(
       `Códigos aplicados para ${targetGroups.length} descrições ${type === 'positive' ? 'positivas' : 'negativas'}!`
     )
+  }
+
+  const suggestCodesForGroup = async (descricao: string, type: 'positive' | 'negative') => {
+    if (!options.cnpjFormatted.value || !descricao.trim()) return
+
+    try {
+      const suggestions = await ImpostoService.suggestDescricoes(options.cnpjFormatted.value, descricao)
+      if (!suggestions.length) return
+
+      const best = suggestions[0]
+      if (type === 'positive') {
+        batchCodesPositive.value = {
+          debito: String(best.codigoDebito),
+          credito: String(best.codigoCredito),
+        }
+      } else {
+        batchCodesNegative.value = {
+          debito: String(best.codigoDebito),
+          credito: String(best.codigoCredito),
+        }
+      }
+      notifySuccess('Sugestão aplicada com base em descrições similares')
+    } catch {
+      notifyError('Não foi possível buscar sugestões')
+    }
   }
 
   const validateIndividualCodes = (codigoDebito: string, codigoCredito: string) => {
@@ -821,6 +848,7 @@ export function useClassification(options: {
     validateGroupCode,
     formatCurrency,
     applyBatchClassification,
+    suggestCodesForGroup,
     saveIndividualClassification,
     removeIndividualClassification,
     buildTransactionPayload,

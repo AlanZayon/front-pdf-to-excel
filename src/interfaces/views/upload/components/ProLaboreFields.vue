@@ -8,6 +8,7 @@ defineProps<{
 
 defineEmits<{
   'update:active': [value: boolean]
+  'update:year': [value: number]
   input: [event: Event]
 }>()
 </script>
@@ -26,26 +27,43 @@ defineEmits<{
         <span class="toggle-switch"></span>
         <span class="toggle-text">INCLUIR PRO LABORE</span>
       </label>
-      <p v-if="active" class="prolabore-info">Ano fixo: {{ year }} · Códigos contábeis: débito 188 / crédito 5</p>
+      <p v-if="active" class="prolabore-info">Códigos contábeis: débito 188 / crédito 5</p>
     </div>
 
     <div v-if="active" class="prolabore-value-field">
-      <div class="input-group">
-        <label for="proLaboreValue">Valor do Pro Labore:</label>
-        <input
-          id="proLaboreValue"
-          type="text"
-          :value="value"
-          inputmode="decimal"
-          placeholder="0,00"
-          class="prolabore-input"
-          @input="$emit('input', $event)"
-        >
+      <div class="prolabore-fields-grid">
+        <div class="input-group">
+          <label for="proLaboreYear">Ano do Pro Labore:</label>
+          <input
+            id="proLaboreYear"
+            type="number"
+            class="prolabore-input prolabore-year-input"
+            :value="year"
+            min="2000"
+            max="2099"
+            step="1"
+            inputmode="numeric"
+            @input="$emit('update:year', Number(($event.target as HTMLInputElement).value))"
+          >
+        </div>
+
+        <div class="input-group">
+          <label for="proLaboreValue">Valor do Pro Labore:</label>
+          <input
+            id="proLaboreValue"
+            type="text"
+            :value="value"
+            inputmode="decimal"
+            placeholder="0,00"
+            class="prolabore-input"
+            @input="$emit('input', $event)"
+          >
+        </div>
       </div>
     </div>
 
     <div v-if="active && !isValid" class="validation-error">
-      Por favor, informe o valor do pro labore
+      Informe um ano válido (2000–2099) e o valor do pro labore.
     </div>
   </div>
 </template>
@@ -195,6 +213,13 @@ defineEmits<{
   z-index: 1;
 }
 
+.prolabore-fields-grid {
+  display: grid;
+  grid-template-columns: minmax(120px, 160px) minmax(0, 1fr);
+  gap: 1rem;
+  align-items: end;
+}
+
 .prolabore-value-field .input-group {
   display: flex;
   flex-direction: column;
@@ -221,6 +246,10 @@ defineEmits<{
   width: 100%;
   box-sizing: border-box;
   font-weight: 500;
+}
+
+.prolabore-year-input {
+  max-width: 160px;
 }
 
 .prolabore-input:focus {
@@ -300,6 +329,10 @@ defineEmits<{
     margin-top: 10px;
   }
 
+  .prolabore-fields-grid {
+    grid-template-columns: 1fr;
+  }
+
   .prolabore-value-field .input-group {
     gap: 8px;
   }
@@ -311,6 +344,10 @@ defineEmits<{
   .prolabore-input {
     padding: 10px 12px;
     font-size: 14px;
+  }
+
+  .prolabore-year-input {
+    max-width: none;
   }
 
   .validation-error {

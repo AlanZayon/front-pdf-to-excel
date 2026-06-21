@@ -1,14 +1,19 @@
 <script lang="ts" setup>
 import { computed, toRef } from 'vue'
 import AppModal from './AppModal.vue'
-import { FileDownloadService } from '../../infrastructure/services/FileDownloadService'
 import { useCsvPreview } from '../../shared/composables/useCsvPreview'
-import { getFileKindLabel } from '../../shared/utils/csvPreview'
+import {
+  downloadTextAsCsv,
+  formatValorForInput,
+  getFileKindLabel,
+  type EditableCsvField,
+} from '../../shared/utils/csvPreview'
 import { notifyError, notifySuccess } from '../../shared/composables/useToast'
 
 const props = defineProps<{
   visible: boolean
   fileName?: string
+  jobId?: string
 }>()
 
 defineEmits<{ close: [] }>()
@@ -24,31 +29,69 @@ const {
   filteredSummary,
   totalPages,
   paginatedRows,
-  rawPreviewLines,
-  rawTruncated,
-  rawLineCount,
   displayRangeLabel,
   filteredRows,
+  isDirty,
+  isEditing,
+  rawEditText,
+  rawEditError,
+  rawDisplayText,
   loadPreview,
+  updateRowField,
   setViewMode,
+  enterEditMode,
+  exitEditMode,
   setPage,
   setPageSize,
+  discardEdits,
+  getDownloadText,
 } = useCsvPreview({
   visible: toRef(props, 'visible'),
   fileName: toRef(props, 'fileName'),
+  jobId: toRef(props, 'jobId'),
 })
 
 const fileKindLabel = computed(() => getFileKindLabel(props.fileName))
 const isFiltered = computed(() => searchQuery.value.trim().length > 0)
 const activeSummary = computed(() => (isFiltered.value ? filteredSummary.value : summary.value))
 
+function onFieldChange(lineNumber: number, field: EditableCsvField, event: Event) {
+  updateRowField(lineNumber, field, (event.target as HTMLInputElement).value)
+}
+
+function switchViewMode(mode: 'table' | 'raw') {
+  if (!setViewMode(mode)) {
+    notifyError(rawEditError.value || 'Não foi possível aplicar as alterações do texto bruto.')
+  }
+}
+
+function handleEnterEditMode() {
+  enterEditMode()
+}
+
+function handleViewModeClick() {
+  if (isEditing.value) handleExitEditMode()
+}
+
+function handleEditModeClick() {
+  if (!isEditing.value) handleEnterEditMode()
+}
+
+function handleExitEditMode() {
+  if (!exitEditMode()) {
+    notifyError(rawEditError.value || 'Corrija o texto bruto antes de voltar à visualização.')
+  }
+}
+
 async function copyVisibleRows() {
   const text =
     viewMode.value === 'raw'
-      ? rawPreviewLines.value.join('\n')
+      ? isEditing.value
+        ? rawEditText.value
+        : rawDisplayText.value
       : paginatedRows.value.map((row) => row.rawLine).join('\n')
 
-  if (!text) {
+  if (!text.trim()) {
     notifyError('Nada para copiar.')
     return
   }
@@ -61,26 +104,43 @@ async function copyVisibleRows() {
   }
 }
 
-async function handleDownload() {
-  try {
-    await FileDownloadService.execute(props.fileName)
-  } catch {
-    notifyError('Erro ao baixar o CSV.')
+function handleDownload() {
+  const content = getDownloadText()
+  if (!content) {
+    notifyError(rawEditError.value || 'Corrija o CSV antes de baixar.')
+    return
   }
+
+  downloadTextAsCsv(content, props.fileName || 'conversao.csv')
+  notifySuccess(isDirty.value ? 'CSV editado baixado com sucesso.' : 'CSV baixado com sucesso.')
 }
-</script>
+
+function handleDiscardEdits() {
+  discardEdits()
+  notifySuccess('Alterações descartadas.')
+}</script>
 
 <template>
-  <AppModal :visible="visible" title-id="csv-preview-title" @close="$emit('close')">
+  <AppModal :visible="visible" :panel-scroll="false" title-id="csv-preview-title" @close="$emit('close')">
     <div class="csv-preview-modal" role="document">
       <header class="preview-top">
         <div class="preview-title-block">
           <h2 id="csv-preview-title">Pré-visualização do CSV</h2>
-          <p class="preview-subtitle">Revise os lançamentos antes de importar no Domínio Contábil.</p>
+          <p class="preview-subtitle">
+            {{
+              isEditing
+                ? 'Modo edição — ajuste os lançamentos e baixe o CSV corrigido.'
+                : 'Revise os lançamentos antes de importar no Domínio Contábil.'
+            }}
+          </p>
         </div>
-        <button type="button" class="icon-close" aria-label="Fechar pré-visualização" @click="$emit('close')">
-          ×
-        </button>
+        <div class="preview-top-actions">
+          <span v-if="isEditing" class="mode-badge mode-badge-edit">Editando</span>
+          <span v-else-if="isDirty" class="dirty-badge">Alterações pendentes</span>
+          <button type="button" class="icon-close" aria-label="Fechar pré-visualização" @click="$emit('close')">
+            ×
+          </button>
+        </div>
       </header>
 
       <div v-if="fileName" class="file-badge-row">
@@ -101,6 +161,7 @@ async function handleDownload() {
       </div>
 
       <template v-else>
+        <div class="preview-body">
         <section class="summary-grid" aria-label="Resumo do arquivo">
           <article class="summary-card">
             <span class="summary-label">Lançamentos</span>
@@ -129,7 +190,11 @@ async function handleDownload() {
 
         <div class="info-banner">
           Formato fixo Domínio: Tipo · Data (DDMMAAAA) · Débito · Crédito · Valor · Histórico.
-          Confira códigos e valores antes do download.
+          {{
+            isEditing
+              ? 'Altere os campos na tabela ou no texto bruto. Use Visualizar para conferir sem editar.'
+              : 'Use Editar para corrigir inconsistências antes de baixar o arquivo.'
+          }}
         </div>
 
         <div class="toolbar">
@@ -149,14 +214,35 @@ async function handleDownload() {
           </div>
 
           <div class="toolbar-actions">
-            <div class="view-toggle" role="tablist" aria-label="Modo de visualização">
+            <div class="mode-toggle" role="group" aria-label="Modo da pré-visualização">
+              <button
+                type="button"
+                class="mode-toggle-btn"
+                :class="{ active: !isEditing }"
+                :aria-pressed="!isEditing"
+                @click="handleViewModeClick"
+              >
+                Visualizar
+              </button>
+              <button
+                type="button"
+                class="mode-toggle-btn"
+                :class="{ active: isEditing }"
+                :aria-pressed="isEditing"
+                @click="handleEditModeClick"
+              >
+                Editar
+              </button>
+            </div>
+
+            <div class="view-toggle" role="tablist" aria-label="Formato de exibição">
               <button
                 type="button"
                 role="tab"
                 class="view-toggle-btn"
                 :class="{ active: viewMode === 'table' }"
                 :aria-selected="viewMode === 'table'"
-                @click="setViewMode('table')"
+                @click="switchViewMode('table')"
               >
                 Tabela
               </button>
@@ -166,11 +252,15 @@ async function handleDownload() {
                 class="view-toggle-btn"
                 :class="{ active: viewMode === 'raw' }"
                 :aria-selected="viewMode === 'raw'"
-                @click="setViewMode('raw')"
+                @click="switchViewMode('raw')"
               >
                 Texto bruto
               </button>
             </div>
+
+            <button v-if="isEditing && isDirty" type="button" class="btn-ghost" @click="handleDiscardEdits">
+              Descartar
+            </button>
 
             <button type="button" class="btn-ghost" @click="copyVisibleRows">
               Copiar {{ viewMode === 'table' ? 'página' : 'resultados' }}
@@ -183,7 +273,7 @@ async function handleDownload() {
             Nenhum lançamento corresponde à busca.
           </div>
 
-          <div v-else class="table-scroll">
+          <div v-else class="table-scroll app-scrollbar">
             <table class="preview-table">
               <thead>
                 <tr>
@@ -199,12 +289,67 @@ async function handleDownload() {
               <tbody>
                 <tr v-for="row in paginatedRows" :key="row.lineNumber">
                   <td class="col-line">{{ row.lineNumber }}</td>
-                  <td>{{ row.tipo }}</td>
-                  <td class="col-date">{{ row.dataFormatted }}</td>
-                  <td class="col-code">{{ row.debito }}</td>
-                  <td class="col-code">{{ row.credito }}</td>
-                  <td class="col-valor">{{ row.valorFormatted }}</td>
-                  <td class="col-desc">{{ row.descricao }}</td>
+                  <template v-if="isEditing">
+                    <td>
+                      <input
+                        class="cell-input cell-input-sm"
+                        :value="row.tipo"
+                        aria-label="Tipo"
+                        @change="onFieldChange(row.lineNumber, 'tipo', $event)"
+                      >
+                    </td>
+                    <td class="col-date">
+                      <input
+                        class="cell-input cell-input-date"
+                        :value="row.dataFormatted"
+                        aria-label="Data"
+                        inputmode="numeric"
+                        placeholder="DD/MM/AAAA"
+                        @change="onFieldChange(row.lineNumber, 'data', $event)"
+                      >
+                    </td>
+                    <td class="col-code">
+                      <input
+                        class="cell-input cell-input-code"
+                        :value="row.debito"
+                        aria-label="Débito"
+                        @change="onFieldChange(row.lineNumber, 'debito', $event)"
+                      >
+                    </td>
+                    <td class="col-code">
+                      <input
+                        class="cell-input cell-input-code"
+                        :value="row.credito"
+                        aria-label="Crédito"
+                        @change="onFieldChange(row.lineNumber, 'credito', $event)"
+                      >
+                    </td>
+                    <td class="col-valor">
+                      <input
+                        class="cell-input cell-input-valor"
+                        :value="formatValorForInput(row.valor)"
+                        aria-label="Valor"
+                        inputmode="decimal"
+                        @change="onFieldChange(row.lineNumber, 'valor', $event)"
+                      >
+                    </td>
+                    <td class="col-desc">
+                      <input
+                        class="cell-input cell-input-desc"
+                        :value="row.descricao"
+                        aria-label="Histórico"
+                        @change="onFieldChange(row.lineNumber, 'descricao', $event)"
+                      >
+                    </td>
+                  </template>
+                  <template v-else>
+                    <td>{{ row.tipo }}</td>
+                    <td class="col-date">{{ row.dataFormatted }}</td>
+                    <td class="col-code">{{ row.debito }}</td>
+                    <td class="col-code">{{ row.credito }}</td>
+                    <td class="col-valor">{{ row.valorFormatted }}</td>
+                    <td class="col-desc">{{ row.descricao }}</td>
+                  </template>
                 </tr>
               </tbody>
             </table>
@@ -216,9 +361,10 @@ async function handleDownload() {
             <div class="page-size">
               <label for="csv-page-size">Por página</label>
               <select id="csv-page-size" :value="pageSize" @change="setPageSize(Number(($event.target as HTMLSelectElement).value))">
-                <option :value="25">25</option>
                 <option :value="50">50</option>
+                <option :value="75">75</option>
                 <option :value="100">100</option>
+                <option :value="150">150</option>
               </select>
             </div>
 
@@ -235,19 +381,33 @@ async function handleDownload() {
         </div>
 
         <div v-else class="raw-panel">
-          <div v-if="rawPreviewLines.length === 0" class="empty-filter">Nenhuma linha corresponde à busca.</div>
-          <pre v-else class="raw-content" aria-label="Conteúdo bruto do CSV">{{ rawPreviewLines.join('\n') }}</pre>
-          <p v-if="rawPreviewLines.length > 0" class="raw-meta">
-            {{ rawPreviewLines.length }} linha(s) exibida(s)
-            <span v-if="rawTruncated"> · mostrando as primeiras {{ rawPreviewLines.length }} de {{ rawLineCount }}</span>
+          <textarea
+            v-if="isEditing"
+            v-model="rawEditText"
+            class="raw-editor app-scrollbar"
+            aria-label="Editar conteúdo bruto do CSV"
+            spellcheck="false"
+          />
+          <template v-else>
+            <div v-if="!rawDisplayText" class="empty-filter">Nenhuma linha corresponde à busca.</div>
+            <pre v-else class="raw-content app-scrollbar" aria-label="Conteúdo bruto do CSV">{{ rawDisplayText }}</pre>
+          </template>
+          <p v-if="isEditing && rawEditError" class="raw-error" role="alert">{{ rawEditError }}</p>
+          <p v-else class="raw-meta">
+            {{
+              isEditing
+                ? 'Edite linha a linha no formato Domínio. Volte para Visualizar para conferir o resultado.'
+                : 'Visualização somente leitura. Clique em Editar para modificar o arquivo.'
+            }}
           </p>
+        </div>
         </div>
       </template>
 
       <footer class="preview-footer">
         <button type="button" class="btn-secondary" @click="$emit('close')">Fechar</button>
         <button type="button" class="btn-primary" :disabled="loading || !!error" @click="handleDownload">
-          Baixar CSV
+          {{ isDirty ? 'Baixar CSV editado' : 'Baixar CSV' }}
         </button>
       </footer>
     </div>
@@ -259,8 +419,9 @@ async function handleDownload() {
   background: #141414;
   border: 1px solid #333;
   border-radius: 12px;
-  width: min(1120px, 96vw);
-  max-height: 90vh;
+  width: min(1400px, 98vw);
+  height: 100%;
+  max-height: 100%;
   display: flex;
   flex-direction: column;
   color: #e8e8e8;
@@ -272,23 +433,55 @@ async function handleDownload() {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 1rem;
-  padding: 1.25rem 1.25rem 0.75rem;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem 0.5rem;
   border-bottom: 1px solid #2a2a2a;
+  flex-shrink: 0;
 }
 
 .preview-title-block h2 {
   margin: 0;
-  font-size: 1.25rem;
+  font-size: 1.1rem;
   color: #fff;
   font-weight: 700;
 }
 
 .preview-subtitle {
-  margin: 0.35rem 0 0;
-  font-size: 0.85rem;
+  margin: 0.2rem 0 0;
+  font-size: 0.78rem;
   color: #999;
-  line-height: 1.4;
+  line-height: 1.35;
+}
+
+.preview-top-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.mode-badge {
+  padding: 0.25rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.mode-badge-edit {
+  background: rgba(33, 150, 243, 0.12);
+  border: 1px solid rgba(33, 150, 243, 0.35);
+  color: #7ec8ff;
+}
+
+.dirty-badge {
+  padding: 0.25rem 0.55rem;
+  border-radius: 999px;
+  background: rgba(249, 203, 40, 0.12);
+  border: 1px solid rgba(249, 203, 40, 0.35);
+  color: #f9cb28;
+  font-size: 0.72rem;
+  font-weight: 700;
+  white-space: nowrap;
 }
 
 .icon-close {
@@ -311,9 +504,10 @@ async function handleDownload() {
 .file-badge-row {
   display: flex;
   align-items: center;
-  gap: 0.65rem;
-  padding: 0.65rem 1.25rem;
+  gap: 0.5rem;
+  padding: 0.35rem 1rem;
   flex-wrap: wrap;
+  flex-shrink: 0;
 }
 
 .file-badge {
@@ -333,21 +527,30 @@ async function handleDownload() {
   color: #aaa;
 }
 
+.preview-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
 .summary-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 0.65rem;
-  padding: 0 1.25rem 0.75rem;
+  gap: 0.45rem;
+  padding: 0 1rem 0.35rem;
+  flex-shrink: 0;
 }
 
 .summary-card {
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid #2e2e2e;
-  border-radius: 8px;
-  padding: 0.75rem;
+  border-radius: 6px;
+  padding: 0.45rem 0.55rem;
   display: flex;
   flex-direction: column;
-  gap: 0.2rem;
+  gap: 0.1rem;
 }
 
 .summary-label {
@@ -358,14 +561,14 @@ async function handleDownload() {
 }
 
 .summary-value {
-  font-size: 1.15rem;
+  font-size: 0.95rem;
   color: #fff;
   font-weight: 700;
 }
 
 .summary-value-sm {
-  font-size: 0.9rem;
-  line-height: 1.3;
+  font-size: 0.82rem;
+  line-height: 1.25;
 }
 
 .summary-hint {
@@ -374,23 +577,24 @@ async function handleDownload() {
 }
 
 .info-banner {
-  margin: 0 1.25rem 0.75rem;
-  padding: 0.65rem 0.85rem;
+  margin: 0 1rem 0.35rem;
+  padding: 0.35rem 0.6rem;
   background: rgba(76, 175, 80, 0.08);
   border: 1px solid rgba(76, 175, 80, 0.25);
   border-radius: 6px;
-  font-size: 0.78rem;
+  font-size: 0.72rem;
   color: #b8ddb9;
-  line-height: 1.45;
+  line-height: 1.35;
 }
 
 .toolbar {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.75rem;
+  gap: 0.5rem;
   align-items: center;
   justify-content: space-between;
-  padding: 0 1.25rem 0.75rem;
+  padding: 0 1rem 0.35rem;
+  flex-shrink: 0;
 }
 
 .search-wrap {
@@ -412,12 +616,12 @@ async function handleDownload() {
 
 .search-input {
   width: 100%;
-  padding: 0.65rem 0.75rem 0.65rem 2.35rem;
+  padding: 0.45rem 0.65rem 0.45rem 2.1rem;
   background: #0d0d0d;
   border: 1px solid #333;
   border-radius: 6px;
   color: #fff;
-  font-size: 0.88rem;
+  font-size: 0.82rem;
 }
 
 .search-input:focus {
@@ -431,6 +635,33 @@ async function handleDownload() {
   align-items: center;
   gap: 0.5rem;
   flex-wrap: wrap;
+}
+
+.mode-toggle {
+  display: inline-flex;
+  border: 1px solid rgba(249, 203, 40, 0.35);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.mode-toggle-btn {
+  background: transparent;
+  border: none;
+  color: #aaa;
+  padding: 0.45rem 0.85rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.mode-toggle-btn.active {
+  background: rgba(249, 203, 40, 0.15);
+  color: #f9cb28;
+}
+
+.mode-toggle-btn:not(.active):hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.05);
 }
 
 .view-toggle {
@@ -481,23 +712,26 @@ async function handleDownload() {
 .raw-panel {
   flex: 1;
   min-height: 0;
-  padding: 0 1.25rem;
+  padding: 0 1rem 0.25rem;
   display: flex;
   flex-direction: column;
 }
 
 .table-scroll {
+  flex: 1;
+  min-height: 0;
   overflow: auto;
   border: 1px solid #2a2a2a;
   border-radius: 8px;
-  max-height: min(420px, 45vh);
   background: #0a0a0a;
+  scroll-padding-bottom: 0.75rem;
 }
 
 .preview-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.82rem;
+  font-size: 0.78rem;
+  table-layout: fixed;
 }
 
 .preview-table thead {
@@ -510,8 +744,8 @@ async function handleDownload() {
   background: #1f1f1f;
   color: #f9cb28;
   text-align: left;
-  padding: 0.6rem 0.65rem;
-  font-size: 0.72rem;
+  padding: 0.32rem 0.45rem;
+  font-size: 0.68rem;
   text-transform: uppercase;
   letter-spacing: 0.4px;
   border-bottom: 1px solid #333;
@@ -519,13 +753,67 @@ async function handleDownload() {
 }
 
 .preview-table td {
-  padding: 0.55rem 0.65rem;
+  padding: 0.24rem 0.45rem;
   border-bottom: 1px solid #1e1e1e;
-  vertical-align: top;
+  vertical-align: middle;
 }
 
 .preview-table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.cell-input {
+  width: 100%;
+  min-width: 0;
+  padding: 0.2rem 0.35rem;
+  border-radius: 4px;
+  border: 1px solid transparent;
   background: rgba(255, 255, 255, 0.03);
+  color: inherit;
+  font-family: inherit;
+  font-size: inherit;
+  box-sizing: border-box;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.cell-input:hover {
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.cell-input:focus {
+  outline: none;
+  border-color: rgba(249, 203, 40, 0.45);
+  background: rgba(249, 203, 40, 0.06);
+}
+
+.cell-input-sm {
+  max-width: 52px;
+}
+
+.cell-input-code {
+  font-family: ui-monospace, 'Cascadia Code', monospace;
+  max-width: 88px;
+}
+
+.cell-input-date {
+  min-width: 108px;
+  width: 108px;
+  max-width: 108px;
+  font-family: ui-monospace, 'Cascadia Code', monospace;
+  white-space: nowrap;
+  color: #f9cb28;
+  font-weight: 600;
+}
+
+.cell-input-valor {
+  text-align: right;
+  max-width: 96px;
+  font-weight: 700;
+  color: #4caf50;
+}
+
+.cell-input-desc {
+  min-width: 180px;
 }
 
 .col-line {
@@ -537,6 +825,8 @@ async function handleDownload() {
   white-space: nowrap;
   color: #f9cb28;
   font-weight: 600;
+  width: 118px;
+  min-width: 118px;
 }
 
 .col-code {
@@ -552,7 +842,7 @@ async function handleDownload() {
 }
 
 .col-desc {
-  max-width: 320px;
+  max-width: 520px;
   word-break: break-word;
 }
 
@@ -561,10 +851,11 @@ async function handleDownload() {
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 0.75rem;
-  padding: 0.75rem 0 1rem;
-  font-size: 0.8rem;
+  gap: 0.5rem;
+  padding: 0.35rem 0 0.45rem;
+  font-size: 0.76rem;
   color: #888;
+  flex-shrink: 0;
 }
 
 .page-size {
@@ -611,6 +902,42 @@ async function handleDownload() {
   padding-bottom: 0.75rem;
 }
 
+.raw-editor {
+  width: 100%;
+  min-height: 0;
+  flex: 1;
+  margin: 0;
+  padding: 0.85rem;
+  background: #0a0a0a;
+  border: 1px solid #2a2a2a;
+  border-radius: 8px;
+  overflow: auto;
+  resize: vertical;
+  font-size: 0.78rem;
+  line-height: 1.5;
+  color: #ccc;
+  font-family: ui-monospace, 'Cascadia Code', monospace;
+  box-sizing: border-box;
+}
+
+.raw-editor:focus {
+  outline: none;
+  border-color: rgba(249, 203, 40, 0.45);
+  box-shadow: 0 0 0 2px rgba(249, 203, 40, 0.12);
+}
+
+.raw-error {
+  margin: 0.5rem 0 0;
+  font-size: 0.78rem;
+  color: #ff8a8a;
+}
+
+.raw-meta {
+  margin: 0.5rem 0 0;
+  font-size: 0.78rem;
+  color: #666;
+}
+
 .raw-content {
   margin: 0;
   padding: 0.85rem;
@@ -618,19 +945,14 @@ async function handleDownload() {
   border: 1px solid #2a2a2a;
   border-radius: 8px;
   overflow: auto;
-  max-height: min(460px, 48vh);
+  flex: 1;
+  min-height: 0;
   font-size: 0.78rem;
   line-height: 1.5;
   color: #ccc;
   font-family: ui-monospace, 'Cascadia Code', monospace;
   white-space: pre-wrap;
   word-break: break-all;
-}
-
-.raw-meta {
-  margin: 0.5rem 0 0;
-  font-size: 0.78rem;
-  color: #666;
 }
 
 .empty-filter {
@@ -642,6 +964,9 @@ async function handleDownload() {
 }
 
 .loading-state {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
   padding: 1rem 1.25rem 1.5rem;
 }
 
@@ -682,6 +1007,9 @@ async function handleDownload() {
 }
 
 .error-state {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
   padding: 2rem 1.25rem;
   text-align: center;
 }
@@ -696,9 +1024,13 @@ async function handleDownload() {
   display: flex;
   justify-content: flex-end;
   gap: 0.65rem;
-  padding: 1rem 1.25rem;
+  padding: 0.65rem 1rem;
   border-top: 1px solid #2a2a2a;
-  background: rgba(0, 0, 0, 0.25);
+  background: #141414;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 2;
+  box-shadow: 0 -8px 16px rgba(0, 0, 0, 0.35);
 }
 
 .btn-secondary {

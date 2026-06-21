@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { computed } from 'vue'
+import AppModal from '../../../ui/AppModal.vue'
 import TransactionGroupRow from './TransactionGroupRow.vue'
 import ClassificationSearch from './ClassificationSearch.vue'
 import IndividualClassificationCard from './IndividualClassificationCard.vue'
@@ -85,8 +86,19 @@ const progressPercent = computed(() =>
 
 const saveHint = computed(() => {
   if (props.isFormValid) return ''
-  return `${props.pendingCount} descrição(ões) pendente(s) — complete antes de salvar.`
+  return `${props.pendingCount} descrição(ões) pendente(s) — complete os códigos antes de salvar.`
 })
+
+const showIndividualOrValueView = computed(
+  () => (props.searchByValue && props.valueSearchResults.length > 0) || props.currentFilter === 'individual'
+)
+
+const filterLabels: Record<typeof props.currentFilter, string> = {
+  all: 'Todas',
+  pending: 'Pendentes',
+  classified: 'Classificadas',
+  individual: 'Personalizadas',
+}
 
 function scrollToNextPending() {
   const key = props.findFirstPendingGroupKey?.()
@@ -100,162 +112,167 @@ function scrollToNextPending() {
 </script>
 
 <template>
-  <div class="modal-overlay" role="presentation" @click.self="$emit('close')">
-    <div class="classification-modal" role="dialog" aria-modal="true" aria-labelledby="classification-modal-title">
-      <div class="modal-header">
-        <h2 id="classification-modal-title">CLASSIFICAÇÃO DE TRANSAÇÕES OFX</h2>
-        <button type="button" class="close-button" aria-label="Fechar modal" @click="$emit('close')">
-          <svg viewBox="0 0 24 24" width="24" height="24">
-            <path
-              d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"
-            />
-          </svg>
-        </button>
+  <AppModal
+    :visible="true"
+    :panel-scroll="false"
+    title-id="classification-modal-title"
+    @close="$emit('close')"
+  >
+    <div class="clf-modal" role="document">
+      <header class="clf-header">
+        <div class="clf-header-main">
+          <h2 id="classification-modal-title" class="clf-title">Classificação de transações OFX</h2>
+          <p class="clf-subtitle">
+            Atribua códigos de débito e crédito por descrição. Use busca em lote ou personalize transações individuais quando necessário.
+          </p>
+        </div>
+        <div class="clf-header-actions">
+          <div class="clf-progress-ring" aria-label="Progresso da classificação">
+            <span class="clf-progress-value">{{ progressPercent }}%</span>
+            <span class="clf-progress-label">concluído</span>
+          </div>
+          <button type="button" class="clf-icon-close" aria-label="Fechar modal" @click="$emit('close')">
+            ×
+          </button>
+        </div>
+      </header>
+
+      <div class="clf-progress-track" role="progressbar" :aria-valuenow="progressPercent" aria-valuemin="0" aria-valuemax="100">
+        <div class="clf-progress-fill" :style="{ width: `${progressPercent}%` }" />
       </div>
 
-      <div class="modal-content">
-        <div v-if="draftRestored" class="draft-badge">Rascunho restaurado — continue de onde parou.</div>
-
-        <div class="file-info-modal">
-          <div class="file-info-main">
-            <svg class="file-icon" viewBox="0 0 24 24">
-              <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z" />
-            </svg>
-            <span class="file-info-text">
-              {{ fileName }} - {{ filteredGroupedTransactions.length }} descrições para classificar
-            </span>
-            <div v-if="dateFilter.isActive" class="active-date-filter-indicator">
-              <span class="filter-badge">FILTRO ATIVO</span>
-              <span class="filter-range">{{ formatDateRange() }}</span>
-              <button type="button" class="clear-filter-button" @click="$emit('clearDateFilter')">
-                <svg viewBox="0 0 24 24" width="14" height="14">
-                  <path
-                    d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"
-                  />
-                </svg>
-              </button>
-            </div>
-          </div>
-
-          <div class="bank-code-inline">
-            <label for="bank-code-unclassified">Cód. não classif.:</label>
-            <input
-              id="bank-code-unclassified"
-              type="text"
-              maxlength="4"
-              inputmode="numeric"
-              :value="bankCodeInput"
-              placeholder="0000"
-              class="bank-code-input"
-              @input="$emit('update:bankCodeInput', ($event.target as HTMLInputElement).value); $emit('filterBanks')"
-            >
-            <button type="button" class="bank-code-apply" @click="$emit('onBankCodeApply')">Aplicar</button>
-          </div>
+      <div class="clf-meta-bar">
+        <div class="clf-file-chip">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z" />
+          </svg>
+          <span class="clf-file-name" :title="fileName">{{ fileName }}</span>
+          <span class="clf-file-count">· {{ filteredGroupedTransactions.length }} descrições</span>
         </div>
 
-        <div class="filters-section">
-          <div class="filters-container">
-            <div class="filter-buttons">
-              <button
-                type="button"
-                class="filter-button"
-                :class="{ active: currentFilter === 'all' }"
-                @click="$emit('setFilter', 'all')"
-              >
-                TODAS AS DESCRIÇÕES
-              </button>
-              <button
-                type="button"
-                class="filter-button"
-                :class="{ active: currentFilter === 'classified' }"
-                @click="$emit('setFilter', 'classified')"
-              >
-                CLASSIFICADAS
-              </button>
-              <button
-                type="button"
-                class="filter-button"
-                :class="{ active: currentFilter === 'pending' }"
-                @click="$emit('setFilter', 'pending')"
-              >
-                NÃO CLASSIFICADAS
-              </button>
-              <button
-                type="button"
-                class="filter-button"
-                :class="{ active: currentFilter === 'individual' }"
-                @click="$emit('setFilter', 'individual')"
-              >
-                PERSONALIZADAS
-              </button>
-            </div>
+        <span v-if="draftRestored" class="clf-draft-badge">Rascunho restaurado</span>
 
-            <div class="filter-stats">
-              <span class="filter-stat">Total de Históricos: {{ groupedTransactions.length }}</span>
-              <span class="filter-stat classified">Classificadas: {{ classifiedCount }}</span>
-              <span class="filter-stat pending">Pendentes: {{ pendingCount }}</span>
-              <span class="filter-stat individual">Personalizadas: {{ individualTransactionsCount }}</span>
-              <span class="filter-stat">Transações totais: {{ individualClassificationsCount }}</span>
-            </div>
+        <span v-if="dateFilter.isActive" class="clf-date-badge">
+          {{ formatDateRange() }}
+          <button type="button" aria-label="Remover filtro de período" @click="$emit('clearDateFilter')">
+            <svg viewBox="0 0 24 24" width="12" height="12">
+              <path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z" />
+            </svg>
+          </button>
+        </span>
 
-            <div class="progress-panel">
-              <div class="progress-bar-track">
-                <div class="progress-bar-fill" :style="{ width: `${progressPercent}%` }" />
-              </div>
-              <div class="progress-meta">
-                <span>{{ classifiedCount }} / {{ progressTotal }} classificadas ({{ progressPercent }}%)</span>
-                <button
-                  v-if="pendingCount > 0 && findFirstPendingGroupKey"
-                  type="button"
-                  class="next-pending-btn"
-                  @click="scrollToNextPending"
-                >
-                  Ir para próxima pendente
-                </button>
-              </div>
-            </div>
-          </div>
+        <div class="clf-bank-inline">
+          <label for="bank-code-unclassified">Cód. não classif.</label>
+          <input
+            id="bank-code-unclassified"
+            type="text"
+            maxlength="4"
+            inputmode="numeric"
+            :value="bankCodeInput"
+            placeholder="0000"
+            title="Código aplicado automaticamente ao campo bloqueado (débito ou crédito conforme o tipo)"
+            @input="$emit('update:bankCodeInput', ($event.target as HTMLInputElement).value); $emit('filterBanks')"
+          >
+          <button type="button" class="clf-btn-sm" @click="$emit('onBankCodeApply')">Aplicar</button>
+        </div>
+      </div>
+
+      <div class="clf-toolbar">
+        <div class="clf-filter-segment" role="group" aria-label="Filtrar descrições">
+          <button
+            v-for="(label, key) in filterLabels"
+            :key="key"
+            type="button"
+            :class="{ active: currentFilter === key }"
+            @click="$emit('setFilter', key)"
+          >
+            {{ label }}
+          </button>
         </div>
 
-        <div class="date-filter-modal-section">
-          <div class="filter-toggle-header" @click="$emit('toggleDateFilter')">
-            <h3>FILTRAR TRANSAÇÕES POR PERÍODO</h3>
-            <svg class="filter-toggle-icon" :class="{ rotated: showDateFilter }" viewBox="0 0 24 24">
-              <path d="M7,10L12,15L17,10H7Z" />
+        <div class="clf-stats-row" aria-label="Estatísticas">
+          <span class="clf-stat-chip"><strong>{{ groupedTransactions.length }}</strong> total</span>
+          <span class="clf-stat-chip success"><strong>{{ classifiedCount }}</strong> classificadas</span>
+          <span class="clf-stat-chip warning"><strong>{{ pendingCount }}</strong> pendentes</span>
+          <span v-if="individualTransactionsCount > 0" class="clf-stat-chip accent">
+            <strong>{{ individualTransactionsCount }}</strong> personalizadas
+          </span>
+        </div>
+
+        <div class="clf-toolbar-actions">
+          <button
+            type="button"
+            class="clf-tool-btn"
+            :class="{ active: showSearchSection }"
+            @click="$emit('toggleSearchVisibility')"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M9.5,3A6.5,6.5 0 0,1 16,9.5C16,11.11 15.41,12.59 14.44,13.73L14.71,14H15.5L20.5,19L19,20.5L14,15.5V14.71L13.73,14.44C12.59,15.41 11.11,16 9.5,16A6.5,6.5 0 0,1 3,9.5A6.5,6.5 0 0,1 9.5,3M9.5,5C7,5 5,7 5,9.5C5,12 7,14 9.5,14C12,14 14,12 14,9.5C14,7 12,5 9.5,5Z" />
             </svg>
-          </div>
-          <div v-if="showDateFilter" class="date-filter-controls-modal">
-            <div class="date-input-group-modal">
-              <label>Data Inicial:</label>
+            Buscar
+          </button>
+          <button
+            type="button"
+            class="clf-tool-btn"
+            :class="{ active: showDateFilter }"
+            @click="$emit('toggleDateFilter')"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M19,4H18V2H16V4H8V2H6V4H5C3.89,4 3,4.9 3,6V20A2,2 0 0,0 5,22H19A2,2 0 0,0 21,20V6A2,2 0 0,0 19,4M19,20H5V10H19V20M19,8H5V6H19V8Z" />
+            </svg>
+            Período
+          </button>
+          <button
+            v-if="pendingCount > 0 && findFirstPendingGroupKey"
+            type="button"
+            class="clf-tool-btn clf-next-btn"
+            @click="scrollToNextPending"
+          >
+            Próxima pendente
+          </button>
+        </div>
+      </div>
+
+      <div v-if="showDateFilter || showSearchSection" class="clf-tools-panel">
+        <div v-if="showDateFilter" class="clf-date-panel">
+          <p class="clf-date-panel-title">Filtrar transações por período</p>
+          <div class="clf-date-row">
+            <div class="clf-date-field">
+              <label for="clf-date-start">Data inicial</label>
               <input
+                id="clf-date-start"
                 type="date"
                 :value="dateFilter.startDate"
-                class="date-input-modal"
                 @input="$emit('update:dateFilterStart', ($event.target as HTMLInputElement).value)"
               >
             </div>
-            <div class="date-input-group-modal">
-              <label>Data Final:</label>
+            <div class="clf-date-field">
+              <label for="clf-date-end">Data final</label>
               <input
+                id="clf-date-end"
                 type="date"
                 :value="dateFilter.endDate"
-                class="date-input-modal"
                 @input="$emit('update:dateFilterEnd', ($event.target as HTMLInputElement).value)"
               >
             </div>
-            <div class="date-filter-actions-modal">
-              <button type="button" :disabled="!isDateFilterValid" class="filter-apply-button-modal" @click="$emit('applyDateFilter')">
-                APLICAR FILTRO
+            <div class="clf-date-actions">
+              <button
+                type="button"
+                class="clf-btn-primary"
+                :disabled="!isDateFilterValid"
+                @click="$emit('applyDateFilter')"
+              >
+                Aplicar
               </button>
-              <button type="button" class="filter-clear-button-modal" @click="$emit('clearDateFilter')">
-                LIMPAR FILTRO
-              </button>
+              <button type="button" class="clf-btn-ghost" @click="$emit('clearDateFilter')">Limpar</button>
             </div>
           </div>
         </div>
 
         <ClassificationSearch
-          :show-search-section="showSearchSection"
+          v-if="showSearchSection"
+          embedded
+          :show-search-section="true"
           :current-search-type="currentSearchType"
           :search-by-description="searchByDescription"
           :search-by-value="searchByValue"
@@ -264,6 +281,7 @@ function scrollToNextPending() {
           :search-results-negative="searchResultsNegative"
           :batch-codes-positive="batchCodesPositive"
           :batch-codes-negative="batchCodesNegative"
+          :value-results-count="valueSearchResults.length"
           @toggle-visibility="$emit('toggleSearchVisibility')"
           @set-search-type="$emit('setSearchType', $event)"
           @update:search-by-description="$emit('update:searchByDescription', $event)"
@@ -273,201 +291,163 @@ function scrollToNextPending() {
           @update:batch-codes-positive="$emit('update:batchCodesPositive', $event)"
           @update:batch-codes-negative="$emit('update:batchCodesNegative', $event)"
         />
-
-        <div class="transactions-container">
-          <div v-if="(searchByValue && valueSearchResults.length > 0) || currentFilter === 'individual'">
-            <div v-if="currentFilter === 'individual'" class="value-search-results-header">
-              TRANSAÇÕES PERSONALIZADAS: {{ individualTransactions.length }}
-            </div>
-            <div v-else class="value-search-results-header">
-              RESULTADOS POR VALOR: {{ valueSearchResults.length }} transação(ões)
-            </div>
-
-            <IndividualClassificationCard
-              v-for="(result, idx) in currentFilter === 'individual' ? individualTransactions : valueSearchResults"
-              :key="`value-${result.transactionKey || idx}`"
-              :transaction="result"
-              :group="result.groupRef"
-              :selected-bank-code="selectedBankCode"
-              :format-currency="formatCurrency"
-              show-description
-              @save="$emit('saveIndividualClassification', $event)"
-              @remove="$emit('removeIndividualClassification', $event)"
-            />
-
-            <div v-if="currentFilter === 'individual' && individualTransactions.length === 0" class="no-transactions individual-empty">
-              <p>Nenhuma transação personalizada ainda.</p>
-              <p class="empty-hint">Expanda uma descrição com várias transações e clique em <strong>Personalizar</strong> na linha desejada.</p>
-            </div>
-          </div>
-
-          <div v-else class="two-columns-layout">
-            <div class="column positive-column">
-              <div class="column-header">
-                <h3>ENTRADAS</h3>
-                <span class="column-count">{{ positiveGroups.length }} descrição(ões)</span>
-              </div>
-
-              <div class="groups-scroll">
-                <div
-                  v-for="(group, index) in positiveGroups"
-                  :key="`positive-${index}`"
-                  :data-group-key="group.descricao"
-                >
-                  <TransactionGroupRow
-                    :group="group"
-                    side="positive"
-                  :selected-bank-code="selectedBankCode"
-                  :should-filter-out="shouldFilterOut"
-                  :is-description-classified="isDescriptionClassified"
-                  :is-in-search-results="isInSearchResults"
-                  :has-individual-classifications="hasIndividualClassifications"
-                  :get-individual-classification-count="getIndividualClassificationCount"
-                  :get-status-class="getStatusClass"
-                  :get-status-text="getStatusText"
-                  :format-currency="formatCurrency"
-                  :build-transaction-payload="buildTransactionPayload"
-                  @toggle="$emit('toggleDescription', $event)"
-                  @validate="(group, type) => $emit('validateGroupCode', group, type)"
-                  @debito-focus="(group, event) => $emit('handleGroupDebitoFocus', group, event)"
-                  @credito-focus="(group, event) => $emit('handleGroupCreditoFocus', group, event)"
-                  @save-individual="$emit('saveIndividualClassification', $event)"
-                  @remove-individual="$emit('removeIndividualClassification', $event)"
-                />
-                </div>
-              </div>
-            </div>
-
-            <div class="column negative-column">
-              <div class="column-header">
-                <h3>SAÍDAS</h3>
-                <span class="column-count">{{ negativeGroups.length }} descrição(ões)</span>
-              </div>
-
-              <div class="groups-scroll">
-                <div
-                  v-for="(group, index) in negativeGroups"
-                  :key="`negative-${index}`"
-                  :data-group-key="group.descricao"
-                >
-                  <TransactionGroupRow
-                    :group="group"
-                    side="negative"
-                  :selected-bank-code="selectedBankCode"
-                  :should-filter-out="shouldFilterOut"
-                  :is-description-classified="isDescriptionClassified"
-                  :is-in-search-results="isInSearchResults"
-                  :has-individual-classifications="hasIndividualClassifications"
-                  :get-individual-classification-count="getIndividualClassificationCount"
-                  :get-status-class="getStatusClass"
-                  :get-status-text="getStatusText"
-                  :format-currency="formatCurrency"
-                  :build-transaction-payload="buildTransactionPayload"
-                  @toggle="$emit('toggleDescription', $event)"
-                  @validate="(group, type) => $emit('validateGroupCode', group, type)"
-                  @debito-focus="(group, event) => $emit('handleGroupDebitoFocus', group, event)"
-                  @credito-focus="(group, event) => $emit('handleGroupCreditoFocus', group, event)"
-                  @save-individual="$emit('saveIndividualClassification', $event)"
-                  @remove-individual="$emit('removeIndividualClassification', $event)"
-                />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div
-            v-if="filteredGroupedTransactions.length === 0 && !(searchByValue && valueSearchResults.length > 0) && currentFilter !== 'individual'"
-            class="no-transactions"
-          >
-            Nenhuma descrição encontrada com os filtros atuais.
-          </div>
-        </div>
-
-        <div class="modal-actions">
-          <p v-if="saveHint" class="save-hint">{{ saveHint }}</p>
-          <button
-            type="button"
-            class="save-button"
-            :disabled="isSavingClassification || !isFormValid"
-            :class="{ loading: isSavingClassification }"
-            @click="$emit('save')"
-          >
-            <div v-if="isSavingClassification" class="button-loading">
-              <svg class="spinner" viewBox="0 0 50 50" width="18" height="18">
-                <circle class="path" cx="25" cy="25" r="20" fill="none" stroke-width="5" />
-              </svg>
-              SALVANDO...
-            </div>
-            <div v-else class="button-content">SALVAR CLASSIFICAÇÃO</div>
-          </button>
-          <button type="button" class="cancel-button" :disabled="isSavingClassification" @click="$emit('close')">
-            CANCELAR
-          </button>
-        </div>
       </div>
+
+      <main class="clf-main app-scrollbar">
+        <template v-if="showIndividualOrValueView">
+          <div class="clf-results-header">
+            <h3>
+              {{
+                currentFilter === 'individual'
+                  ? 'Transações personalizadas'
+                  : 'Resultados por valor'
+              }}
+            </h3>
+            <span>
+              {{
+                currentFilter === 'individual'
+                  ? `${individualTransactions.length} transação(ões)`
+                  : `${valueSearchResults.length} transação(ões)`
+              }}
+            </span>
+          </div>
+
+          <IndividualClassificationCard
+            v-for="(result, idx) in currentFilter === 'individual' ? individualTransactions : valueSearchResults"
+            :key="`value-${result.transactionKey || idx}`"
+            :transaction="result"
+            :group="result.groupRef"
+            :selected-bank-code="selectedBankCode"
+            :format-currency="formatCurrency"
+            show-description
+            @save="$emit('saveIndividualClassification', $event)"
+            @remove="$emit('removeIndividualClassification', $event)"
+          />
+
+          <div v-if="currentFilter === 'individual' && individualTransactions.length === 0" class="clf-empty">
+            <p>Nenhuma transação personalizada ainda.</p>
+            <p class="empty-hint">
+              Expanda uma descrição com várias transações e clique em <strong>Personalizar</strong> na linha desejada.
+            </p>
+          </div>
+        </template>
+
+        <div v-else class="clf-columns">
+          <section class="clf-column" aria-label="Entradas">
+            <div class="clf-column-header income">
+              <h3>Entradas</h3>
+              <span class="clf-column-count">{{ positiveGroups.length }} descrições</span>
+            </div>
+            <div class="clf-column-list">
+              <div
+                v-for="(group, index) in positiveGroups"
+                :key="`positive-${index}`"
+                :data-group-key="group.descricao"
+              >
+                <TransactionGroupRow
+                  :group="group"
+                  side="positive"
+                  :selected-bank-code="selectedBankCode"
+                  :should-filter-out="shouldFilterOut"
+                  :is-description-classified="isDescriptionClassified"
+                  :is-in-search-results="isInSearchResults"
+                  :has-individual-classifications="hasIndividualClassifications"
+                  :get-individual-classification-count="getIndividualClassificationCount"
+                  :get-status-class="getStatusClass"
+                  :get-status-text="getStatusText"
+                  :format-currency="formatCurrency"
+                  :build-transaction-payload="buildTransactionPayload"
+                  @toggle="$emit('toggleDescription', $event)"
+                  @validate="(g, type) => $emit('validateGroupCode', g, type)"
+                  @debito-focus="(g, event) => $emit('handleGroupDebitoFocus', g, event)"
+                  @credito-focus="(g, event) => $emit('handleGroupCreditoFocus', g, event)"
+                  @save-individual="$emit('saveIndividualClassification', $event)"
+                  @remove-individual="$emit('removeIndividualClassification', $event)"
+                />
+              </div>
+              <div v-if="positiveGroups.length === 0" class="clf-empty">Nenhuma entrada com os filtros atuais.</div>
+            </div>
+          </section>
+
+          <section class="clf-column" aria-label="Saídas">
+            <div class="clf-column-header expense">
+              <h3>Saídas</h3>
+              <span class="clf-column-count">{{ negativeGroups.length }} descrições</span>
+            </div>
+            <div class="clf-column-list">
+              <div
+                v-for="(group, index) in negativeGroups"
+                :key="`negative-${index}`"
+                :data-group-key="group.descricao"
+              >
+                <TransactionGroupRow
+                  :group="group"
+                  side="negative"
+                  :selected-bank-code="selectedBankCode"
+                  :should-filter-out="shouldFilterOut"
+                  :is-description-classified="isDescriptionClassified"
+                  :is-in-search-results="isInSearchResults"
+                  :has-individual-classifications="hasIndividualClassifications"
+                  :get-individual-classification-count="getIndividualClassificationCount"
+                  :get-status-class="getStatusClass"
+                  :get-status-text="getStatusText"
+                  :format-currency="formatCurrency"
+                  :build-transaction-payload="buildTransactionPayload"
+                  @toggle="$emit('toggleDescription', $event)"
+                  @validate="(g, type) => $emit('validateGroupCode', g, type)"
+                  @debito-focus="(g, event) => $emit('handleGroupDebitoFocus', g, event)"
+                  @credito-focus="(g, event) => $emit('handleGroupCreditoFocus', g, event)"
+                  @save-individual="$emit('saveIndividualClassification', $event)"
+                  @remove-individual="$emit('removeIndividualClassification', $event)"
+                />
+              </div>
+              <div v-if="negativeGroups.length === 0" class="clf-empty">Nenhuma saída com os filtros atuais.</div>
+            </div>
+          </section>
+        </div>
+
+        <div
+          v-if="filteredGroupedTransactions.length === 0 && !showIndividualOrValueView"
+          class="clf-empty"
+        >
+          Nenhuma descrição encontrada com os filtros atuais.
+        </div>
+      </main>
+
+      <footer class="clf-footer">
+        <p v-if="saveHint" class="clf-save-hint" role="alert">{{ saveHint }}</p>
+        <p v-else class="clf-footer-hint">
+          {{ classifiedCount }} de {{ progressTotal }} descrições classificadas — alterações são salvas como rascunho automaticamente.
+        </p>
+        <button type="button" class="clf-btn-cancel" :disabled="isSavingClassification" @click="$emit('close')">
+          Cancelar
+        </button>
+        <button
+          type="button"
+          class="clf-btn-save"
+          :disabled="isSavingClassification || !isFormValid"
+          @click="$emit('save')"
+        >
+          <svg
+            v-if="isSavingClassification"
+            class="clf-spinner"
+            viewBox="0 0 50 50"
+            width="16"
+            height="16"
+            aria-hidden="true"
+          >
+            <circle cx="25" cy="25" r="20" fill="none" stroke="currentColor" stroke-width="5" opacity="0.25" />
+            <circle cx="25" cy="25" r="20" fill="none" stroke="currentColor" stroke-width="5" stroke-dasharray="80" stroke-linecap="round" />
+          </svg>
+          {{ isSavingClassification ? 'Salvando…' : 'Salvar classificação' }}
+        </button>
+      </footer>
     </div>
-  </div>
+  </AppModal>
 </template>
 
 <style src="./upload-modal.css"></style>
-
-<style scoped>
-.draft-badge {
-  background: rgba(249, 203, 40, 0.15);
-  border: 1px solid rgba(249, 203, 40, 0.4);
-  color: #f9cb28;
-  padding: 0.5rem 0.75rem;
-  border-radius: 4px;
-  margin-bottom: 0.75rem;
-  font-size: 0.85rem;
-}
-
-.progress-panel {
-  margin-top: 0.75rem;
-  width: 100%;
-}
-
-.progress-bar-track {
-  height: 8px;
-  background: #333;
-  border-radius: 4px;
-  overflow: hidden;
-}
-
-.progress-bar-fill {
-  height: 100%;
-  background: linear-gradient(to right, #4caf50, #2e7d32);
-  transition: width 0.3s ease;
-}
-
-.progress-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-  align-items: center;
-  margin-top: 0.5rem;
-  font-size: 0.85rem;
-  color: #aaa;
-}
-
-.next-pending-btn {
-  background: transparent;
-  border: 1px solid #555;
-  color: #f9cb28;
-  padding: 0.35rem 0.65rem;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 0.75rem;
-}
-
-.save-hint {
-  width: 100%;
-  margin: 0 0 0.5rem;
-  color: #ff4d4d;
-  font-size: 0.85rem;
-  text-align: left;
-}
-</style>
+<style src="./classification-modal.css"></style>
 
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Montserrat:wght@400;600;700&display=swap');

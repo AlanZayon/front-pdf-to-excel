@@ -24,9 +24,12 @@ export class ImpostoService {
     return this.nameToCodeMap[name];
   }
 
-  static async loadImpostos(_command: LoadImpostosCommand): Promise<LoadImpostosResult> {
+  static async loadImpostos(_command: LoadImpostosCommand, clienteId?: number | null): Promise<LoadImpostosResult> {
     try {
-      const response = await http.get('/api/configuracao/impostos', {
+      const url = clienteId
+        ? `/api/configuracao/impostos?clienteId=${clienteId}`
+        : '/api/configuracao/impostos'
+      const response = await http.get(url, {
         withCredentials: true
       });
 
@@ -74,7 +77,7 @@ export class ImpostoService {
     }
   }
 
-  static async updateImpostos(command: UpdateImpostosCommand): Promise<SaveImpostosResult> {
+  static async updateImpostos(command: UpdateImpostosCommand, clienteId?: number | null): Promise<SaveImpostosResult> {
     try {
       if (command.changes.length === 0) {
         return {
@@ -83,8 +86,10 @@ export class ImpostoService {
         };
       }
 
-      // Envia TODOS os impostos modificados (incluindo INSS e IRRF)
-      await http.put('/api/configuracao/impostos', command.changes, {
+      const url = clienteId
+        ? `/api/configuracao/impostos?clienteId=${clienteId}`
+        : '/api/configuracao/impostos'
+      await http.put(url, command.changes, {
         withCredentials: true
       });
 
@@ -181,5 +186,44 @@ export class ImpostoService {
         message: 'Erro de conexão. Tente novamente.'
       }
     }
+  }
+
+  static async exportDescricoesCsv(cnpj: string, codigoBanco?: number | null): Promise<Blob> {
+    let url = `/api/configuracao/descricoes/export?cnpj=${encodeURIComponent(cnpj)}`
+    if (codigoBanco) url += `&codigoBanco=${codigoBanco}`
+    const response = await http.get(url, { withCredentials: true, responseType: 'blob' })
+    return response.data
+  }
+
+  static async importDescricoesCsv(cnpj: string, file: File, codigoBanco?: number | null): Promise<{ count: number }> {
+    const formData = new FormData()
+    formData.append('file', file)
+    let url = `/api/configuracao/descricoes/import?cnpj=${encodeURIComponent(cnpj)}`
+    if (codigoBanco) url += `&codigoBanco=${codigoBanco}`
+    const response = await http.post(url, formData, { withCredentials: true })
+    return { count: response.data.count ?? 0 }
+  }
+
+  static async suggestDescricoes(cnpj: string, termo: string) {
+    const response = await http.get('/api/configuracao/descricoes/suggest', {
+      withCredentials: true,
+      params: { cnpj, termo },
+    })
+    return response.data as Array<{ termo: string; codigoDebito: number; codigoCredito: number }>
+  }
+
+  static async copyDescricoes(payload: {
+    cnpjOrigem: string
+    cnpjDestino: string
+    codigoBancoOrigem?: number | null
+    codigoBancoDestino?: number | null
+  }): Promise<number> {
+    const response = await http.post('/api/configuracao/descricoes/copiar', {
+      CnpjOrigem: payload.cnpjOrigem,
+      CnpjDestino: payload.cnpjDestino,
+      CodigoBancoOrigem: payload.codigoBancoOrigem ?? null,
+      CodigoBancoDestino: payload.codigoBancoDestino ?? null,
+    }, { withCredentials: true })
+    return response.data.count ?? 0
   }
 }

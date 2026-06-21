@@ -1,10 +1,17 @@
 import { http } from '../../shared/utils/http'
 import { getSessionId, resetSessionId } from '../../shared/utils/session'
 import { logger } from '../../shared/logging/logger'
+import { HistoryService } from './HistoryService'
 
 export class FileDownloadService {
-  static async execute(fileName?: string): Promise<void> {
+  static async execute(fileName?: string, jobId?: string): Promise<void> {
     try {
+      if (jobId) {
+        await HistoryService.downloadByJobId(jobId, fileName)
+        logger.info(`Download realizado com sucesso via job ${jobId}`)
+        return
+      }
+
       const sessionId = getSessionId()
 
       const response = await http.get('/api/download/download', {

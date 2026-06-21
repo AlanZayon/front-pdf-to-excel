@@ -1,6 +1,12 @@
 import { ref, computed } from 'vue'
 
-const PRO_LABORE_YEAR = new Date().getFullYear()
+const DEFAULT_PRO_LABORE_YEAR = new Date().getFullYear()
+const MIN_PRO_LABORE_YEAR = 2000
+const MAX_PRO_LABORE_YEAR = 2099
+
+export function isValidProLaboreYear(year: number): boolean {
+  return Number.isInteger(year) && year >= MIN_PRO_LABORE_YEAR && year <= MAX_PRO_LABORE_YEAR
+}
 
 function parsePtBrCurrency(value: string): number | null {
   const sanitizedValue = value.replace(/\s/g, '')
@@ -31,19 +37,30 @@ function formatPtBrCurrencyInput(value: string): string {
 export function useProLabore() {
   const proLaboreActive = ref(false)
   const proLaboreValue = ref('')
-  const proLaboreYear = PRO_LABORE_YEAR
+  const proLaboreYear = ref(DEFAULT_PRO_LABORE_YEAR)
 
   const parsedProLaboreValue = computed(() => parsePtBrCurrency(proLaboreValue.value))
-  const isProLaboreValid = computed(() => !proLaboreActive.value || parsedProLaboreValue.value !== null)
+  const isProLaboreValid = computed(
+    () =>
+      !proLaboreActive.value ||
+      (parsedProLaboreValue.value !== null && isValidProLaboreYear(proLaboreYear.value))
+  )
 
   const onProLaboreInput = (event: Event) => {
     const target = event.target as HTMLInputElement
     proLaboreValue.value = formatPtBrCurrencyInput(target.value)
   }
 
+  const onProLaboreYearInput = (event: Event) => {
+    const target = event.target as HTMLInputElement
+    const parsed = Number.parseInt(target.value, 10)
+    proLaboreYear.value = Number.isFinite(parsed) ? parsed : DEFAULT_PRO_LABORE_YEAR
+  }
+
   const resetProLabore = () => {
     proLaboreActive.value = false
     proLaboreValue.value = ''
+    proLaboreYear.value = DEFAULT_PRO_LABORE_YEAR
   }
 
   return {
@@ -52,7 +69,9 @@ export function useProLabore() {
     proLaboreYear,
     parsedProLaboreValue,
     isProLaboreValid,
+    isValidProLaboreYear,
     onProLaboreInput,
-    resetProLabore
+    onProLaboreYearInput,
+    resetProLabore,
   }
 }

@@ -5,6 +5,10 @@ const props = defineProps<{
   visible: boolean
   titleId?: string
   closeOnEscape?: boolean
+  /** When false, the panel does not scroll; inner content should manage overflow. */
+  panelScroll?: boolean
+  /** Raised above standard modals (e.g. confirm over bank modal). */
+  elevated?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -72,12 +76,17 @@ onUnmounted(() => document.removeEventListener('keydown', onKeydown))
     <div
       v-if="visible"
       class="app-modal-overlay"
+      :class="{
+        'app-modal-overlay--contained': panelScroll === false,
+        'app-modal-overlay--elevated': elevated,
+      }"
       role="presentation"
       @click.self="$emit('close')"
     >
       <div
         ref="panelRef"
         class="app-modal-panel"
+        :class="{ 'app-modal-panel--contained': panelScroll === false }"
         role="dialog"
         aria-modal="true"
         :aria-labelledby="titleId"
@@ -101,7 +110,29 @@ onUnmounted(() => document.removeEventListener('keydown', onKeydown))
 }
 
 .app-modal-panel {
-  max-height: 95vh;
+  max-height: 96vh;
   overflow: auto;
+}
+
+.app-modal-overlay--contained {
+  padding: 8px;
+}
+
+.app-modal-overlay--elevated {
+  z-index: 3000;
+}
+
+.app-modal-panel--contained {
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: calc(100dvh - 16px);
+  max-height: calc(100dvh - 16px);
+}
+
+.app-modal-panel--contained > :slotted(*) {
+  flex: 1;
+  min-height: 0;
 }
 </style>

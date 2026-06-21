@@ -7,6 +7,11 @@ import {
   formatDominioDate,
   paginateRows,
   getTotalPages,
+  serializeDominioRow,
+  syncCsvPreviewRow,
+  rowsToCsvText,
+  applyRawTextToRows,
+  parseValorInput,
 } from '@/shared/utils/csvPreview'
 
 describe('csvPreview', () => {
@@ -60,5 +65,42 @@ describe('csvPreview', () => {
     expect(paginateRows(items, 1, 2)).toEqual([1, 2])
     expect(paginateRows(items, 2, 2)).toEqual([3, 4])
     expect(getTotalPages(5, 2)).toBe(3)
+  })
+
+  it('serializes and syncs edited rows', () => {
+    const [row] = parseDominioCsv('1,01012025,1111,2222,150.50,,"PIX RECEBIDO"')
+    const updated = syncCsvPreviewRow(row, { valor: 200, descricao: 'AJUSTE MANUAL' })
+
+    expect(parseValorInput('200,00')).toBe(200)
+    expect(updated.valor).toBe(200)
+    expect(updated.descricao).toBe('AJUSTE MANUAL')
+    expect(updated.rawLine).toContain('200,00')
+    expect(rowsToCsvText([updated])).toContain('AJUSTE MANUAL')
+  })
+
+  it('validates raw text edits', () => {
+    const original = '1,01012025,1111,2222,150.50,,"PIX"\n1,02012025,9999,8888,20.00,,"BOLETO"'
+    const result = applyRawTextToRows(original.replace('BOLETO', 'BOLETO AJUSTADO'))
+
+    expect(result.ok).toBe(true)
+    if (result.ok) {
+      expect(result.rows).toHaveLength(2)
+      expect(result.rows[1].descricao).toBe('BOLETO AJUSTADO')
+    }
+
+    expect(applyRawTextToRows('invalid line').ok).toBe(false)
+  })
+
+  it('quotes descriptions with commas when serializing', () => {
+    const line = serializeDominioRow({
+      tipo: '1',
+      data: '01012025',
+      debito: '111',
+      credito: '222',
+      valor: 10,
+      descricao: 'PIX, recebido',
+    })
+
+    expect(line).toContain('"PIX, recebido"')
   })
 })

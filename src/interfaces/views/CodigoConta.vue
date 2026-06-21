@@ -26,8 +26,18 @@
         </div>
 
         <!-- Tabela de Códigos de Conta -->
+        <div v-if="!isLoading" class="client-selector">
+          <label for="cliente-select">Configurar códigos para:</label>
+          <select id="cliente-select" v-model="selectedClienteId" @change="onClienteChange">
+            <option :value="null">Padrão do escritório</option>
+            <option v-for="cliente in clientes" :key="cliente.id" :value="cliente.id">
+              {{ cliente.razaoSocial }}
+            </option>
+          </select>
+        </div>
+
         <TaxCodeEditor
-            v-else
+            v-if="!isLoading"
             :tax-codes="taxCodes"
             :tax-types="taxTypes"
             :disabled="isSaving"
@@ -66,7 +76,7 @@
 
 <script lang="ts" setup>
 import { ref, onMounted } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRouter, useRoute } from 'vue-router';
 import { ImpostoService } from '../../infrastructure/services/ImpostoService';
 import { LoadImpostosCommand } from '../../application/commands/LoadImpostosCommand';
 import { UpdateImpostosCommand } from '../../application/commands/UpdateImpostosCommand';
@@ -76,13 +86,20 @@ import { useAuthStore } from '../../stores/authStore'
 import TaxCodeEditor from '../ui/TaxCodeEditor.vue'
 import { LINKED_TAXES } from '../../shared/composables/useTaxCodeLinkage';
 import { notifyError, notifySuccess } from '../../shared/composables/useToast';
+import { ClienteService, type Cliente } from '../../infrastructure/services/ClienteService';
 
 const router = useRouter();
+const route = useRoute();
 const authStore = useAuthStore()
 
-onMounted(() => {
+onMounted(async () => {
     authStore.markPageReady()
-    loadTaxCodes();
+    await loadClientes()
+    const queryClienteId = Number(route.query.clienteId)
+    if (Number.isFinite(queryClienteId) && clientes.value.some((cliente) => cliente.id === queryClienteId)) {
+        selectedClienteId.value = queryClienteId
+    }
+    await loadTaxCodes();
 })
 
 // Dados reativos
@@ -92,6 +109,12 @@ const taxTypes = ref<ImpostoDto[]>([]);
 const isSaving = ref(false);
 const isLoading = ref(true);
 const showSkipWarning = ref(false);
+const clientes = ref<Cliente[]>([]);
+const selectedClienteId = ref<number | null>(null);
+
+const onClienteChange = async () => {
+    await loadTaxCodes();
+};
 
 const confirmAdvance = () => {
     const hasConfiguredCodes = Object.values(taxCodes.value).some(
@@ -113,11 +136,20 @@ const advanceWithoutSaving = () => {
     router.push('/');
 };
 
+const loadClientes = async () => {
+    try {
+        const result = await ClienteService.list(undefined, 1, 100);
+        clientes.value = result.items;
+    } catch {
+        clientes.value = [];
+    }
+};
+
 const loadTaxCodes = async () => {
     try {
         isLoading.value = true;
         const command = LoadImpostosCommand.create();
-        const result = await ImpostoService.loadImpostos(command);
+        const result = await ImpostoService.loadImpostos(command, selectedClienteId.value);
 
         if (!result.success) {
             throw new Error(result.message);
@@ -217,7 +249,7 @@ const saveAccountCodes = async () => {
         console.log('Enviando alterações:', modifiedChanges); // Para debug
 
         const command = UpdateImpostosCommand.create(modifiedChanges);
-        const result = await ImpostoService.updateImpostos(command);
+        const result = await ImpostoService.updateImpostos(command, selectedClienteId.value);
 
         if (!result.success) {
             throw new Error(result.message);
@@ -258,6 +290,29 @@ const cancel = () => {
     min-height: 100vh;
     width: 100%;
     box-sizing: border-box;
+}
+
+.client-selector {
+    margin-bottom: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    max-width: 420px;
+}
+
+.client-selector label {
+    color: #f9cb28;
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.85rem;
+}
+
+.client-selector select {
+    padding: 0.75rem;
+    border-radius: 4px;
+    border: 1px solid #444;
+    background: #111;
+    color: #fff;
 }
 
 /* Botão de Avançar */

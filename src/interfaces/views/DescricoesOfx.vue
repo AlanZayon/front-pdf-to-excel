@@ -2,6 +2,7 @@
 import { onMounted, defineAsyncComponent, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../../stores/authStore'
+import DescricoesToolsPanel from '../modal/panels/DescricoesToolsPanel.vue'
 
 const EditEmployeeModal = defineAsyncComponent(() => import('../modal/EditEmployeeModal.vue'))
 const router = useRouter()
@@ -25,6 +26,8 @@ const close = () => {
       <h1>Descrições OFX</h1>
       <p>Configure mapeamentos de descrições bancárias por CNPJ e código do banco.</p>
     </div>
+
+    <DescricoesToolsPanel />
 
     <EditEmployeeModal
       v-if="showModal"

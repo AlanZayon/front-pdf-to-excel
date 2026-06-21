@@ -9,6 +9,7 @@ export class UploadCommand {
     public cnpj?: string | null,
     public bankCode?: string | null,
     public dateFilterData?: { startDate: string; endDate: string } | null,
-    public readonly proLabore?: ProLaboreData
+    public readonly proLabore?: ProLaboreData,
+    public readonly clienteId?: number | null
   ) { }
 }
